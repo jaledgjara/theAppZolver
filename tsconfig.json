@@ -1,13 +1,18 @@
 {
   "compilerOptions": {
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "allowJs": false,
+    "paths": { "@/*": ["*"] },
     "types": [
       "react",
-      "react-native"
+      "react-native",
+      "expo-router",
+      "node"
     ],
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
   "extends": "expo/tsconfig.base"
 }

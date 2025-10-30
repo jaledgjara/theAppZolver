@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBu5BbjNMPKNV5f60L0Brj8Uiuwy9aIkzI</string>
+	<key>GCM_SENDER_ID</key>
+	<string>448534321463</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.the.zolver.app</string>
+	<key>PROJECT_ID</key>
+	<string>thezolverapp</string>
+	<key>STORAGE_BUCKET</key>
+	<string>thezolverapp.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:448534321463:ios:2ad12f96b78e4e758862b2</string>
+</dict>
+</plist>
