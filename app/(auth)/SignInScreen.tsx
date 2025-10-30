@@ -13,24 +13,23 @@ import { useAppleSignIn } from '@/appSRC/auth/Hooks/useAppleSignIn';
 
 const SignInScreen = () => {
   const router = useRouter();
-
   const { handleAppleSignIn } = useAppleSignIn();
-
-  const handleUserBasicForm = () => {
-    router.push('/(auth)/UserBasicInfoScreen');
-  };
   const setStatus = useAuthStore((state) => state.setStatus);
   
-    const routerHandleGoBack = () => {
-      setStatus("unknown");
-    };
+  const handleGoBack = () => {
+    setStatus("unknown");
+  };
+
+  const handleUserBasicForm = () => {
+    setStatus("preAuth"); // el guard moverá al UserBasicInfoScreen
+  };  
   
   return (
     <View style={styles.container}>
       <ToolBarTitle
         titleText='¡Conectate a Zolver!'
         showBackButton={true}
-        onBackPress={routerHandleGoBack}
+        onBackPress={handleGoBack}
       />
       <View style={styles.contentContainer}>
         <Text style={styles.subtitle}>Accedé a tus servicios y profesionales rápidamente desde tus dispositivos.</Text>

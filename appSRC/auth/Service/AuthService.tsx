@@ -28,32 +28,44 @@ export const mapFirebaseUserToAuthUser = (fb: FirebaseUser, extra?: Partial<Auth
  * Se invoca una sola vez desde useAuthGuard().
  */
 export function initializeAuthListener() {
-  const { setStatus, setUser } = useAuthStore.getState();
+  // Read setters once, from Zustand's getState (no re-renders)
+  const { setStatus, setUser, setBootLoading } = useAuthStore.getState();
 
-  const unsubscribe = onAuthStateChanged(auth, async (fbUser: FirebaseUser | null) => {
-    console.log("[AuthListener] Firebase user changed:", fbUser?.uid ?? "none");
+  console.log("[AuthListener] init → subscribing to Firebase onAuthStateChanged");
 
+  const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    console.log(
+      `[AuthListener] onAuthStateChanged fired → fbUser=${fbUser ? fbUser.uid : "none"}`
+    );
+
+    // CASE A: No Firebase session
     if (!fbUser) {
-      // 🔸 Sin usuario logueado → estado anónimo
+      console.log(
+        "[AuthListener] no Firebase user → keep status=unknown; stop boot loader"
+      );
       setUser(null);
-      setStatus("anonymous");
+      setBootLoading(false);
       return;
     }
 
-    // 🔸 Usuario logueado → verificamos si su perfil está completo
+    // CASE B: There is a Firebase user
+    console.log("[AuthListener] Firebase user present → check profileComplete flag");
+
+    // (MVP) read a local cached flag; later this can come from your backend
     const storedProfileFlag = await AsyncStorage.getItem("profileComplete");
     const profileComplete = storedProfileFlag === "true";
+    console.log(`[AuthListener] profileComplete(local)=${profileComplete}`);
 
-    // 🔸 Mapeamos el usuario al formato AuthUser
     const appUser = mapFirebaseUserToAuthUser(fbUser, { profileComplete });
     setUser(appUser);
 
-    // 🔸 Determinamos el estado
-    let nextStatus: AuthStatus;
-    if (profileComplete) nextStatus = "authenticated";
-    else nextStatus = "preAuth";
-
+    const nextStatus: AuthStatus = profileComplete ? "authenticated" : "preAuth";
+    console.log(`[AuthListener] setStatus(${nextStatus})`);
     setStatus(nextStatus);
+
+    // When user exists we implicitly finished boot as well
+    console.log("[AuthListener] stop boot loader");
+    setBootLoading(false);
   });
 
   return unsubscribe;

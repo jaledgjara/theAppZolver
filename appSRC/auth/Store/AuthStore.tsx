@@ -23,12 +23,11 @@ export type AuthStore = AuthUserSession & {
   reset: () => void;
 };
 
-// 🔹 Implementación del store con Zustand
 export const useAuthStore = create<AuthStore>((set) => ({
-  status: "unknown",
+  status: "unknown",       // arranca desconocido (solo en memoria)
   user: null,
-  isBootLoading: true,   // solo durante el arranque inicial
-  isActionLoading: false, // para acciones de usuario
+  isBootLoading: true,     // splash mientras Firebase responde
+  isActionLoading: false,
   lastError: null,
 
   setStatus: (status) => set({ status }),

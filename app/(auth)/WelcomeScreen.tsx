@@ -12,8 +12,8 @@ const WelcomeScreen = () => {
 
   const setStatus = useAuthStore((state) => state.setStatus);
 
-  const routerHandleSignInScreen = () => {
-    setStatus("anonymous");
+  const handleContinue = () => {
+    setStatus("anonymous"); // el guard hará replace automáticamente
   };
 
   return (
@@ -29,7 +29,7 @@ const WelcomeScreen = () => {
         <View style={styles.buttonContainer}>
         <LargeButton 
           title="CONTINUAR" 
-          onPress={routerHandleSignInScreen}
+          onPress={handleContinue}
           iconName="arrow-forward-circle"
         />
         </View>

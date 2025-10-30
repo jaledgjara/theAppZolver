@@ -6,47 +6,61 @@ import { AUTH_PATHS } from "../Path/AuthPaths";
 import { AuthStatus } from "../Type/AuthUser";
 import { initializeAuthListener } from "../Service/AuthService";
 
-const DEBUG = true;
-const READY_DELAY_MS = 50;
 
 export function useAuthGuard() {
   const router = useRouter();
   const pathname = usePathname();
-  const segments = useSegments();
-  const navigationState = useRootNavigationState();
+  const navState = useRootNavigationState();
 
-  const { status, user, setBootLoading } = useAuthStore();
-  const readyGate = useRef(false);
+  const { status, user, isBootLoading } = useAuthStore();
+  const isNavReady = navState?.key != null;
+
+  // Track last routed status to avoid duplicate replace()
   const prevStatus = useRef<AuthStatus | null>(null);
 
-  const isNavigationReady = navigationState?.key != null;
-
-  // Listener global (Firebase)
+  // 1) Mount listener once
   useEffect(() => {
-    const unsubscribe = initializeAuthListener();
-    DEBUG && console.log("[AuthGuard] Firebase listener initialized");
-    return () => unsubscribe?.();
+    console.log("[AuthGuard] mount → initializeAuthListener()");
+    const unsub = initializeAuthListener();
+    console.log("[AuthGuard] Firebase listener initialized");
+    return () => {
+      console.log("[AuthGuard] unmount → unsubscribe Firebase listener");
+      unsub?.();
+    };
   }, []);
 
-  // Ready gate: espera router + listener
+  // 2) React to status changes and navigate
   useEffect(() => {
-    const timer = setTimeout(() => {
-      readyGate.current = true;
-      setBootLoading(false); // 🔹 apaga el splash solo una vez
-    }, READY_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [setBootLoading]);
+    console.log(
+      `[AuthGuard] tick → isNavReady=${isNavReady} isBootLoading=${isBootLoading} status=${status} ` +
+      `profileComplete=${user?.profileComplete ?? "n/a"} pathname=${pathname}`
+    );
 
-  // Lógica principal
-  useEffect(() => {
-    if (!isNavigationReady || !readyGate.current) return;
-    if (status === "unknown") return;
+    if (!isNavReady) {
+      console.log("[AuthGuard] nav not ready yet → wait");
+      return;
+    }
+    if (isBootLoading) {
+      console.log("[AuthGuard] boot loading → wait");
+      return;
+    }
 
-    if (status === prevStatus.current) return;
-    prevStatus.current = status;
+    // Special case: unknown must always go to Welcome
+    if (status === "unknown") {
+      console.log("[AuthGuard] status=unknown → go Welcome");
+      router.replace(AUTH_PATHS.unknown);
+      prevStatus.current = "unknown";
+      return;
+    }
 
-    let target: string | null = null;
+    // Avoid duplicate routing for same status
+    if (status === prevStatus.current) {
+      console.log("[AuthGuard] same status as last route → no-op");
+      return;
+    }
 
+    // Compute target route for status
+    let target: string;
     switch (status) {
       case "anonymous":
         target = AUTH_PATHS.anonymous;
@@ -55,25 +69,33 @@ export function useAuthGuard() {
         target = AUTH_PATHS.preAuth;
         break;
       case "authenticated":
-        target = user?.profileComplete
-          ? AUTH_PATHS.unknown
-          : AUTH_PATHS.unknown;
+        target = user?.profileComplete ? AUTH_PATHS.authenticated : AUTH_PATHS.preAuth;
+        break;
+      case "incompleteProfile":
+        // Optional: if you decide to use it distinctly
+        target = AUTH_PATHS.preAuth;
         break;
       default:
         target = AUTH_PATHS.unknown;
         break;
     }
 
-    const current = pathname.replace("/(auth)", "").replace("/(tabs)", "");
-    const next = target.replace("/(auth)", "").replace("/(tabs)", "");
+    // Normalize to avoid group prefixes creating false differences
+    const normalize = (p?: string) => (p ?? "").replace("/(auth)", "").replace("/(tabs)", "");
+    const current = normalize(pathname);
+    const next = normalize(target);
+
+    console.log(`[AuthGuard] route check → current=${current} next=${next}`);
 
     if (current !== next) {
-      DEBUG && console.log(`[AuthGuard] Navigating → ${target}`);
+      console.log(`[AuthGuard] replace → ${target}`);
       router.replace(target);
+      prevStatus.current = status;
     } else {
-      DEBUG && console.log("[AuthGuard] No navigation needed.");
+      console.log("[AuthGuard] already there → no-op");
+      prevStatus.current = status;
     }
-  }, [isNavigationReady, status, user, pathname, router]);
+  }, [isNavReady, isBootLoading, status, user?.profileComplete, pathname, router]);
 }
 
 export default useAuthGuard;

@@ -17,9 +17,20 @@ export type AuthUser = {
   profileComplete: boolean; 
 };
 
+// appSRC/auth/Type/AuthUser.ts
+
 export type AuthUserSession = {
   status: AuthStatus;
   user: AuthUser | null;
-  isLoading: boolean;
+
+  /**
+   * ⚠️ Deprecated:
+   *  ya no se usa como bandera global de carga.
+   *  Se reemplaza por:
+   *   - isBootLoading → carga inicial (splash / auth)
+   *   - isActionLoading → carga de acciones (sign-in, update, etc.)
+   */
+  isLoading?: boolean;
+
   lastError?: string | null;
 };
