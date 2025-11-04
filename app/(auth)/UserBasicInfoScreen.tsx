@@ -6,10 +6,11 @@ import { COLORS, FONTS } from '@/appASSETS/theme';
 import AuthInput from '@/appSRC/auth/Screen/AuthInput';
 import { LargeButton } from '@/appCOMP/button/LargeButton';
 import CustomPhoneInput from '@/appSRC/auth/Screen/CustomPhoneInput';
+import { useSignOut } from '@/appSRC/auth/Hooks/useSignOut';
 
 const UserBasicInfoScreen = () => {
   const router = useRouter();
-  
+  const { handleSignOut } = useSignOut();
   const routerHandleSignInScreen = () => {
     router.push('/(auth)/PhoneVerificationScreen');
   };
@@ -18,6 +19,7 @@ const UserBasicInfoScreen = () => {
       <ToolBarTitle
         titleText='Formulario de usuario'
         showBackButton={true}
+        onBackPress={handleSignOut}
       />
       <View style={styles.contentContainer}>
 

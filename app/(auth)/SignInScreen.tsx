@@ -9,19 +9,23 @@ import { AntDesign } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '@/appSRC/auth/Store/AuthStore';
 import { useAppleSignIn } from '@/appSRC/auth/Hooks/useAppleSignIn';
+import { useGoogleSignIn } from '@/appSRC/auth/Hooks/useGoogleSignIn';
+import { useSignOut } from '@/appSRC/auth/Hooks/useSignOut';
 
 
 const SignInScreen = () => {
   const router = useRouter();
   const { handleAppleSignIn } = useAppleSignIn();
+  const { handleGoogleSignIn } = useGoogleSignIn();
+  
   const setStatus = useAuthStore((state) => state.setStatus);
   
   const handleGoBack = () => {
     setStatus("unknown");
   };
 
-  const handleUserBasicForm = () => {
-    setStatus("preAuth"); // el guard moverá al UserBasicInfoScreen
+  const handleSignInEmailScreen = () => {
+    router.push('(auth)/SignInEmailScreen');
   };  
   
   return (
@@ -38,14 +42,14 @@ const SignInScreen = () => {
           <AuthButton
             title="Continuar con email"
             icon={<Ionicons name="mail" size={22} color="#FFFFFF"/>}
-            onPress={handleUserBasicForm}
+            onPress={handleSignInEmailScreen}
             style={{ backgroundColor: '#FBBF24', borderColor: COLORS.primary, marginBottom: 15 }}
             textColor="white"
           />
           <AuthButton
             title="Continuar con Google"
             icon={<AntDesign name="google" size={22} color="#FFFFFF" />}
-            onPress={handleUserBasicForm}
+            onPress={handleGoogleSignIn}
             style={{ backgroundColor: '#3872F1', marginBottom: 15 }}
             textColor="white"
           />

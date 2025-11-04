@@ -8,12 +8,13 @@ import { useAuthStore } from '@/appSRC/auth/Store/AuthStore';
 import { stat } from 'fs';
 
 const WelcomeScreen = () => {
-  const router = useRouter();
 
   const setStatus = useAuthStore((state) => state.setStatus);
+  const setTransitionDirection = useAuthStore((state) => state.setTransitionDirection);
 
   const handleContinue = () => {
-    setStatus("anonymous"); // el guard hará replace automáticamente
+    setTransitionDirection("forward");
+    setStatus("anonymous");
   };
 
   return (
