@@ -2,9 +2,7 @@ import { create } from "zustand";
 import type { AuthStatus, AuthUser, AuthUserSession } from "../Type/AuthUser";
 import { TransitionDirection } from "../Type/TransitionDirection";
 
-/** Dirección de la animación de transición */
-
-/** 🔹 Definición del tipo del store */
+/** 🔹 Tipo del store de autenticación global */
 export type AuthStore = AuthUserSession & {
   /** Carga inicial del app (solo durante el arranque) */
   isBootLoading: boolean;
@@ -18,7 +16,11 @@ export type AuthStore = AuthUserSession & {
   /** Dirección de transición visual (slide) */
   transitionDirection: TransitionDirection;
 
-  /** Setters de estado */
+  /** 🔹 Campos temporales para verificación telefónica (OTP) */
+  verificationId: string | null;
+  lastPhone: string | null;
+
+  /** 🔹 Setters de estado */
   setStatus: (status: AuthStatus) => void;
   setUser: (user: AuthUser | null) => void;
   setBootLoading: (loading: boolean) => void;
@@ -26,18 +28,26 @@ export type AuthStore = AuthUserSession & {
   setError: (error: string | null) => void;
   setTransitionDirection: (direction: TransitionDirection) => void;
 
+  /** 🔹 Setters específicos OTP */
+  setVerificationId: (id: string | null) => void;
+  setLastPhone: (phone: string | null) => void;
+
   /** Reinicia el store a un estado anónimo */
   reset: () => void;
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
   // 🔹 Estado inicial
-  status: "unknown",       // arranca desconocido (solo en memoria)
+  status: "unknown",
   user: null,
-  isBootLoading: true,     // splash mientras Firebase responde
+  isBootLoading: true,
   isActionLoading: false,
   lastError: null,
-  transitionDirection: "forward", // por defecto, avanzar
+  transitionDirection: "forward",
+
+  // 🔹 Campos OTP
+  verificationId: null,
+  lastPhone: null,
 
   // 🔹 Setters
   setStatus: (status) => set({ status }),
@@ -47,6 +57,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setError: (lastError) => set({ lastError }),
   setTransitionDirection: (transitionDirection) => set({ transitionDirection }),
 
+  // 🔹 Setters OTP
+  setVerificationId: (verificationId) => set({ verificationId }),
+  setLastPhone: (lastPhone) => set({ lastPhone }),
+
   // 🔹 Reinicio total del store
   reset: () =>
     set({
@@ -55,6 +69,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
       isBootLoading: false,
       isActionLoading: false,
       lastError: null,
-      transitionDirection: "back", // al salir, retrocede
+      transitionDirection: "back",
+      verificationId: null,
+      lastPhone: null,
     }),
 }));

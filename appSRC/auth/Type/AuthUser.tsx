@@ -4,7 +4,8 @@ export type UserRole = "client" | "professional" | "employer" | "admin";
 export type AuthStatus =
   | "unknown"          
   | "anonymous"        
-  | "preAuth"         
+  | "preAuth"      
+  | "preTypeOfUser"   
   | "authenticated"    
   | "incompleteProfile"; 
 
@@ -22,15 +23,6 @@ export type AuthUser = {
 export type AuthUserSession = {
   status: AuthStatus;
   user: AuthUser | null;
-
-  /**
-   * ⚠️ Deprecated:
-   *  ya no se usa como bandera global de carga.
-   *  Se reemplaza por:
-   *   - isBootLoading → carga inicial (splash / auth)
-   *   - isActionLoading → carga de acciones (sign-in, update, etc.)
-   */
   isLoading?: boolean;
-
   lastError?: string | null;
 };

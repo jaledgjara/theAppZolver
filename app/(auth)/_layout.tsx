@@ -37,6 +37,10 @@ const _layout = () => {
         name="PhoneVerificationScreen"
         options={{ headerShown: false, animation }}
       />
+      <Stack.Screen
+        name="TypeOfUserScreen"
+        options={{ headerShown: false, animation }}
+      />
     </Stack>
   );
 };

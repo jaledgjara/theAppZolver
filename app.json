@@ -17,21 +17,20 @@
       "bundleIdentifier": "com.the.zolver.app",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
+      "associatedDomains": ["applinks:thezolverapp.web.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "associatedDomains": ["applinks:thezolverapp.web.app"]
+      }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
       "package": "com.the.zolver.app",
       "intentFilters": [
-        { "action": "VIEW", "autoVerify": true, "data": [{ "scheme": "https", "host": "thezolverapp.web.app" }], "category": ["BROWSABLE", "DEFAULT"] }
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "thezolverapp.web.app" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {

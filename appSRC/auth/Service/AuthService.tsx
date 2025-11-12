@@ -6,9 +6,12 @@ import {
   isSignInWithEmailLink,
   OAuthProvider,
   onAuthStateChanged,
+  PhoneAuthProvider,
+  RecaptchaVerifier,
   sendSignInLinkToEmail,
   signInWithCredential,
   signInWithEmailLink,
+  signInWithPhoneNumber,
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";

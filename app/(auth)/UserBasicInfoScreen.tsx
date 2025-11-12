@@ -1,47 +1,79 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
+import React, { useState } from 'react'
 import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
 import { useRouter } from 'expo-router';
 import { COLORS, FONTS } from '@/appASSETS/theme';
 import AuthInput from '@/appSRC/auth/Screen/AuthInput';
 import { LargeButton } from '@/appCOMP/button/LargeButton';
-import CustomPhoneInput from '@/appSRC/auth/Screen/CustomPhoneInput';
 import { useSignOut } from '@/appSRC/auth/Hooks/useSignOut';
+import { useAuthStore } from '@/appSRC/auth/Store/AuthStore';
+import { CustomPhoneInput } from '@/appSRC/auth/Screen/CustomPhoneInput';
+import { usePhoneVerification } from "@/appSRC/auth/Hooks/usePhoneVerification";
+
 
 const UserBasicInfoScreen = () => {
   const router = useRouter();
-  const { handleSignOut } = useSignOut();
-  const routerHandleSignInScreen = () => {
-    router.push('/(auth)/PhoneVerificationScreen');
+  const user = useAuthStore((state) => state.user);
+  const [phone, setPhone] = useState("");
+  const { loading, error, sendCode } = usePhoneVerification();
+
+  const onPressSend = async () => {
+    console.log("[UserBasicInfoScreen] Button pressed → sendCode()");
+    if (!phone) {
+      Alert.alert("Error", "Por favor ingresa un número de teléfono");
+      return;
+    }
+
+    const res = await sendCode(phone);
+    console.log("[UserBasicInfoScreen] sendCode result:", res);
+
+    if (!res.ok) {
+      Alert.alert("Error", error ?? "No se pudo enviar el código");
+      return;
+    }
+
+    console.log("[UserBasicInfoScreen] ✅ OTP enviado correctamente → navegando a VerifyScreen");
+    router.push("/(auth)/PhoneVerificationScreen");
   };
+
   return (
-    <View style={styles.container}>
-      <ToolBarTitle
-        titleText='Formulario de usuario'
-        showBackButton={true}
-        onBackPress={handleSignOut}
-      />
-      <View style={styles.contentContainer}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      {/* Dismiss keyboard when tapping anywhere */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <ToolBarTitle
+            titleText="Formulario de usuario"
+            showBackButton={true}
+            onBackPress={() => router.back()}
+          />
 
-        <View style={styles.infoContainer}>
-          <Text style={styles.title}>Email</Text>
-          <Text style={styles.subtitle}>emailDelUsuario@email.com</Text>
+          <View style={styles.contentContainer}>
+            <View style={styles.infoContainer}>
+              <Text style={styles.title}>Email</Text>
+              <Text style={styles.subtitle}>{user?.email ?? "Sin email"}</Text>
+            </View>
+
+            <CustomPhoneInput value={phone} onChangeText={setPhone} />
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <LargeButton
+              title={loading ? "Enviando..." : "Verificar teléfono"}
+              onPress={onPressSend}
+              iconName="phone-portrait-outline"
+              disabled={loading}
+              loading={loading}
+            />
+          </View>
         </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+  );
+};
 
-        <CustomPhoneInput/>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <LargeButton 
-          title="Verificar teléfono" 
-          onPress={routerHandleSignInScreen}
-          iconName="phone-portrait-outline"
-        />
-      </View>
-
-    </View>
-  )
-}
 
 export default UserBasicInfoScreen
 
@@ -80,3 +112,5 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
+
+

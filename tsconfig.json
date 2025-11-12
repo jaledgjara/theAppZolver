@@ -3,7 +3,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "allowJs": false,
-    "paths": { "@/*": ["*"] },
+    "paths": { "@/*": ["*"],  "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.rn.d.ts"] },
     "types": [
       "react",
       "react-native",

@@ -80,6 +80,10 @@ export function useAuthGuard() {
         setTransitionDirection("forward");
         target = AUTH_PATHS.preAuth;
         break;
+      case "preTypeOfUser":
+        setTransitionDirection("forward");
+        target = AUTH_PATHS.preTypeOfUser;
+        break;
 
       default:
         setTransitionDirection("back");

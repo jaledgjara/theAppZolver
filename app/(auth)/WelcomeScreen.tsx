@@ -1,14 +1,13 @@
-import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+
 import { StyleSheet, Text, View } from 'react-native';
 import { COLORS, SIZES } from '../../appASSETS/theme';
 import { ToolBarPresentation } from 'appCOMP/toolbar/ToolbarPresentation';
 import { LargeButton } from 'appCOMP/button/LargeButton';
 import { useAuthStore } from '@/appSRC/auth/Store/AuthStore';
 import { stat } from 'fs';
+import { useRouter } from 'expo-router';
 
 const WelcomeScreen = () => {
-
   const setStatus = useAuthStore((state) => state.setStatus);
   const setTransitionDirection = useAuthStore((state) => state.setTransitionDirection);
 
@@ -16,7 +15,7 @@ const WelcomeScreen = () => {
     setTransitionDirection("forward");
     setStatus("anonymous");
   };
-
+  
   return (
     <View style={styles.container}>
       <ToolBarPresentation
