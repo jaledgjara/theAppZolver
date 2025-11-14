@@ -1,3 +1,4 @@
+import { auth } from "@/APIconfig/firebaseAPIConfig";
 import { signInWithAppleFirebase } from "../Service/AuthService";
 import { useAuthStore } from "../Store/AuthStore";
 import { AuthUser } from "../Type/AuthUser";
@@ -16,6 +17,9 @@ export function useAppleSignIn() {
       setUser(user);
       console.log("Apple Sign-In successful for user:", user);
       setStatus("preAuth");
+      const token = await auth.currentUser?.getIdToken(true);
+      console.log("Nuevo token:", token);
+
     } else {
       setError(result.message ?? "Unknown error");
       setStatus("anonymous");

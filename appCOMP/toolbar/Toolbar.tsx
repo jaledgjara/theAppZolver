@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, View, Text } from 'react-native';
 import { FONTS, COLORS } from '../../appASSETS/theme';
+import { AUTH_PATHS } from '@/appSRC/auth/Path/AuthPaths';
 
 interface ToolBarTitleProps {
   titleText: string;
@@ -16,6 +17,7 @@ export const ToolBarTitle: React.FC<ToolBarTitleProps> = ({
   onBackPress,
 }) => {
   const router = useRouter();
+
 
   const handleBackButton = () => {
     if (onBackPress) {

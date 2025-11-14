@@ -21,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { Platform } from "react-native";
+import { syncUserSession } from "./SessionService";
 
 
 export const mapFirebaseUserToAuthUser = (fb: FirebaseUser, extra?: Partial<AuthUser>): AuthUser => {
@@ -35,44 +36,43 @@ export const mapFirebaseUserToAuthUser = (fb: FirebaseUser, extra?: Partial<Auth
 };
 
 export function initializeAuthListener() {
-  // Read setters once, from Zustand's getState (no re-renders)
   const { setStatus, setUser, setBootLoading } = useAuthStore.getState();
 
-  console.log("[AuthListener] init → subscribing to Firebase onAuthStateChanged");
-
   const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-    console.log(
-      `[AuthListener] onAuthStateChanged fired → fbUser=${fbUser ? fbUser.uid : "none"}`
-    );
-
-    // CASE A: No Firebase session
     if (!fbUser) {
-      console.log(
-        "[AuthListener] no Firebase user → keep status=unknown; stop boot loader"
-      );
       setUser(null);
+      setStatus("anonymous");
       setBootLoading(false);
       return;
     }
 
-    // CASE B: There is a Firebase user
-    console.log("[AuthListener] Firebase user present → check profileComplete flag");
+    try {
+      console.log("[AuthListener] Firebase user detected → sync with Supabase");
 
-    // (MVP) read a local cached flag; later this can come from your backend
-    const storedProfileFlag = await AsyncStorage.getItem("profileComplete");
-    const profileComplete = storedProfileFlag === "true";
-    console.log(`[AuthListener] profileComplete(local)=${profileComplete}`);
+      // 🔹 Llamar al backend
+      const backendData = await syncUserSession();
 
-    const appUser = mapFirebaseUserToAuthUser(fbUser, { profileComplete });
-    setUser(appUser);
+      // 🔹 Calcular si el perfil está completo (fallback local)
+      const stored = await AsyncStorage.getItem("profileComplete");
+      const localFlag = stored === "true";
+      const profileComplete = backendData?.profileComplete ?? localFlag;
 
-    const nextStatus: AuthStatus = profileComplete ? "authenticated" : "preAuth";
-    console.log(`[AuthListener] setStatus(${nextStatus})`);
-    setStatus(nextStatus);
+      // 🔹 Mapear Firebase → AuthUser
+      const appUser = mapFirebaseUserToAuthUser(fbUser, { profileComplete });
+      setUser(appUser);
 
-    // When user exists we implicitly finished boot as well
-    console.log("[AuthListener] stop boot loader");
-    setBootLoading(false);
+      // 🔹 Determinar status
+      const nextStatus: AuthStatus = profileComplete ? "authenticated" : "preAuth";
+      setStatus(nextStatus);
+
+      console.log(`[AuthListener] ✅ Sesión sincronizada (${nextStatus})`);
+    } catch (err: any) {
+      console.error("[AuthListener] ❌ Error sincronizando sesión:", err.message);
+      setUser(mapFirebaseUserToAuthUser(fbUser, { profileComplete: false }));
+      setStatus("preAuth");
+    } finally {
+      setBootLoading(false);
+    }
   });
 
   return unsubscribe;
@@ -150,10 +150,6 @@ export async function signOutFirebase(): Promise<void> {
   try {
     console.log("[AuthService] signOut → closing Firebase session");
     await signOut(auth);
-
-    console.log("Pre auth, FOR NOW...");
-    reset();
-    // setStatus("anonymous");
 
     console.log("[AuthService] store reset to ANONYMOUS");
   } catch (e: any) {

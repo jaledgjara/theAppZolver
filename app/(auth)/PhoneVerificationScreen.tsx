@@ -45,7 +45,10 @@ export default function PhoneVerificationScreen() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView>
-          <ToolBarTitle titleText="Verificación de teléfono" showBackButton />
+          <ToolBarTitle 
+            titleText="Verificación de teléfono" 
+            showBackButton
+          />
 
           <View style={styles.contentContainer}>
             <Text style={styles.subtitle}>

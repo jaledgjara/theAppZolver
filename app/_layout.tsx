@@ -12,7 +12,7 @@ export default function RootLayout() {
     `[Layout] mount → isBootLoading=${isBootLoading}`
   );
 
-  useAuthGuard(); // will log its own mount
+  useAuthGuard();
 
   if (isBootLoading) {
     console.log("[Layout] showing MiniLoaderScreen");

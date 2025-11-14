@@ -3,10 +3,16 @@ import React, { useState } from 'react'
 import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
 import UserTypeSelector from '@/appSRC/auth/Screen/UserTypeSelector'
 import { LargeButton } from '@/appCOMP/button/LargeButton'
+import { useSelectUserType } from '@/appSRC/auth/Hooks/useSelectUserType'
 
 const TypeOfUserScreen = () => {
   const [selectedType, setSelectedType] = useState<"client" | "professional" | null>(null);
+  const { selectRole } = useSelectUserType();
 
+  const handleConfirmUserType = async () => {
+    if (!selectedType) return;
+    await selectRole(selectedType);
+  };
   return (
     <View style={styles.container}>
       <ToolBarTitle 
@@ -35,9 +41,7 @@ const TypeOfUserScreen = () => {
         <LargeButton 
           title="COMENZAR" 
           iconName="arrow-forward-circle-outline"
-          onPress={function (): void {
-          throw new Error('Function not implemented.')
-        } }          
+          onPress={handleConfirmUserType}          
         />
       </View>
 

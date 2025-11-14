@@ -9,14 +9,24 @@ import { useSignOut } from '@/appSRC/auth/Hooks/useSignOut';
 import { useAuthStore } from '@/appSRC/auth/Store/AuthStore';
 import { CustomPhoneInput } from '@/appSRC/auth/Screen/CustomPhoneInput';
 import { usePhoneVerification } from "@/appSRC/auth/Hooks/usePhoneVerification";
-
+import { AUTH_PATHS } from '@/appSRC/auth/Path/AuthPaths';
+import { auth } from '@/APIconfig/firebaseAPIConfig';
 
 const UserBasicInfoScreen = () => {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const [phone, setPhone] = useState("");
   const { loading, error, sendCode } = usePhoneVerification();
+  const { handleSignOut } = useSignOut();
+  
+  const handleGoBack = async () => {
+    console.log("[UserBasicInfoScreen] user canceled registration → signing out...");
+    // 🔑 Fuerza la obtención de un token nuevo y válido
+    const token = await auth.currentUser?.getIdToken(true);
+    console.log("🔄 Firebase idToken (refrescado):", token);
 
+    await handleSignOut();
+  };
   const onPressSend = async () => {
     console.log("[UserBasicInfoScreen] Button pressed → sendCode()");
     if (!phone) {
@@ -36,18 +46,19 @@ const UserBasicInfoScreen = () => {
     router.push("/(auth)/PhoneVerificationScreen");
   };
 
+
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Dismiss keyboard when tapping anywhere */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
           <ToolBarTitle
             titleText="Formulario de usuario"
             showBackButton={true}
-            onBackPress={() => router.back()}
+            onBackPress={handleGoBack}
           />
 
           <View style={styles.contentContainer}>
