@@ -1,21 +1,30 @@
-// appSRC/auth/Hooks/useAuthGuard.ts
 import { useEffect, useRef } from "react";
-import { useRouter, usePathname, useSegments, useRootNavigationState } from "expo-router";
+import {
+  useRouter,
+  usePathname,
+  useRootNavigationState,
+} from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { AUTH_PATHS } from "../Path/AuthPaths";
-import { AuthStatus } from "../Type/AuthUser";
-import { initializeAuthListener } from "../Service/AuthService";
+import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
+import { AUTH_PATHS } from "@/appSRC/auth/Path/AuthPaths";
+import type { AuthStatus } from "@/appSRC/auth/Store/AuthStore";
 
 export function useAuthGuard() {
   const router = useRouter();
   const pathname = usePathname();
   const navState = useRootNavigationState();
 
-  const { status, user, isBootLoading, setTransitionDirection } = useAuthStore();
-  const isNavReady = navState?.key != null;
+  const {
+    status,
+    user,
+    isBootLoading,
+    setTransitionDirection,
+  } = useAuthStore();
 
+  const isNavReady = navState?.key != null;
   const prevStatus = useRef<AuthStatus | null>(null);
 
+  // 1) Inicializar listener de Firebase una sola vez
   useEffect(() => {
     console.log("[AuthGuard] mount → initializeAuthListener()");
     const unsub = initializeAuthListener();
@@ -26,93 +35,113 @@ export function useAuthGuard() {
     };
   }, []);
 
+  // 2) Lógica principal de navegación
   useEffect(() => {
     console.log(
-      `[AuthGuard] tick → isNavReady=${isNavReady} isBootLoading=${isBootLoading} status=${status} ` +
-      `profileComplete=${user?.profileComplete ?? "n/a"} pathname=${pathname}`
+      `[AuthGuard] tick → navReady=${isNavReady} boot=${isBootLoading} ` +
+        `status=${status} profileComplete=${user?.profileComplete ?? "n/a"} ` +
+        `pathname=${pathname}`
     );
 
     if (!isNavReady) {
-      console.log("[AuthGuard] nav not ready yet → wait");
+      console.log("[AuthGuard] nav not ready → wait");
       return;
     }
+
     if (isBootLoading) {
       console.log("[AuthGuard] boot loading → wait");
       return;
     }
 
-    if (status === "unknown") {
-      console.log("[AuthGuard] status=unknown → go Welcome");
-      setTransitionDirection("back");
-      router.replace(AUTH_PATHS.unknown);
-      prevStatus.current = "unknown";
-      return;
-    }
-
     if (status === prevStatus.current) {
-      console.log("[AuthGuard] same status as last route → no-op");
+      console.log("[AuthGuard] same status as last → no-op");
       return;
     }
 
     let target: string;
+    let direction: "forward" | "back" = "forward";
+
     switch (status) {
+      case "unknown":
+        direction = "back";
+        target = AUTH_PATHS.unknown;
+        break;
+
       case "anonymous":
-        // Si venís desde "unknown" → avanzás; si venís desde otro estado → retrocedés
+        // Si venís “desde la nada” (cold start) → adelante
+        // Si venís desde algo más avanzado → atrás
         if (prevStatus.current === "unknown" || prevStatus.current === null) {
-          setTransitionDirection("forward");
+          direction = "forward";
         } else {
-          setTransitionDirection("back");
+          direction = "back";
         }
         target = AUTH_PATHS.anonymous;
         break;
 
       case "preAuth":
-        setTransitionDirection("forward"); // usuario avanza
+        // Entro al funnel de onboarding (formulario básico)
+        direction = "forward";
         target = AUTH_PATHS.preAuth;
+        break;
+
+      case "phoneVerified":
+        // Ya tengo teléfono pero falta rol
+        direction = "forward";
+        target = AUTH_PATHS.phoneVerified; // mapea a TypeOfUserScreen
+        break;
+
+      case "preProfessionalForm":
+        // Profesional con form pendiente
+        direction = "forward";
+        target = AUTH_PATHS.preProfessionalForm;
         break;
 
       case "authenticated":
-        setTransitionDirection("forward"); // hacia home
-        target = user?.profileComplete ? AUTH_PATHS.authenticated : AUTH_PATHS.preAuth;
-        break;
-
-      case "incompleteProfile":
-        setTransitionDirection("forward");
-        target = AUTH_PATHS.preAuth;
-        break;
-      case "preTypeOfUser":
-        setTransitionDirection("forward");
-        target = AUTH_PATHS.preTypeOfUser;
+        // Home final
+        direction = "forward";
+        target = AUTH_PATHS.authenticated;
         break;
 
       default:
-        setTransitionDirection("back");
+        direction = "back";
         target = AUTH_PATHS.unknown;
         break;
     }
 
+    const normalize = (p?: string) =>
+      (p ?? "")
+        .replace("/(auth)", "")
+        .replace("/(tabs)", "")
+        .replace(/\?.*$/, "");
 
-    const normalize = (p?: string) => (p ?? "").replace("/(auth)", "").replace("/(tabs)", "");
     const current = normalize(pathname);
     const next = normalize(target);
 
     console.log(`[AuthGuard] route check → current=${current} next=${next}`);
 
-    if (current !== next) {
-      console.log(`[AuthGuard] replace (delayed) → ${target}`);
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (isNavReady) {
-            router.replace(target);
-            prevStatus.current = status;
-          }
-        }, 50);
-      });
-    } else {
+    if (current === next) {
       console.log("[AuthGuard] already there → no-op");
       prevStatus.current = status;
+      return;
     }
-  }, [isNavReady, isBootLoading, status, user?.profileComplete, pathname, router]);
+
+    console.log(
+      `[AuthGuard] replace (delayed) → ${target} dir=${direction}`
+    );
+
+    // Seteamos la dirección ANTES de navegar
+    setTransitionDirection(direction);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (!isNavReady) return;
+        router.replace(target);
+        prevStatus.current = status;
+      }, 50);
+    });
+  }, [isNavReady, isBootLoading, status, pathname, user?.profileComplete]);
+
+  return null;
 }
 
 export default useAuthGuard;

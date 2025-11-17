@@ -41,6 +41,10 @@ const _layout = () => {
         name="TypeOfUserScreen"
         options={{ headerShown: false, animation }}
       />
+      <Stack.Screen
+        name="FormProfessionalOne"
+        options={{ headerShown: false, animation }}
+      />
     </Stack>
   );
 };

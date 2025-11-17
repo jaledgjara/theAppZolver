@@ -6,25 +6,29 @@ import { AUTH_PATHS } from "../Path/AuthPaths";
 import { signOutFirebase } from "../Service/AuthService";
 
 export function useSignOut() {
-  const router = useRouter();
   const { reset, setStatus, setTransitionDirection } = useAuthStore();
 
   const handleSignOut = useCallback(async () => {
     try {
-      console.log("[useSignOut] user requested sign out");
+      console.log("[useSignOut] User requested sign out");
 
-      // 1️⃣ Cerrar sesión Firebase
-      await signOutFirebase();
+      await signOutFirebase(); // solo cierra Firebase
 
-      // 2️⃣ Resetear Zustand y transición
+      // Reset global del store
       reset();
+
+      // Estado final del flujo: anonymous
       setStatus("anonymous");
+
+      // Para animaciones de salida
       setTransitionDirection("back");
 
-    } catch (err) {
-      console.error("[useSignOut] ❌ Error during signOut:", err);
-    }
-  }, [router, reset, setStatus, setTransitionDirection]);
+      // Navegación NO se maneja aquí. AuthGuard lo hace.
 
-  return { handleSignOut }; // 🔹 el único export “interno”
+    } catch (err) {
+      console.error("[useSignOut] ❌ Error:", err);
+    }
+  }, [reset, setStatus, setTransitionDirection]);
+
+  return { handleSignOut };
 }

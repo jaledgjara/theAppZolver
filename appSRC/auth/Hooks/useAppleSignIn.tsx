@@ -5,28 +5,35 @@ import { AuthUser } from "../Type/AuthUser";
 
 
 export function useAppleSignIn() {
-  const { setStatus, setUser, setActionLoading, setError } = useAuthStore();
+  const { setStatus, setUser, setTransitionDirection } = useAuthStore();
 
   const handleAppleSignIn = async () => {
-    setActionLoading(true);
-    console.log("Starting Apple Sign-In...");
+    console.log("[useAppleSignIn] Starting Apple Sign-In...");
+    
+    // (1) Apple SIEMPRE se considera avance → UI puede animar hacia adelante
+    setTransitionDirection("forward");
+
     const result = await signInWithAppleFirebase();
 
     if (result.ok) {
-      const user: AuthUser = result.user;
+      const user = result.user;
       setUser(user);
-      console.log("Apple Sign-In successful for user:", user);
+
+      console.log("[useAppleSignIn] Apple sign-in ok:", user);
+
+      // (2) Esto activa el AuthListener → sincroniza SQL y decide status
       setStatus("preAuth");
+
+      // (3) token refrescado
       const token = await auth.currentUser?.getIdToken(true);
-      console.log("Nuevo token:", token);
+      console.log("[useAppleSignIn] Nuevo token:", token);
 
     } else {
-      setError(result.message ?? "Unknown error");
-      setStatus("anonymous");
-      console.error("Apple Sign-In failed:", result.message);
-    }
+      console.error("[useAppleSignIn] Apple Sign-In failed:", result.message);
 
-    setActionLoading(false);
+      // Apple cancelado o error → vuelves a anonymous
+      setStatus("anonymous");
+    }
   };
 
   return { handleAppleSignIn };

@@ -1,24 +1,24 @@
 // app/_layout.tsx
-import { Slot, Stack } from "expo-router";
+import { Slot } from "expo-router";
+import { useEffect } from "react";
+import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import useAuthGuard from "@/appSRC/auth/Hooks/useAuthGuard";
-import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import { useAuthGuard } from "@/appSRC/auth/Hooks/useAuthGuard";
 
-// English comments, very explicit logs
 export default function RootLayout() {
-  const { isBootLoading } = useAuthStore();
+  const isBootLoading = useAuthStore((s) => s.isBootLoading);
 
-  console.log(
-    `[Layout] mount → isBootLoading=${isBootLoading}`
-  );
+  useEffect(() => {
+    const unsubscribe = initializeAuthListener();
+    return () => unsubscribe();
+  }, []);
 
   useAuthGuard();
 
   if (isBootLoading) {
-    console.log("[Layout] showing MiniLoaderScreen");
-    return <MiniLoaderScreen />;
+    // puedes mostrar tu MiniLoaderScreen aquí
+    return null;
   }
 
-  console.log("[Layout] rendering <Slot /> (navigation is ready to render screens)");
   return <Slot />;
 }

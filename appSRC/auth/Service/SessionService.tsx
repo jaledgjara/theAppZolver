@@ -1,40 +1,64 @@
-// src/services/sessionService.ts
+// appSRC/auth/Service/SessionService.tsx
+
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 
-/**
- * 🔹 Sincroniza el usuario actual de Firebase con Supabase
- * Envía el idToken al endpoint /session-sync (Edge Function)
- * Retorna los datos del usuario creados o actualizados en Postgres.
- */
-export async function syncUserSession() {
+export type BackendSession = {
+  ok: boolean;
+  uid: string;
+  email: string | null;
+  email_verified: boolean;
+  phone: string | null;
+  role: "client" | "professional" | null;
+  profile_complete: boolean;
+};
+
+export async function syncUserSession(): Promise<BackendSession | null> {
   try {
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) throw new Error("No hay token de Firebase disponible.");
+    const token = await auth.currentUser?.getIdToken(true);
+    if (!token) throw new Error("Missing Firebase token");
 
     const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS;
     const fullUrl = `${baseUrl}/session-sync`;
 
     console.log("🌍 [sessionService] Base URL:", baseUrl);
     console.log("📡 [sessionService] Full URL:", fullUrl);
-    console.log("🔑 [sessionService] Token (first 30 chars):", token.slice(0, 30));
+    console.log(
+      "🔑 [sessionService] Token (first 30 chars):",
+      token.slice(0, 30)
+    );
 
-    const response = await fetch(fullUrl, {
-      method: "POST",
+    const res = await fetch(fullUrl, {
+      method: "POST", // tu función acepta POST
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
     });
 
-    console.log("📡 [sessionService] Response status:", response.status);
+    console.log("📡 [sessionService] Response status:", res.status);
+    const raw = await res.text();
+    console.log("📦 [sessionService] Raw response:", raw);
 
-    const data = await response.json();
-    console.log("📦 [sessionService] Raw response:", data);
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(`Invalid JSON from session-sync: ${raw}`);
+    }
 
-    if (!response.ok) throw new Error(data.error || "Error al sincronizar sesión");
+    if (!res.ok) {
+      const msg = data.message || data.error || "Error syncing session";
+      throw new Error(msg);
+    }
 
-    console.log("✅ [sessionService] Sesión sincronizada:", data);
-    return data;
+    return {
+      ok: data.ok,
+      uid: data.uid,
+      email: data.email,
+      email_verified: data.email_verified,
+      phone: data.phone,
+      role: data.role,
+      profile_complete: data.profile_complete,
+    };
   } catch (err: any) {
     console.error("❌ [sessionService] Error:", err.message);
     return null;

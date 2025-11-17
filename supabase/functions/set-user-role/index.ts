@@ -19,28 +19,20 @@ console.log("🚀 Booting /set-user-role (NO JWT verification)");
 // ---------------------------------------------------------
 function decodeJwt(token: string) {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    return JSON.parse(atob(parts[1]));
+    const [h, p] = token.split(".");
+    return JSON.parse(atob(p.replace(/-/g, "+").replace(/_/g, "/")));
   } catch (_e) {
     return null;
   }
 }
 
-// ---------------------------------------------------------
-// Main function
-// ---------------------------------------------------------
 serve(async (req) => {
   console.log("=====================================");
   console.log("📩 NEW REQUEST → /set-user-role");
 
   try {
-    // -----------------------------
-    // Leer Authorization (pero NO verificarlo)
-    // -----------------------------
     const auth = req.headers.get("Authorization");
     if (!auth) {
-      console.log("❌ Missing Authorization header");
       return Response.json({ error: "Missing token" }, { status: 401 });
     }
 
@@ -48,7 +40,6 @@ serve(async (req) => {
     const payload = decodeJwt(token);
 
     if (!payload) {
-      console.log("❌ Invalid JWT format");
       return Response.json({ error: "Invalid token" }, { status: 401 });
     }
 
@@ -60,11 +51,11 @@ serve(async (req) => {
     console.log("📧 Email:", email);
     console.log("🔌 Provider:", provider);
 
-    // -----------------------------
-    // Leer body
-    // -----------------------------
+    // Read body
     const body = await req.json().catch(() => ({}));
+
     const role = body.role;
+    const phone = body.phone ?? null;
 
     if (!["client", "professional"].includes(role)) {
       return Response.json({ error: "Invalid role" }, { status: 400 });
@@ -72,86 +63,66 @@ serve(async (req) => {
 
     const profileComplete = role === "client";
 
-    // ---------------------------------------------------------
-    // 1) Buscar o crear user_accounts
-    // ---------------------------------------------------------
-    const { data: existing, error: findErr } = await supabaseAdmin
+    // --------------------------------------------
+    // UPSERT user_accounts
+    // --------------------------------------------
+    const { data: existing } = await supabaseAdmin
       .from("user_accounts")
       .select("*")
       .eq("auth_uid", uid)
-      .single();
+      .maybeSingle();
 
-    let userId;
+    let row;
 
-    if (!existing || findErr) {
-      console.log("🆕 Creating new user_accounts entry...");
+    if (!existing) {
+      console.log("🆕 Creating new user_accounts row 🔽");
 
-      const { data: created, error: createErr } = await supabaseAdmin
+      const { data, error } = await supabaseAdmin
         .from("user_accounts")
         .insert({
           auth_uid: uid,
-          auth_provider: provider,
           email,
-          phone: null, // se completa después de Twilio
+          auth_provider: provider,
+          phone,
           role,
           profile_complete: profileComplete,
         })
         .select()
         .single();
 
-      if (createErr) {
-        console.log("❌ Error creating user_accounts:", createErr);
-        return Response.json({ error: createErr.message }, { status: 500 });
-      }
-
-      userId = created.id;
+      if (error) throw error;
+      row = data;
     } else {
-      console.log("🧩 Existing user_accounts found");
-      userId = existing.id;
+      console.log("🧩 Updating existing user_accounts row 🔽");
 
-      await supabaseAdmin
+      const { data, error } = await supabaseAdmin
         .from("user_accounts")
         .update({
+          phone,
           role,
           profile_complete: profileComplete,
         })
-        .eq("id", userId);
+        .eq("auth_uid", uid)
+        .select()
+        .single();
+
+      if (error) throw error;
+      row = data;
     }
 
-    // ---------------------------------------------------------
-    // 2) Upsert user_roles
-    // ---------------------------------------------------------
-    await supabaseAdmin.from("user_roles").upsert({
-      user_id: userId,
-      role,
-      profile_complete: profileComplete,
-    });
-
-    // ---------------------------------------------------------
-    // 3) Insert logs
-    // ---------------------------------------------------------
-    await supabaseAdmin.from("session_logs").insert({
-      user_id: userId,
-      auth_provider: provider,
-      event_type:
-        role === "client"
-          ? "role_selected_client"
-          : "role_selected_professional",
-      metadata: {},
-    });
-
-    console.log("✅ ROLE SAVED SUCCESSFULLY");
+    console.log("✅ USER ROLE + PHONE SAVED:", row);
 
     return Response.json(
       {
         ok: true,
-        role,
-        profile_complete: profileComplete,
+        uid: row.auth_uid,
+        phone: row.phone,
+        role: row.role,
+        profile_complete: row.profile_complete,
       },
       { status: 200 }
     );
-
-  } catch (err) {
+  } catch (err: any) {
     console.log("🔥 ERROR:", err.message);
     return Response.json({ error: err.message }, { status: 500 });
   }

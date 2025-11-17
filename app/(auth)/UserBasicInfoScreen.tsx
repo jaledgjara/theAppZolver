@@ -14,21 +14,37 @@ import { auth } from '@/APIconfig/firebaseAPIConfig';
 
 const UserBasicInfoScreen = () => {
   const router = useRouter();
+
+  // Global state
   const user = useAuthStore((state) => state.user);
+  const setTempPhoneNumber = useAuthStore((state) => state.setTempPhoneNumber);
+
+  // Local state
   const [phone, setPhone] = useState("");
+
+  // Services
   const { loading, error, sendCode } = usePhoneVerification();
   const { handleSignOut } = useSignOut();
-  
+
+  // -------------------------------
+  // HANDLE GO BACK → SIGN OUT
+  // -------------------------------
   const handleGoBack = async () => {
-    console.log("[UserBasicInfoScreen] user canceled registration → signing out...");
-    // 🔑 Fuerza la obtención de un token nuevo y válido
+    console.log("[UserBasicInfoScreen] User canceled → signing out...");
+
+    // Forzar refresh del token (buena práctica)
     const token = await auth.currentUser?.getIdToken(true);
-    console.log("🔄 Firebase idToken (refrescado):", token);
+    console.log("🔄 Firebase idToken refreshed:", token);
 
     await handleSignOut();
   };
+
+  // -------------------------------
+  // SEND VERIFICATION CODE
+  // -------------------------------
   const onPressSend = async () => {
     console.log("[UserBasicInfoScreen] Button pressed → sendCode()");
+
     if (!phone) {
       Alert.alert("Error", "Por favor ingresa un número de teléfono");
       return;
@@ -42,11 +58,12 @@ const UserBasicInfoScreen = () => {
       return;
     }
 
-    console.log("[UserBasicInfoScreen] ✅ OTP enviado correctamente → navegando a VerifyScreen");
-    router.push("/(auth)/PhoneVerificationScreen");
+    // ⭐ Save phone temporarily until code is validated
+    setTempPhoneNumber(phone);
+    router.push('(auth)/PhoneVerificationScreen');
+    // ⭐ NO navigate manually — AuthGuard will take over
+    console.log("[UserBasicInfoScreen] 📩 OTP enviado → esperar navegación del AuthGuard");
   };
-
-
 
   return (
     <KeyboardAvoidingView

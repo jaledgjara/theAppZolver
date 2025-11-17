@@ -1,76 +1,62 @@
 import { create } from "zustand";
-import type { AuthStatus, AuthUser, AuthUserSession } from "../Type/AuthUser";
+import type { AuthUser } from "../Type/AuthUser";
 import { TransitionDirection } from "../Type/TransitionDirection";
 
-/** 🔹 Tipo del store de autenticación global */
-export type AuthStore = AuthUserSession & {
-  /** Carga inicial del app (solo durante el arranque) */
+export type AuthStatus =
+  | "unknown"
+  | "anonymous"
+  | "preAuth"             // logged in, phone NOT verified
+  | "phoneVerified"       // phone verified, missing role
+  | "preProfessionalForm" // professional missing extra form
+  | "authenticated";
+
+type AuthState = {
+  status: AuthStatus;
+  user: AuthUser | null;
   isBootLoading: boolean;
-
-  /** Carga de acciones (sign in, sign out, update, etc.) */
-  isActionLoading: boolean;
-
-  /** Último error registrado */
-  lastError: string | null;
-
-  /** Dirección de transición visual (slide) */
   transitionDirection: TransitionDirection;
+  lastStatus: AuthStatus | null;
 
-  /** 🔹 Campos temporales para verificación telefónica (OTP) */
-  verificationId: string | null;
-  lastPhone: string | null;
+  tempPhoneNumber: string | null;
+  setTempPhoneNumber: (phone: string | null) => void;
 
-  /** 🔹 Setters de estado */
   setStatus: (status: AuthStatus) => void;
   setUser: (user: AuthUser | null) => void;
-  setBootLoading: (loading: boolean) => void;
-  setActionLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  setTransitionDirection: (direction: TransitionDirection) => void;
-
-  /** 🔹 Setters específicos OTP */
-  setVerificationId: (id: string | null) => void;
-  setLastPhone: (phone: string | null) => void;
-
-  /** Reinicia el store a un estado anónimo */
+  setBootLoading: (value: boolean) => void;
+  setTransitionDirection: (dir: TransitionDirection) => void;
   reset: () => void;
 };
 
-export const useAuthStore = create<AuthStore>((set) => ({
-  // 🔹 Estado inicial
+export const useAuthStore = create<AuthState>((set, get) => ({
   status: "unknown",
   user: null,
   isBootLoading: true,
-  isActionLoading: false,
-  lastError: null,
   transitionDirection: "forward",
+  lastStatus: null,
 
-  // 🔹 Campos OTP
-  verificationId: null,
-  lastPhone: null,
+  tempPhoneNumber: null,
+  setTempPhoneNumber: (phone) => set({ tempPhoneNumber: phone }),
 
-  // 🔹 Setters
-  setStatus: (status) => set({ status }),
+  // 👇 YA NO toca la dirección, solo cambia el status
+  setStatus: (status) => {
+    const prev = get().status;
+    set({
+      status,
+      lastStatus: prev,
+    });
+  },
+
   setUser: (user) => set({ user }),
-  setBootLoading: (isBootLoading) => set({ isBootLoading }),
-  setActionLoading: (isActionLoading) => set({ isActionLoading }),
-  setError: (lastError) => set({ lastError }),
-  setTransitionDirection: (transitionDirection) => set({ transitionDirection }),
+  setBootLoading: (value) => set({ isBootLoading: value }),
+  setTransitionDirection: (dir) => set({ transitionDirection: dir }),
 
-  // 🔹 Setters OTP
-  setVerificationId: (verificationId) => set({ verificationId }),
-  setLastPhone: (lastPhone) => set({ lastPhone }),
-
-  // 🔹 Reinicio total del store
   reset: () =>
     set({
       status: "anonymous",
       user: null,
       isBootLoading: false,
-      isActionLoading: false,
-      lastError: null,
       transitionDirection: "back",
-      verificationId: null,
-      lastPhone: null,
+      lastStatus: null,
+      tempPhoneNumber: null,
     }),
 }));

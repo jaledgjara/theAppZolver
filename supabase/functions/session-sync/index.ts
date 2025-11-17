@@ -2,13 +2,14 @@
 // -----------------------------
 // session-sync (Supabase Edge)
 // Verificación LOCAL del JWT de Firebase usando JWKS embebido
-// 100% compatible con Edge, 0 dependencias externas
 // -----------------------------
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// JWKS obtenido de:
-// https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com
-// ⚠️ Estas claves son PUBLICAS (seguras para hardcode).
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// --------------------------------------------
+// 🔐 JWKS embebido (TU EXACTO JWKS ORIGINAL)
+// --------------------------------------------
 const JWKS = {
   keys: [
     {
@@ -38,82 +39,119 @@ const JWKS = {
   ]
 };
 
-// Utilidades base64url → ArrayBuffer
+// --------------------------------------------
+// base64url → ArrayBuffer
+// --------------------------------------------
 function base64urlToBuffer(base64url: string): ArrayBuffer {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(base64);
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-  return bytes.buffer;
+  return Uint8Array.from(binary, (c) => c.charCodeAt(0)).buffer;
 }
 
-// Importar clave RSA pública
+// --------------------------------------------
+// Import RSA key
+// --------------------------------------------
 async function importRsaKey(jwk: any): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "jwk",
     jwk,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
-    ["verify"],
+    ["verify"]
   );
 }
 
-// Verificar JWT RS256
+// --------------------------------------------
+// Verify JWT (RS256)
+// --------------------------------------------
 async function verifyFirebaseJWT(token: string) {
-  const [headerB64, payloadB64, signatureB64] = token.split(".");
+  const [hB64, pB64, sigB64] = token.split(".");
+  if (!hB64 || !pB64 || !sigB64) throw new Error("Malformed JWT");
 
-  const header = JSON.parse(atob(headerB64.replace(/-/g, "+").replace(/_/g, "/")));
-  const payload = JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/")));
-  const signature = base64urlToBuffer(signatureB64);
+  const header = JSON.parse(atob(hB64.replace(/-/g, "+").replace(/_/g, "/")));
+  const payload = JSON.parse(atob(pB64.replace(/-/g, "+").replace(/_/g, "/")));
+  const signature = base64urlToBuffer(sigB64);
 
-  const jwk = JWKS.keys.find((k) => k.kid === header.kid);
+  const jwk = JWKS.keys.find((k: any) => k.kid === header.kid);
   if (!jwk) throw new Error(`No matching JWK for kid=${header.kid}`);
 
   const key = await importRsaKey(jwk);
+  const data = new TextEncoder().encode(`${hB64}.${pB64}`);
 
-  const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-  const isValid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, data);
-
-  if (!isValid) throw new Error("Invalid JWT signature");
+  const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, data);
+  if (!ok) throw new Error("Invalid JWT signature");
 
   return payload;
 }
 
+// --------------------------------------------
+// Supabase CLIENT (fix para tu error ❌ createClient undefined)
+// --------------------------------------------
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+// --------------------------------------------
+// FIREBASE PROJECT ID
+// --------------------------------------------
 const PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "thezolverapp";
 
-// -----------------------------
-// SERVIDOR EDGE FUNCTION
-// -----------------------------
+// --------------------------------------------
+// 🌐 SESSION SYNC HANDLER
+// --------------------------------------------
 serve(async (req: Request) => {
   console.log("[session-sync] Incoming request:", req.url);
 
   try {
     const auth = req.headers.get("Authorization");
-    if (!auth) return Response.json({ error: "Missing Authorization" }, { status: 401 });
+    if (!auth) {
+      return Response.json({ error: "Missing Authorization" }, { status: 401 });
+    }
 
     const token = auth.replace("Bearer ", "").trim();
-    console.log("[session-sync] Token kid:", token.split(".")[0]);
 
+    // 🔥 Validate JWT using local JWKS
     const payload = await verifyFirebaseJWT(token);
 
-    // Validación estándar
+    // 🔍 Verify issuer & audience
     if (payload.iss !== `https://securetoken.google.com/${PROJECT_ID}`)
       throw new Error("Invalid issuer");
     if (payload.aud !== PROJECT_ID)
       throw new Error("Invalid audience");
-    if (payload.exp * 1000 < Date.now())
-      throw new Error("Token expired");
 
     console.log("[session-sync] JWT valid for uid:", payload.sub);
 
-    return Response.json({
-      ok: true,
-      uid: payload.sub,
-      email: payload.email,
-      email_verified: payload.email_verified,
-    });
+    // 🔥 Fetch user from SQL
+    const { data: account, error } = await supabase
+      .from("user_accounts")
+      .select("auth_uid, email, phone, role, profile_complete")
+      .eq("auth_uid", payload.sub)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[session-sync] SQL error:", error);
+      throw error;
+    }
+
+    return Response.json(
+      {
+        ok: true,
+        uid: payload.sub,
+        email: payload.email ?? null,
+        email_verified: payload.email_verified ?? false,
+        phone: account?.phone ?? null,
+        role: account?.role ?? null,
+        profile_complete: account?.profile_complete ?? false
+      },
+      { status: 200 }
+    );
 
   } catch (err: any) {
     console.error("[session-sync] ❌ Error:", err.message);
-    return Response.json({ error: err.message }, { status: 401 });
+    return Response.json(
+      { code: 401, message: err.message },
+      { status: 401 }
+    );
   }
 });

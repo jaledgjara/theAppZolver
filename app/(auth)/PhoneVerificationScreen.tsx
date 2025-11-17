@@ -9,12 +9,16 @@ import { COLORS } from "@/appASSETS/theme";
 
 export default function PhoneVerificationScreen() {
   const router = useRouter();
+
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const inputs = useRef<Array<TextInput | null>>([]);
+
   const joinedCode = code.join("");
 
   const { verifyCode, loading } = usePhoneVerification();
-  const { lastPhone, setUser, setStatus } = useAuthStore();
+
+  // 🚨 USAMOS EL TELÉFONO TEMPORAL (NO EL USER.phoneNumber)
+  const tempPhoneNumber = useAuthStore((s) => s.tempPhoneNumber);
 
   const handleChange = (text: string, index: number) => {
     const digit = text.replace(/[^0-9]/g, "");
@@ -25,8 +29,12 @@ export default function PhoneVerificationScreen() {
   };
 
   const handleConfirm = async () => {
-    if (!lastPhone) {
-      Alert.alert("Error", "No hay teléfono registrado. Intenta de nuevo.");
+    // 🚨 VALIDAR TEMPPHONENUMBER
+    if (!tempPhoneNumber) {
+      Alert.alert(
+        "Error",
+        "No hay un teléfono registrado. Intenta nuevamente."
+      );
       return;
     }
 
@@ -35,8 +43,9 @@ export default function PhoneVerificationScreen() {
       return;
     }
 
-    await verifyCode(lastPhone, joinedCode);
+    await verifyCode(tempPhoneNumber, joinedCode);
   };
+
 
   return (
 <KeyboardAvoidingView
@@ -54,17 +63,7 @@ export default function PhoneVerificationScreen() {
             <Text style={styles.subtitle}>
               Ingresa el código de 6 dígitos enviado por SMS
             </Text>
-            {/* <TextInput
-              style={{ position: "absolute", opacity: 0 }}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete="sms-otp"
-              maxLength={6}
-              onChangeText={(text) => {
-                const digits = text.split("").slice(0, 6);
-                setCode([...digits, ...Array(6 - digits.length).fill("")]);
-              }}
-            /> */}
+
 
             <View style={styles.boxContainer}>
               {code.map((digit, i) => (

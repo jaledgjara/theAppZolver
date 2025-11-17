@@ -24,22 +24,40 @@ import { Platform } from "react-native";
 import { syncUserSession } from "./SessionService";
 
 
-export const mapFirebaseUserToAuthUser = (fb: FirebaseUser, extra?: Partial<AuthUser>): AuthUser => {
+/**
+ * Map a Firebase user + backend metadata to our internal AuthUser type.
+ * This allows us to merge Firebase identity with SQL state cleanly.
+ */
+export function mapFirebaseUserToAuthUser(
+  fbUser: import("firebase/auth").User,
+  opts?: {
+    phone?: string | null;
+    role?: "client" | "professional" | null;
+    profileComplete?: boolean;
+  }
+): AuthUser {
   return {
-    uid: fb.uid,
-    email: fb.email ?? null,
-    phoneNumber: fb.phoneNumber ?? null,
-    displayName: fb.displayName ?? null,
-    photoURL: fb.photoURL ?? null,
-    profileComplete: extra?.profileComplete ?? false,
+    uid: fbUser.uid,
+    email: fbUser.email ?? null,
+    displayName: fbUser.displayName ?? null,
+    photoURL: fbUser.photoURL ?? null,
+    phoneNumber: opts?.phone ?? fbUser.phoneNumber ?? null,
+    role: opts?.role ?? null,
+    profileComplete: opts?.profileComplete ?? false,
   };
-};
+}
 
+/**
+ * Initializes the Firebase auth listener and synchronizes
+ * the SQL state from Supabase via session-sync.
+ */
 export function initializeAuthListener() {
   const { setStatus, setUser, setBootLoading } = useAuthStore.getState();
 
   const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    // No Firebase user → anonymous
     if (!fbUser) {
+      console.log("[AuthListener] No Firebase user → anonymous");
       setUser(null);
       setStatus("anonymous");
       setBootLoading(false);
@@ -47,29 +65,48 @@ export function initializeAuthListener() {
     }
 
     try {
-      console.log("[AuthListener] Firebase user detected → sync with Supabase");
+      console.log("[AuthListener] Firebase user detected → syncUserSession()");
+      const backend = await syncUserSession();
 
-      // 🔹 Llamar al backend
-      const backendData = await syncUserSession();
+      // fallback local
+      const storedProfile = await AsyncStorage.getItem("profileComplete");
+      const localProfileFlag = storedProfile === "true";
 
-      // 🔹 Calcular si el perfil está completo (fallback local)
-      const stored = await AsyncStorage.getItem("profileComplete");
-      const localFlag = stored === "true";
-      const profileComplete = backendData?.profileComplete ?? localFlag;
+      const phone = backend?.phone ?? fbUser.phoneNumber ?? null;
+      const role = backend?.role ?? null;
+      const profileComplete =
+        backend?.profile_complete ?? localProfileFlag ?? false;
 
-      // 🔹 Mapear Firebase → AuthUser
-      const appUser = mapFirebaseUserToAuthUser(fbUser, { profileComplete });
-      setUser(appUser);
+      // Construimos el usuario app
+      const appUser = mapFirebaseUserToAuthUser(fbUser, {
+        phone,
+        role,
+        profileComplete,
+      });
 
-      // 🔹 Determinar status
-      const nextStatus: AuthStatus = profileComplete ? "authenticated" : "preAuth";
-      setStatus(nextStatus);
+      useAuthStore.getState().setUser(appUser);
 
-      console.log(`[AuthListener] ✅ Sesión sincronizada (${nextStatus})`);
+      // 🔥 DECISIÓN DE ESTADO GLOBAL
+      const nextStatus: AuthStatus = decideAuthStatus({
+        hasPhone: !!phone,
+        role,
+        profileComplete,
+      });
+
+      useAuthStore.getState().setStatus(nextStatus);
+
+      console.log(
+        `[AuthListener] ✅ Sesión sincronizada → status=${nextStatus}`,
+        { hasPhone: !!phone, role, profileComplete }
+      );
     } catch (err: any) {
-      console.error("[AuthListener] ❌ Error sincronizando sesión:", err.message);
-      setUser(mapFirebaseUserToAuthUser(fbUser, { profileComplete: false }));
-      setStatus("preAuth");
+      console.error("[AuthListener] ❌ Error syncing session:", err.message);
+
+      const fallbackUser = mapFirebaseUserToAuthUser(fbUser, {
+        profileComplete: false,
+      });
+      useAuthStore.getState().setUser(fallbackUser);
+      useAuthStore.getState().setStatus("preAuth");
     } finally {
       setBootLoading(false);
     }
@@ -77,6 +114,47 @@ export function initializeAuthListener() {
 
   return unsubscribe;
 }
+
+/**
+ * Decide the high-level AuthStatus based on SQL + Firebase state.
+ * This is the brain of the onboarding flow.
+ */
+function decideAuthStatus(params: {
+  hasPhone: boolean;
+  role: "client" | "professional" | null;
+  profileComplete: boolean;
+}): AuthStatus {
+  const { hasPhone, role, profileComplete } = params;
+
+  // 1) No teléfono verificado → siempre preAuth
+  if (!hasPhone) {
+    return "preAuth";
+  }
+
+  // 2) Teléfono verificado pero sin rol → elegir tipo de usuario
+  if (hasPhone && !role) {
+    return "phoneVerified";
+  }
+
+  // 3) Cliente: teléfono + rol client
+  if (role === "client") {
+    // cliente va al Home; si profileComplete se desincroniza no importa:
+    // el gating fuerte está en hasPhone
+    return "authenticated";
+  }
+
+  // 4) Profesional: requiere formulario extra
+  if (role === "professional") {
+    if (!profileComplete) {
+      return "preProfessionalForm";
+    }
+    return "authenticated";
+  }
+
+  // Fallback seguro
+  return "preAuth";
+}
+
 
 export async function signInWithAppleFirebase(): Promise<SignInResult> {
   try {
