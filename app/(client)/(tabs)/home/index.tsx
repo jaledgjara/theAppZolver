@@ -10,7 +10,7 @@ import CategoryItem from '@/appCOMP/categories/CategoryItem';
 
 const CATEGORIES_DATA = [
   { id: '1', name: 'Pintor' },
-  { id: '2', name: 'Pintor' },
+  { id: '2', name: 'Gasista' },
   { id: '3', name: 'Pintor' },
   { id: '4', name: 'Pintor' },
   { id: '5', name: 'Pintor' },
@@ -27,7 +27,13 @@ const home = () => {
     <CategoryItem
       name={item.name}
       icon={<FontAwesome6 name="paint-roller" size={32} color={COLORS.primary} />}
-      onPress={() => router.push('')}
+      onPress={() =>
+        router.push({
+          pathname: '/(client)/(tabs)/home/CategoryDetailsView/' + item.id,
+          params: { name: item.name }
+      })
+}
+
     />
   );
 
@@ -42,12 +48,11 @@ const home = () => {
         <SearchBar
           value={""}
           placeholder="¿Qué servicio necesitas hoy?"
-          onPress={() => router.push('')}
+          onPress={() => router.push('(client)/(tabs)/home/SearchScreen')}
         />
 
         <MoreCategoryTitle
           title="Categorías"
-          linkIcon={<Ionicons name="menu" size={30} color={COLORS.textSecondary}/>}
           onLinkPress={() => router.push('')}
         />
         <View style={styles.listContainer} >

@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 12,
     justifyContent: 'center',
+    alignItems: 'center',
 
     // subtle depth
     shadowColor: '#000',

@@ -34,6 +34,7 @@ const StatusPlaceholder: React.FC<StatusPlaceholderProps> = ({
 }
 
 export default StatusPlaceholder
+
 const styles = StyleSheet.create({
   cardContainer: {
     backgroundColor: 'white',

@@ -27,11 +27,11 @@ const WelcomeScreen = () => {
         </Text>
 
         <View style={styles.buttonContainer}>
-        <LargeButton 
-          title="CONTINUAR" 
-          onPress={handleContinue}
-          iconName="arrow-forward-circle"
-        />
+          <LargeButton 
+            title="CONTINUAR" 
+            onPress={handleContinue}
+            iconName="arrow-forward-circle"
+          />
         </View>
       </View>
     </View>

@@ -15,7 +15,7 @@ export default function TabsClientLayout() {
       }}
     >
       <Tabs.Screen
-        name="Home"
+        name="home"
         options={{
           title: 'Inicio',
           headerShown: false,
@@ -25,7 +25,7 @@ export default function TabsClientLayout() {
         }}
       />
       <Tabs.Screen
-        name="Reservations"
+        name="reservations"
         options={{
           title: 'Reservas',
           headerShown: false,
@@ -35,7 +35,7 @@ export default function TabsClientLayout() {
         }}
       />
       <Tabs.Screen
-        name="Messages"
+        name="messages"
         options={{
           title: 'Mensajes',
           headerShown: false,
@@ -45,7 +45,7 @@ export default function TabsClientLayout() {
         }}
       />
       <Tabs.Screen
-        name="Profile"
+        name="profile"
         options={{
           title: 'Perfil',
           headerShown: false,
