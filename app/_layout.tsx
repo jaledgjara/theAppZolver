@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import { Slot } from "expo-router";
+import { router, Slot } from "expo-router";
 import { useEffect } from "react";
 import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
@@ -16,9 +16,10 @@ export default function RootLayout() {
   useAuthGuard();
 
   if (isBootLoading) {
-    // puedes mostrar tu MiniLoaderScreen aquí
     return null;
   }
 
   return <Slot />;
 }
+
+

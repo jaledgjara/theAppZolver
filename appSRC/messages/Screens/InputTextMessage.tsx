@@ -41,7 +41,7 @@ const MessageInput = () => {
         </View>
 
         <IconButton
-          size={55}
+          size={50}
           backgroundColor="#007AFF"
           onPress={() => console.log("Send!")}
           icon={
@@ -76,7 +76,8 @@ const styles = StyleSheet.create({
     width: '100%',   // El input crece todo lo posible
     flexDirection: 'row',
     alignItems: 'center',
-    maxHeight: 140,            // Permite mayor crecimiento
+    justifyContent: 'center',
+    maxHeight: 60,            // Permite mayor crecimiento
     backgroundColor: '#EDEDED',
     borderRadius: 25,
     paddingHorizontal: 18,     // Más cómodo para escribir

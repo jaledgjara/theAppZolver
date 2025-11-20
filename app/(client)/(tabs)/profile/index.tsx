@@ -3,29 +3,31 @@ import React from 'react'
 import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
 import { Ionicons } from '@expo/vector-icons'
 import ProfileCard from '@/appSRC/profile/Screens/ProfileCard';
+import { LargeButton } from '@/appCOMP/button/LargeButton';
+import { useRouter } from 'expo-router';
 
 const MOCK_PROFILE_OPTIONS = [
   {
     id: '1',
     // Tarjeta de crédito/débito para métodos de pago
-    icon: <Ionicons name="card-outline" size={20} color="black"/>,
+    icon: <Ionicons name="card-outline" size={20} color="black" />,
     title: 'Métodos de Pago',
     subtitle: 'Agrega o administra tus tarjetas y cuentas.',
-  }, 
+  },
   {
     id: '2',
     // Pin de ubicación o mapa para direcciones de envío
     icon: <Ionicons name="location-outline" size={20} color="black" />,
     title: 'Direcciones de Envío',
     subtitle: 'Gestiona tus direcciones de entrega.',
-  }, 
+  },
   {
     id: '3',
     // Campana para notificaciones
-    icon: <Ionicons name="notifications-outline" size={20} color="black"/>,
+    icon: <Ionicons name="notifications-outline" size={20} color="black" />,
     title: 'Notificaciones',
     subtitle: 'Configura tus alertas y avisos.',
-  }, 
+  },
   {
     id: '4',
     // Candado para privacidad y datos
@@ -43,16 +45,17 @@ const MOCK_PROFILE_OPTIONS = [
 ];
 
 const Profile = () => {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <ToolBarTitle
         titleText='Perfil'
-      />      
+      />
 
-      <FlatList 
+      <FlatList
         data={MOCK_PROFILE_OPTIONS}
         keyExtractor={item => item.id}
-        renderItem={({item}) => (
+        renderItem={({ item }) => (
           <ProfileCard
             icon={item.icon}
             title={item.title}
@@ -60,6 +63,11 @@ const Profile = () => {
           />
         )}
         showsVerticalScrollIndicator={false}
+      />
+
+      <LargeButton
+        title='IR A LA SECCION DEL PROFESIONAL'
+        onPress={() => router.push('(professional)/(tabs)/home')}
       />
     </View>
   )
