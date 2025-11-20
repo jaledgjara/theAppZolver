@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import SectionItem, { SectionItemProps } from './SectionItem';
-import { COLORS } from '@/appASSETS/theme';
+import { COLORS, SIZES } from '@/appASSETS/theme';
 
 interface SectionCardProps {
   title: string;
@@ -36,19 +36,19 @@ export default SectionCard;
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
-    backgroundColor: '#FFF',      // ← NECESARIO PARA QUE LA SOMBRA ENVUELVA TODO
-    borderRadius: 12,             // ← IMPORTANTE (si querés sombra bonita)
-    padding: 16,                  // ← opcional, pero hace que título/fecha no queden pegados
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
+    fontSize: SIZES.h2,
+    fontWeight: '600',
+    color: COLORS.textPrimary
   },
   date: {
     fontSize: 16,

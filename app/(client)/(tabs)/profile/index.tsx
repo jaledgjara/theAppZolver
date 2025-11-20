@@ -64,11 +64,6 @@ const Profile = () => {
         )}
         showsVerticalScrollIndicator={false}
       />
-
-      <LargeButton
-        title='IR A LA SECCION DEL PROFESIONAL'
-        onPress={() => router.push('(professional)/(tabs)/home')}
-      />
     </View>
   )
 }

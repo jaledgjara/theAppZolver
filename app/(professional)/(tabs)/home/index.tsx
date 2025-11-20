@@ -11,7 +11,7 @@ const home = () => {
       />
       <View style={styles.contentContainer}>
         <SectionCard
-          title="Today's Reservations"
+          title="Reservaciones de hoy"
           date="April 24, 2024"
           data={[
             { time: "9:00 AM", title: "John Smith", onPress: () => { } },
@@ -20,14 +20,14 @@ const home = () => {
         />
 
         <SectionCard
-          title="Pending Confirmations"
+          title="Confirmaciones pendientes"
           data={[
             { title: "Confirm appointment with Michael Brown", onPress: () => { } }
           ]}
         />
 
         <SectionCard
-          title="Alerts"
+          title="Alertas"
           data={[
             { title: "Reservation for Linda Davis was canceled", onPress: () => { } }
           ]}

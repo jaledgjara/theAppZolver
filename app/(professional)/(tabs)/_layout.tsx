@@ -3,7 +3,7 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { COLORS } from "@/appASSETS/theme";
 
 
-export default function TabsClientLayout() {
+export default function TabsProfessionalLayout() {
   return (
     <Tabs
       screenOptions={{
