@@ -8,6 +8,7 @@ interface CalendarReservationCardProps {
   name: string;
   service: string;
   status: "Confirmada" | "Cancelada" | "Pendiente";
+  date?: string
   onPress?: () => void;
 }
 
@@ -31,6 +32,7 @@ export const CalendarReservationCard: React.FC<CalendarReservationCardProps> = (
   name,
   service,
   status,
+  date,
   onPress,
 }) => {
   const s = statusStyles[status];
@@ -43,6 +45,7 @@ export const CalendarReservationCard: React.FC<CalendarReservationCardProps> = (
         <View style={styles.center}>
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.service}>{service}</Text>
+          {date && <Text style={styles.date}>{date}</Text>}
         </View>
 
         <View style={[styles.statusContainer, { backgroundColor: s.backgroundColor }]}>
@@ -62,7 +65,6 @@ const styles = StyleSheet.create({
     // --- Márgenes iguales a tu Home (ESTO ES LA CLAVE) ---
     marginHorizontal: 20,
     marginVertical: 10,
-
     // --- Tamaño & estilo del Home ---
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -74,7 +76,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-    height: 90
+    height: 110
 
   },
 
@@ -101,7 +103,6 @@ const styles = StyleSheet.create({
     color: "#6A6F78",
     marginTop: 3,
   },
-
   statusContainer: {
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -110,7 +111,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
+  date: {
+    fontSize: 13,
+    marginTop: 4,
+    color: "#7E8289",
+  },
   statusText: {
     fontSize: 14,
     fontWeight: "600",

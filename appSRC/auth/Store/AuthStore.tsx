@@ -8,7 +8,8 @@ export type AuthStatus =
   | "preAuth"             // logged in, phone NOT verified
   | "phoneVerified"       // phone verified, missing role
   | "preProfessionalForm" // professional missing extra form
-  | "authenticated";
+  | "authenticated"
+  | "authenticatedProfessional";
 
 type AuthState = {
   status: AuthStatus;

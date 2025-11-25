@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native'
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React from 'react'
 import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
 
@@ -50,7 +50,7 @@ export const MOCK_PROFILE_PRO_OPTIONS = [
 const ProfileProfessional = () => {
   const router = useRouter();
 
-  return (
+return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Perfil" />
 
@@ -58,11 +58,17 @@ const ProfileProfessional = () => {
         data={MOCK_PROFILE_PRO_OPTIONS}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <ProfileCard
-            icon={item.icon}
-            title={item.title}
-            subtitle={item.subtitle}
-          />
+          // 2. ENVOLVER EN TOUCHABLE PARA HABILITAR LA NAVEGACIÓN
+          <TouchableOpacity 
+            onPress={() => router.push(item.route as any)}
+            activeOpacity={0.7}
+          >
+            <ProfileCard
+              icon={item.icon}
+              title={item.title}
+              subtitle={item.subtitle}
+            />
+          </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}
       />

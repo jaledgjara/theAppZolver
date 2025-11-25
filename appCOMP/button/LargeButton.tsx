@@ -9,23 +9,21 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
+import { COLORS, SIZES } from "@/appASSETS/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 interface LargeButtonProps {
-  /** Texto principal del botón */
   title: string;
-  /** Acción al presionar */
   onPress: () => void;
 
-  /** Apariencia */
+  /** Custom styling */
   style?: StyleProp<ViewStyle>;
   backgroundColor?: string;
   textColor?: string;
   disabled?: boolean;
 
-  /** Ícono opcional */
+  /** Optional icon */
   iconName?: IoniconName;
   iconColor?: string;
   iconSize?: number;
@@ -50,6 +48,14 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
 }) => {
   const isDisabled = disabled || loading;
 
+  // Default margin — only applies if user does not override margin in style
+  const defaultMargin = { marginVertical: 30 };
+
+  // Merge logic: user styles always override default margin
+  const mergedStyle = Array.isArray(style)
+    ? [defaultMargin, ...style]
+    : [defaultMargin, style];
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -58,14 +64,12 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
       style={[
         styles.buttonContainer,
         { backgroundColor: isDisabled ? "#CFCFCF" : backgroundColor },
-        style,
+        mergedStyle, // THIS handles the default + override logic
       ]}
     >
       {loading ? (
-        // Loader en el centro
         <ActivityIndicator size="small" color={loaderColor || textColor} />
       ) : (
-        // Contenido normal del botón
         <View style={styles.contentRow}>
           {iconName && (
             <Ionicons
@@ -75,6 +79,7 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
               style={styles.iconStyle}
             />
           )}
+
           <Text style={[styles.buttonText, { color: textColor }]}>
             {title}
           </Text>
@@ -89,9 +94,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 30,
     paddingVertical: 15,
-    paddingHorizontal: 20, 
+    paddingHorizontal: 20,
     borderRadius: 50,
     width: "100%",
     shadowColor: "#000",
@@ -99,20 +103,24 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
+
   contentRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
+
   iconStyle: {
     marginRight: 8,
   },
+
   buttonText: {
     fontSize: SIZES.h3,
     fontWeight: "600",
     textAlign: "center",
   },
 });
+
 
 // const styles = StyleSheet.create({
 //     buttonContainer: {

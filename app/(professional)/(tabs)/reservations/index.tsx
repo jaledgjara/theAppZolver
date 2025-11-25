@@ -4,8 +4,9 @@ import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
 import WeekCalendarSnap from '@/appSRC/reservationsProf/Screens/WeekCalendarSnap'
 import { COLORS, FONTS, SIZES } from '@/appASSETS/theme'
 import { CalendarReservationCard } from '@/appCOMP/cards/CalendarReservationCard'
+import { router } from 'expo-router'
 
-const MOCK_RESERVATIONS = [
+export const MOCK_RESERVATIONS = [
   {
     id: "1",
     time: "9:00",
@@ -58,14 +59,15 @@ const reservations = () => {
               time={item.time}
               name={item.name}
               service={item.service}
-              status={item.status as any}
+              status={'Confirmada'}
+              onPress={() =>
+                router.push(
+                  `/(professional)/(tabs)/reservations/ReservationsDetailsScreen/${item.id}`
+                )
+              }
+
             />
           )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingBottom: 50,
-            paddingTop: 10,
-          }}
         />
       </View>
     </View>
@@ -82,6 +84,10 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#E9E9E9',
+  },
+  contentContainer: {
+    flex: 1,
+    paddingBottom: 20
   },
   title: {
     fontSize: SIZES.h2,

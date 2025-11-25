@@ -101,6 +101,12 @@ export function useAuthGuard() {
         direction = "forward";
         target = AUTH_PATHS.authenticated;
         break;
+      
+      case "authenticatedProfessional":
+        direction = "forward";
+        target = AUTH_PATHS.authenticatedProfessional;
+        break;
+
 
       default:
         direction = "back";

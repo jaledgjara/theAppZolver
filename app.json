@@ -38,7 +38,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La app necesita acceder a tus fotos para subir tu DNI y verificar tu identidad.",
+          "cameraPermission": "La app necesita acceder a la cámara para tomar la selfie de verificación."
+        }
+      ]
     ],
     "extra": {
       "router": {},

@@ -39,13 +39,13 @@ const SignInScreen = () => {
         <Text style={styles.subtitle}>Accedé a tus servicios y profesionales rápidamente desde tus dispositivos.</Text>
 
         <View style={styles.buttonContainer}>
-          <AuthButton
+          {/* <AuthButton
             title="Continuar con email"
             icon={<Ionicons name="mail" size={22} color="#FFFFFF"/>}
             onPress={handleSignInEmailScreen}
             style={{ backgroundColor: '#FBBF24', borderColor: COLORS.primary, marginBottom: 15 }}
             textColor="white"
-          />
+          /> */}
           <AuthButton
             title="Continuar con Google"
             icon={<AntDesign name="google" size={22} color="#FFFFFF" />}
