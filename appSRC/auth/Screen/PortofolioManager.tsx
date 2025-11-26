@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 
 interface Props {
   images: string[];
@@ -18,6 +18,7 @@ export const PortfolioManager: React.FC<Props> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.label}>Mis Trabajos</Text>
+
         <Text style={styles.counter}>{images.length} fotos</Text>
       </View>
 
@@ -56,9 +57,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "700",
+    ...FONTS.h3,
+    fontSize: SIZES.h3,
     color: COLORS.textPrimary,
+    marginBottom: 7,
+    fontWeight: "600",
   },
   counter: { fontSize: 13, color: COLORS.textSecondary },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },

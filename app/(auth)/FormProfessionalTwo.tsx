@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { ResizableInput } from "@/appCOMP/inputs/Screens/ResizableInput";
@@ -45,12 +45,11 @@ const FormProfessionalTwo = () => {
     updateField,
     // Validaciones
     isZolverYaDisabled,
-    isFormValid,
+    isProfileValid,
   } = useProfessionalForm();
 
   const handleContinue = () => {
-    console.log("Guardando perfil...");
-    // router.push...
+    router.push("/(auth)/FormProfessionalThree");
   };
 
   return (
@@ -202,7 +201,7 @@ const FormProfessionalTwo = () => {
           <LargeButton
             title="FINALIZAR PERFIL"
             onPress={handleContinue}
-            disabled={!isFormValid}
+            disabled={!isProfileValid}
             iconName="checkmark-circle-outline"
           />
         </View>
@@ -218,7 +217,7 @@ const FormProfessionalTwo = () => {
         onSelect={(cat) => {
           updateField("selectedCategory", cat);
           setModalVisible(false);
-          updateField("specialization", ""); // Limpiar al cambiar
+          updateField("specialization", "");
         }}
       />
     </View>
@@ -233,16 +232,16 @@ const styles = StyleSheet.create({
   section: { marginBottom: 24 },
   label: {
     ...FONTS.h3,
-    fontSize: 16,
+    fontSize: SIZES.h3,
     color: COLORS.textPrimary,
-    marginBottom: 6,
-    fontWeight: "700",
+    marginBottom: 7,
+    fontWeight: "600",
   },
   subLabel: {
-    ...FONTS.body4,
+    ...FONTS.body3,
     color: COLORS.textSecondary,
     marginBottom: 12,
-    fontSize: 13,
+    fontSize: SIZES.body3,
   },
   badgeRequired: {
     backgroundColor: "#FEE2E2",
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: "#DC2626", fontSize: 10, fontWeight: "700" },
   warningText: {
-    fontSize: 12,
+    fontSize: SIZES.h4,
     color: "#F59E0B",
     marginTop: 8,
     fontStyle: "italic",

@@ -45,6 +45,13 @@
           "photosPermission": "La app necesita acceder a tus fotos para subir tu DNI y verificar tu identidad.",
           "cameraPermission": "La app necesita acceder a la cámara para tomar la selfie de verificación."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Necesitamos tu ubicación para mostrarte trabajos cercanos y definir tu zona de cobertura.",
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
       ]
     ],
     "extra": {

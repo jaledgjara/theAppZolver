@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 
 interface Props {
   images: string[];
@@ -91,14 +91,16 @@ const styles = StyleSheet.create({
   },
   label: {
     ...FONTS.h3,
-    fontWeight: "700",
+    fontSize: SIZES.h3,
     color: COLORS.textPrimary,
-    marginBottom: 4,
+    marginBottom: 7,
+    fontWeight: "600",
   },
   helperText: {
-    ...FONTS.body4,
+    ...FONTS.body3,
     color: COLORS.textSecondary,
     marginBottom: 12,
+    fontSize: SIZES.body3,
   },
   scroll: {
     flexDirection: "row",

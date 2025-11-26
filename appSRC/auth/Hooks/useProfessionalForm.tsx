@@ -3,15 +3,33 @@ import { useServiceSelection } from "@/appSRC/auth/Hooks/useServiceCatalog";
 import { useImagePicker } from "@/appCOMP/images/Hooks/useImagePicker";
 import { ServiceMode } from "@/appSRC/users/Model/ServiceMode";
 
+// Tipos auxiliares
+export type DaySchedule = {
+  day: string;
+  active: boolean;
+  from: string;
+  to: string;
+};
+
+const INITIAL_SCHEDULE: DaySchedule[] = [
+  { day: "Lun", active: true, from: "09:00", to: "18:00" },
+  { day: "Mar", active: true, from: "09:00", to: "18:00" },
+  { day: "Mié", active: true, from: "09:00", to: "18:00" },
+  { day: "Jue", active: true, from: "09:00", to: "18:00" },
+  { day: "Vie", active: true, from: "09:00", to: "18:00" },
+  { day: "Sáb", active: false, from: "10:00", to: "14:00" },
+  { day: "Dom", active: false, from: "10:00", to: "14:00" },
+];
+
 export function useProfessionalForm() {
   // 1. Consumimos el Hook de Datos
   const {
     categories,
     loadingCategories,
-    loadingTags, // (Opcional: para mostrar spinner en los chips)
-    tags, // 👈 Estos son los que no te llegan
+    loadingTags,
+    tags,
     fetchCategories,
-    setSelectedCategory, // ✅ IMPORTANTE: Necesitamos esto para avisarle al hook que cargue tags
+    setSelectedCategory,
   } = useServiceSelection();
 
   // 2. Consumimos el Hook de Imágenes
@@ -26,6 +44,11 @@ export function useProfessionalForm() {
     licenseNumber: "",
     biography: "",
     portfolioImages: [] as string[],
+
+    // --- NUEVOS CAMPOS (Form 3/4) ---
+    location: null as { latitude: number; longitude: number } | null,
+    coverageRadius: 5, // en Kilómetros
+    schedule: INITIAL_SCHEDULE,
   });
 
   // --- Lógica de Negocio ---
@@ -34,14 +57,10 @@ export function useProfessionalForm() {
     fetchCategories();
   }, []);
 
-  // ✅ NUEVO: Sincronización de Tags
-  // Cada vez que el usuario elige una categoría en el formulario,
-  // le avisamos al hook de servicio para que busque los tags correspondientes.
   useEffect(() => {
     setSelectedCategory(form.selectedCategory);
   }, [form.selectedCategory]);
 
-  // Autocorrección basada en Categoría (Tu lógica original)
   useEffect(() => {
     if (form.selectedCategory) {
       const isUrgent = form.selectedCategory.is_usually_urgent;
@@ -102,28 +121,56 @@ export function useProfessionalForm() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Nueva acción: Toggle día de la semana
+  const toggleDay = (dayName: string) => {
+    setForm((prev) => ({
+      ...prev,
+      schedule: prev.schedule.map((d) =>
+        d.day === dayName ? { ...d, active: !d.active } : d
+      ),
+    }));
+  };
+
   // --- Validaciones ---
   const isZolverYaDisabled =
     form.selectedCategory && !form.selectedCategory.is_usually_urgent;
-  const isFormValid =
+
+  const isProfileValid =
     form.serviceModes.length > 0 &&
-    form.selectedCategory &&
+    form.selectedCategory && // ¿Has seleccionado Cerrajería?
     form.specialization.length > 0 &&
     form.biography.length > 0 &&
     (!form.selectedCategory.requires_license || form.licenseNumber.length > 3);
+
+  // 2. Validación para el Paso 3 (Ubicación)
+  const isLocationValid = form.location !== null;
+
+  // Dentro de useProfessionalForm.tsx, antes del return
+  console.log("DEBUG VALIDACIÓN:", {
+    modes: form.serviceModes.length,
+    category: !!form.selectedCategory,
+    spec: form.specialization.length,
+    bio: form.biography.length,
+    licenseRequired: form.selectedCategory?.requires_license,
+    licenseNum: form.licenseNumber,
+  });
 
   return {
     ...form,
     categories,
     loadingCategories,
     loadingTags,
-    tags, // 👈 Ahora sí tendrá datos cuando selecciones categoría
+    tags,
     loadingImages,
     toggleServiceMode,
     pickImage: handleAddImage,
     removeImage,
     updateField,
+    toggleDay,
     isZolverYaDisabled,
-    isFormValid,
+
+    // 👇 Exportamos las validaciones específicas
+    isProfileValid,
+    isLocationValid,
   };
 }

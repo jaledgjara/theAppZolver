@@ -48,6 +48,11 @@ const _layout = () => {
         name="FormProfessionalTwo"
         options={{ headerShown: false, animation }}
       />
+
+      <Stack.Screen
+        name="FormProfessionalThree"
+        options={{ headerShown: false, animation }}
+      />
     </Stack>
   );
 };

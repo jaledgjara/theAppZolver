@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/slider": "5.0.1",
     "@supabase/supabase-js": "^2.80.0",
     "dayjs": "^1.11.19",
     "expo": "~54.0.25",
@@ -20,6 +21,7 @@
     "expo-dev-client": "~6.0.18",
     "expo-image-picker": "~17.0.8",
     "expo-linking": "~8.0.9",
+    "expo-location": "~19.0.7",
     "expo-router": "~6.0.15",
     "expo-status-bar": "~3.0.8",
     "expo-web-browser": "~15.0.8",
@@ -32,6 +34,7 @@
     "react-native-calendars": "^1.1313.0",
     "react-native-country-picker-modal": "^2.0.0",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-maps": "1.20.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
