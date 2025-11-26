@@ -1,82 +1,106 @@
-import { StyleSheet, Text, View } from "react-native";
+// app/(auth)/FormProfessionalOne.tsx
 import React from "react";
-import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
-import CustomPickerImageInput from "@/appSRC/auth/Screen/CustomPickerImageInput";
+
+// Componentes
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { COLORS, SIZES } from "@/appASSETS/theme";
+
+// Hooks y Theme
+import { COLORS, FONTS } from "@/appASSETS/theme";
 import { useImagePicker } from "@/appCOMP/images/Hooks/useImagePicker";
-import { useSignOut } from "@/appSRC/auth/Hooks/useSignOut";
-import { auth } from "@/APIconfig/firebaseAPIConfig";
+import { CustomPickerImageInput } from "@/appSRC/auth/Screen/CustomPickerImageInput";
 
 const FormProfessionalOne = () => {
   const router = useRouter();
-  const signOut = useSignOut();
 
+  // 1. Instancias independientes del hook para cada documento
   const pickerFrente = useImagePicker();
   const pickerDorso = useImagePicker();
   const pickerSelfie = useImagePicker();
 
+  // 2. Validación: Todos deben tener una imagen cargada
+  const isFormValid = !!pickerFrente && !!pickerDorso && !!pickerSelfie;
+
+  // 3. Loading general si alguno está procesando
+  const isLoading =
+    pickerFrente.isLoading || pickerDorso.isLoading || pickerSelfie.isLoading;
+
+  const handleContinue = () => {
+    console.log("Datos validados:", {
+      frente: pickerFrente,
+      dorso: pickerDorso,
+      selfie: pickerSelfie,
+    });
+
+    router.push("/(auth)/FormProfessionalTwo");
+  };
+
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText={"Verificación DNI"} showBackButton={true} />
-      <View style={styles.contentContainer}>
-        <Text style={styles.subtitle}>
-          Para proteger tu cuenta y la seguridad de nuestra comunidad...
-        </Text>
+      <ToolBarTitle
+        titleText="Verificación de Identidad"
+        showBackButton={true}
+      />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        {/* SECCIÓN SUPERIOR: Textos e Inputs */}
         <View>
-          {/* FRENTE */}
+          <View style={styles.header}>
+            <Text style={styles.sectionSubtitle}>
+              Para garantizar la seguridad de la comunidad, necesitamos validar
+              tu identidad.
+            </Text>
+          </View>
+
+          {/* FRENTE DNI */}
           <CustomPickerImageInput
             title="Frente del DNI"
-            subtittle="Asegúrate de que la foto sea nítida."
-            iconTitle="id-card-sharp"
-            // Lógica visual: Cambiar ícono si ya hay imagen
-            iconResultUpload={
-              pickerFrente.image ? "checkmark-circle" : "circle-xmark"
-            }
-            color={pickerFrente.image ? "green" : "red"}
-            // Acción al presionar
+            subtitle="Asegúrate de que la foto sea nítida."
+            iconTitle="id-card-outline"
+            // CORRECCIÓN: Verificar .image
+            isUploaded={!!pickerFrente.image}
             onPress={pickerFrente.pickImage}
           />
 
-          {/* DORSO */}
+          {/* DORSO DNI */}
           <CustomPickerImageInput
-            title="Dorso del DNI:"
-            subtittle="Necesitamos ver la parte trasera."
-            iconTitle="camera-reverse-outline"
-            iconResultUpload={
-              pickerDorso.image ? "checkmark-circle" : "circle-xmark"
-            }
-            color={pickerDorso.image ? "green" : "red"}
+            title="Dorso del DNI"
+            subtitle="Necesitamos ver la parte trasera."
+            iconTitle="card-outline"
+            // CORRECCIÓN: Verificar .image
+            isUploaded={!!pickerDorso.image}
             onPress={pickerDorso.pickImage}
           />
 
-          {/* SELFIE (Usamos la cámara para este) */}
+          {/* SELFIE */}
           <CustomPickerImageInput
-            title="Selfie sosteniendo tu DNI:"
-            subtittle="Sostén tu DNI al lado de tu cara. "
-            iconTitle="person-add-outline"
-            iconResultUpload={
-              pickerSelfie.image ? "checkmark-circle" : "circle-xmark"
-            }
-            color={pickerSelfie.image ? "green" : "red"}
-            onPress={pickerSelfie.takePhoto} // Usamos takePhoto aquí
+            title="Selfie con DNI"
+            subtitle="Sostén tu DNI al lado de tu cara."
+            iconTitle="camera-outline"
+            // CORRECCIÓN: Usar pickerSelfie y verificar .image
+            isUploaded={!!pickerDorso.image}
+            onPress={pickerDorso.pickImage}
           />
-
-          <View style={styles.buttonContainer}>
-            <LargeButton
-              title="Verificar identidad"
-              onPress={() => router.push("(auth)/FormProfessionalTwo")}
-              iconName="id-card"
-              // Deshabilitar si está cargando
-              loading={pickerFrente.isLoading || pickerSelfie.isLoading}
-            />
-          </View>
         </View>
-      </View>
+
+        {/* SECCIÓN INFERIOR: Botón (Empujado al fondo) */}
+        <View style={styles.footer}>
+          <LargeButton
+            title="CONTINUAR"
+            onPress={handleContinue}
+            iconName="shield-checkmark-outline"
+            loading={isLoading}
+            disabled={!isFormValid}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 };
+
 export default FormProfessionalOne;
 
 const styles = StyleSheet.create({
@@ -84,25 +108,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "space-between",
+  scrollContent: {
+    flexGrow: 1, // Permite que el contenido ocupe todo el alto disponible
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 40,
   },
-  pickerContainer: {
-    marginTop: 20,
+  header: {
+    marginBottom: 24,
   },
-  subtitle: {
-    fontSize: SIZES.h2,
-    fontWeight: "bold",
-    textAlign: "center",
+  sectionSubtitle: {
+    padding: 20,
+    ...FONTS.h3,
     color: COLORS.textSecondary,
-    marginTop: 50,
+    lineHeight: 20,
+    fontWeight: "600",
   },
-  buttonContainer: {
-    alignItems: "center",
-    paddingBottom: 55,
-    width: "100%",
+  footer: {
+    marginTop: "auto", // Esto empuja el botón hacia el final del ScrollView
+    paddingTop: 20,
   },
 });

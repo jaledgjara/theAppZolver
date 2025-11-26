@@ -1,88 +1,92 @@
-import { COLORS, FONTS } from "@/appASSETS/theme";
-import { FontAwesome6 } from "@expo/vector-icons";
-import Ionicons from "@expo/vector-icons/Ionicons";
+// appCOMP/inputs/CustomPickerImageInput.tsx
 import React from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { TouchableOpacity, View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 
-type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
-
-interface CustomPickerImageInputProps {
+interface Props {
   title: string;
-  subtittle: string;
-  iconTitle: IoniconName;
-  iconResultUpload?: string;
-  color?: string;
+  subtitle: string;
+  iconTitle: React.ComponentProps<typeof Ionicons>["name"];
+  isUploaded: boolean;
   onPress: () => void;
 }
 
-const CustomPickerImageInput: React.FC<CustomPickerImageInputProps> = ({
+export const CustomPickerImageInput: React.FC<Props> = ({
   title,
-  subtittle,
+  subtitle,
   iconTitle,
-  iconResultUpload,
-  color,
+  isUploaded,
   onPress,
 }) => {
   return (
-    <Pressable style={styles.container} onPress={onPress}>
-      <View style={styles.infoContainer}>
-        <Ionicons name={iconTitle} size={40} color="black" />
+    <TouchableOpacity
+      style={[styles.container, isUploaded && styles.containerSuccess]}
+      onPress={onPress}
+      activeOpacity={0.7}>
+      {/* Icono del Tipo de Documento */}
+      <View style={styles.iconWrapper}>
+        <Ionicons
+          name={iconTitle}
+          size={28}
+          color={isUploaded ? COLORS.success : COLORS.textSecondary}
+        />
+      </View>
 
-        <View style={styles.stringContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtittle}</Text>
-        </View>
+      {/* Textos */}
+      <View style={styles.textContainer}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
-      <View style={styles.iconResultContainer}>
-        <FontAwesome6 name={iconResultUpload} size={24} color={color} />
-      </View>
-    </Pressable>
+
+      {/* Indicador de Estado (Check o Flecha) */}
+      <Ionicons
+        name={isUploaded ? "checkmark-circle" : "chevron-forward"}
+        size={24}
+        color={isUploaded ? COLORS.success : "#D1D5DB"}
+      />
+    </TouchableOpacity>
   );
 };
-
-export default CustomPickerImageInput;
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    alignContent: "center",
-    justifyContent: "space-between",
-    backgroundColor: "white",
-    marginVertical: 10,
-    borderRadius: 15,
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    // Sombra suave
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  infoContainer: {
-    justifyContent: "flex-start",
-    flexDirection: "row",
-    alignContent: "center",
+  containerSuccess: {
+    borderColor: COLORS.success, // Borde verde si está listo
+    backgroundColor: "#F0FDF4", // Fondo verde muy sutil
   },
-  stringContainer: {
-    marginHorizontal: 15,
+  iconWrapper: {
+    width: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  textContainer: {
+    flex: 1,
   },
   title: {
-    ...FONTS.h3,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "700",
     color: COLORS.textPrimary,
+    marginBottom: 2,
   },
   subtitle: {
-    ...FONTS.h4,
+    fontSize: 13,
     color: COLORS.textSecondary,
-  },
-  iconResultContainer: {
-    marginVertical: 10,
-    marginRight: 5,
   },
 });

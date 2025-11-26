@@ -6,14 +6,13 @@ export const useImagePicker = () => {
   const [image, setImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Manejo robusto de permisos
-  const verifyPermissions = async () => {
+  // --- Helpers de Permisos (Reutilizables internamente) ---
+  const verifyMediaPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (status !== "granted") {
       Alert.alert(
         "Permisos insuficientes",
-        "Necesitamos acceso a tu galería para subir el documento.",
+        "Necesitamos acceso a tu galería.",
         [
           { text: "Cancelar", style: "cancel" },
           { text: "Ir a Configuración", onPress: () => Linking.openSettings() },
@@ -27,32 +26,35 @@ export const useImagePicker = () => {
   const verifyCameraPermissions = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permiso denegado",
-        "Necesitamos usar la cámara para verificar tu identidad."
-      );
+      Alert.alert("Permisos insuficientes", "Necesitamos acceso a tu cámara.", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Ir a Configuración", onPress: () => Linking.openSettings() },
+      ]);
       return false;
     }
     return true;
   };
 
-  // Función para abrir Galería
-  const pickImage = async () => {
-    const hasPermission = await verifyPermissions();
-    if (!hasPermission) return;
+  // --- Acciones Mejoradas ---
+
+  // 🆕 CAMBIO: Ahora retorna Promise<string | null>
+  const pickImage = async (): Promise<string | null> => {
+    const hasPermission = await verifyMediaPermissions();
+    if (!hasPermission) return null;
 
     try {
       setIsLoading(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true, // UX: Permite recortar
+        allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.5, // Performance: Comprimir antes de subir a Supabase
+        quality: 0.5,
       });
 
       if (!result.canceled) {
-        setImage(result.assets[0].uri);
-        return result.assets[0].uri;
+        const uri = result.assets[0].uri;
+        setImage(uri); // Mantiene comportamiento original
+        return uri; // ✅ NUEVO: Retorna la URI para usar en arrays
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -60,12 +62,13 @@ export const useImagePicker = () => {
     } finally {
       setIsLoading(false);
     }
+    return null;
   };
 
-  // Función para abrir Cámara
-  const takePhoto = async () => {
+  // 🆕 CAMBIO: Ahora retorna Promise<string | null>
+  const takePhoto = async (): Promise<string | null> => {
     const hasPermission = await verifyCameraPermissions();
-    if (!hasPermission) return;
+    if (!hasPermission) return null;
 
     try {
       setIsLoading(true);
@@ -76,14 +79,17 @@ export const useImagePicker = () => {
       });
 
       if (!result.canceled) {
-        setImage(result.assets[0].uri);
-        return result.assets[0].uri;
+        const uri = result.assets[0].uri;
+        setImage(uri);
+        return uri; // ✅ NUEVO
       }
     } catch (error) {
       console.error("Error taking photo:", error);
+      Alert.alert("Error", "No se pudo tomar la foto.");
     } finally {
       setIsLoading(false);
     }
+    return null;
   };
 
   return {
