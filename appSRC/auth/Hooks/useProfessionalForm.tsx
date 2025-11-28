@@ -1,176 +1,151 @@
-import { useState, useEffect } from "react";
-import { useServiceSelection } from "@/appSRC/auth/Hooks/useServiceCatalog";
-import { useImagePicker } from "@/appCOMP/images/Hooks/useImagePicker";
+import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import { Alert } from "react-native";
+import { useAuthStore } from "../Store/AuthStore";
+import { useServiceSelection } from "./useServiceCatalog";
 import { ServiceMode } from "@/appSRC/users/Model/ServiceMode";
-
-// Tipos auxiliares
-export type DaySchedule = {
-  day: string;
-  active: boolean;
-  from: string;
-  to: string;
-};
-
-const INITIAL_SCHEDULE: DaySchedule[] = [
-  { day: "Lun", active: true, from: "09:00", to: "18:00" },
-  { day: "Mar", active: true, from: "09:00", to: "18:00" },
-  { day: "Mié", active: true, from: "09:00", to: "18:00" },
-  { day: "Jue", active: true, from: "09:00", to: "18:00" },
-  { day: "Vie", active: true, from: "09:00", to: "18:00" },
-  { day: "Sáb", active: false, from: "10:00", to: "14:00" },
-  { day: "Dom", active: false, from: "10:00", to: "14:00" },
-];
+import { useProfessionalOnboardingStore } from "../Type/ProfessionalAuthUser";
+import { ProfessionalProfileService } from "../Service/ProfessionalAuthService";
 
 export function useProfessionalForm() {
-  // 1. Consumimos el Hook de Datos
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user, setUser, setStatus } = useAuthStore();
+
+  const store = useProfessionalOnboardingStore();
+
+  // 2. Catálogo
   const {
     categories,
     loadingCategories,
-    loadingTags,
     tags,
+    loadingTags,
     fetchCategories,
     setSelectedCategory,
   } = useServiceSelection();
 
-  // 2. Consumimos el Hook de Imágenes
-  const { pickImage: pickSingleImage, isLoading: loadingImages } =
-    useImagePicker();
-
-  // 3. Estado Local
-  const [form, setForm] = useState({
-    serviceModes: ["zolver_ya"] as ServiceMode[],
-    selectedCategory: null as any,
-    specialization: "",
-    licenseNumber: "",
-    biography: "",
-    portfolioImages: [] as string[],
-
-    // --- NUEVOS CAMPOS (Form 3/4) ---
-    location: null as { latitude: number; longitude: number } | null,
-    coverageRadius: 5, // en Kilómetros
-    schedule: INITIAL_SCHEDULE,
-  });
-
-  // --- Lógica de Negocio ---
-
+  // --- EFECTOS ---
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
-    setSelectedCategory(form.selectedCategory);
-  }, [form.selectedCategory]);
+    setSelectedCategory(store.category);
+  }, [store.category]);
 
+  // Lógica Zolver Ya
   useEffect(() => {
-    if (form.selectedCategory) {
-      const isUrgent = form.selectedCategory.is_usually_urgent;
-      const requiresLicense = form.selectedCategory.requires_license;
-
-      setForm((prev) => {
-        let newModes = [...prev.serviceModes];
-        if (!isUrgent) {
-          newModes = newModes.filter((m) => m !== "zolver_ya");
-          if (!newModes.includes("presupuesto")) newModes.push("presupuesto");
+    if (store.category) {
+      const isUrgent = store.category.is_usually_urgent;
+      let newModes = [...store.serviceModes];
+      if (!isUrgent) {
+        newModes = newModes.filter((m) => m !== "zolver_ya");
+        if (!newModes.includes("presupuesto")) newModes.push("presupuesto");
+        if (newModes.length !== store.serviceModes.length) {
+          store.setData({ serviceModes: newModes });
         }
-        return {
-          ...prev,
-          serviceModes: newModes,
-          licenseNumber: requiresLicense ? prev.licenseNumber : "",
-        };
-      });
+      }
     }
-  }, [form.selectedCategory]);
+  }, [store.category]);
 
-  // --- Actions ---
+  // --- ACCIONES ---
+  const updateField = (field: string, value: any) => {
+    // Mapper para compatibilidad con vistas viejas
+    if (field === "selectedCategory") field = "category";
+    if (field === "portfolioImages") field = "portfolioUris";
+    if (field === "coverageRadius") field = "radiusKm";
+
+    store.setData({ [field]: value });
+  };
+
+  const addPortfolioImage = (uri: string) => {
+    store.setData({ portfolioUris: [...store.portfolioUris, uri] });
+  };
+
+  const removePortfolioImage = (index: number) => {
+    const newImages = [...store.portfolioUris];
+    newImages.splice(index, 1);
+    store.setData({ portfolioUris: newImages });
+  };
+
   const toggleServiceMode = (mode: ServiceMode) => {
     if (
       mode === "zolver_ya" &&
-      form.selectedCategory &&
-      !form.selectedCategory.is_usually_urgent
+      store.category &&
+      !store.category.is_usually_urgent
     )
       return;
-    setForm((prev) => {
-      const exists = prev.serviceModes.includes(mode);
-      if (exists && prev.serviceModes.length === 1) return prev;
-      return {
-        ...prev,
-        serviceModes: exists
-          ? prev.serviceModes.filter((m) => m !== mode)
-          : [...prev.serviceModes, mode],
-      };
-    });
+    const currentModes = store.serviceModes;
+    const exists = currentModes.includes(mode);
+    if (exists && currentModes.length === 1) return;
+    const newModes = exists
+      ? currentModes.filter((m) => m !== mode)
+      : [...currentModes, mode];
+    store.setData({ serviceModes: newModes });
   };
 
-  const handleAddImage = async () => {
-    const uri = await pickSingleImage();
-    if (uri)
-      setForm((prev) => ({
-        ...prev,
-        portfolioImages: [...prev.portfolioImages, uri],
-      }));
-  };
-
-  const removeImage = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      portfolioImages: prev.portfolioImages.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateField = (field: keyof typeof form, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Nueva acción: Toggle día de la semana
   const toggleDay = (dayName: string) => {
-    setForm((prev) => ({
-      ...prev,
-      schedule: prev.schedule.map((d) =>
-        d.day === dayName ? { ...d, active: !d.active } : d
-      ),
-    }));
+    const newSchedule = store.schedule.map((d) =>
+      d.day === dayName ? { ...d, active: !d.active } : d
+    );
+    store.setData({ schedule: newSchedule });
   };
 
-  // --- Validaciones ---
-  const isZolverYaDisabled =
-    form.selectedCategory && !form.selectedCategory.is_usually_urgent;
+  const submitProfile = async () => {
+    if (!user?.uid) return;
+    setIsSubmitting(true);
+    try {
+      // 1. Guardar en Base de Datos (vía Edge Function)
+      await ProfessionalProfileService.saveFullProfile(user.uid, store);
 
-  const isProfileValid =
-    form.serviceModes.length > 0 &&
-    form.selectedCategory && // ¿Has seleccionado Cerrajería?
-    form.specialization.length > 0 &&
-    form.biography.length > 0 &&
-    (!form.selectedCategory.requires_license || form.licenseNumber.length > 3);
+      // 2. Actualizar usuario local
+      // Marcamos profileComplete como true porque el formulario ya se llenó
+      setUser({ ...user, profileComplete: true });
 
-  // 2. Validación para el Paso 3 (Ubicación)
-  const isLocationValid = form.location !== null;
+      // 3. 🔥 CAMBIO CLAVE: Establecer estado a "pendingReview"
+      // Esto disparará el AuthGuard para llevarlo a la pantalla de estado
+      setStatus("pendingReview");
 
-  // Dentro de useProfessionalForm.tsx, antes del return
-  console.log("DEBUG VALIDACIÓN:", {
-    modes: form.serviceModes.length,
-    category: !!form.selectedCategory,
-    spec: form.specialization.length,
-    bio: form.biography.length,
-    licenseRequired: form.selectedCategory?.requires_license,
-    licenseNum: form.licenseNumber,
-  });
+      // 4. Limpiar formulario
+      store.reset();
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Fallo al guardar perfil.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
+  // --- RETURN CON ALIAS (Soluciona tus errores de tipos) ---
   return {
-    ...form,
+    ...store,
+    // ALIAS: Mapeamos nombres nuevos a viejos para que tus vistas no se rompan
+    selectedCategory: store.category,
+    portfolioImages: store.portfolioUris,
+    coverageRadius: store.radiusKm,
+
+    // Resto de datos
+    user,
     categories,
     loadingCategories,
-    loadingTags,
     tags,
-    loadingImages,
-    toggleServiceMode,
-    pickImage: handleAddImage,
-    removeImage,
-    updateField,
-    toggleDay,
-    isZolverYaDisabled,
+    loadingTags,
+    isSubmitting,
 
-    // 👇 Exportamos las validaciones específicas
-    isProfileValid,
-    isLocationValid,
+    // Acciones
+    updateField,
+    addPortfolioImage,
+    removeImage: removePortfolioImage,
+    toggleServiceMode,
+    toggleDay,
+    submitProfile,
+
+    // Validaciones
+    isZolverYaDisabled: store.category && !store.category.is_usually_urgent,
+    isProfileValid:
+      store.category &&
+      store.specialization.length > 0 &&
+      store.biography.length > 0,
+    isLocationValid: store.location !== null,
   };
 }

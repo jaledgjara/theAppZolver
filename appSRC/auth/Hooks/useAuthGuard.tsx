@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
-import {
-  useRouter,
-  usePathname,
-  useRootNavigationState,
-} from "expo-router";
+import { useRouter, usePathname, useRootNavigationState } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
 import { AUTH_PATHS } from "@/appSRC/auth/Path/AuthPaths";
@@ -14,12 +10,8 @@ export function useAuthGuard() {
   const pathname = usePathname();
   const navState = useRootNavigationState();
 
-  const {
-    status,
-    user,
-    isBootLoading,
-    setTransitionDirection,
-  } = useAuthStore();
+  const { status, user, isBootLoading, setTransitionDirection } =
+    useAuthStore();
 
   const isNavReady = navState?.key != null;
   const prevStatus = useRef<AuthStatus | null>(null);
@@ -68,8 +60,6 @@ export function useAuthGuard() {
         break;
 
       case "anonymous":
-        // Si venís “desde la nada” (cold start) → adelante
-        // Si venís desde algo más avanzado → atrás
         if (prevStatus.current === "unknown" || prevStatus.current === null) {
           direction = "forward";
         } else {
@@ -87,7 +77,7 @@ export function useAuthGuard() {
       case "phoneVerified":
         // Ya tengo teléfono pero falta rol
         direction = "forward";
-        target = AUTH_PATHS.phoneVerified; // mapea a TypeOfUserScreen
+        target = AUTH_PATHS.phoneVerified;
         break;
 
       case "preProfessionalForm":
@@ -97,16 +87,23 @@ export function useAuthGuard() {
         break;
 
       case "authenticated":
-        // Home final
+        // Home final Cliente
         direction = "forward";
         target = AUTH_PATHS.authenticated;
         break;
-      
+
       case "authenticatedProfessional":
+        // Home final Profesional
         direction = "forward";
         target = AUTH_PATHS.authenticatedProfessional;
         break;
 
+      // 🔥 CASOS NUEVOS
+      case "pendingReview":
+      case "rejected":
+        direction = "forward";
+        target = AUTH_PATHS.pendingReview; // Mapeado a AccountStatusScreen en AuthPaths
+        break;
 
       default:
         direction = "back";
@@ -131,9 +128,7 @@ export function useAuthGuard() {
       return;
     }
 
-    console.log(
-      `[AuthGuard] replace (delayed) → ${target} dir=${direction}`
-    );
+    console.log(`[AuthGuard] replace (delayed) → ${target} dir=${direction}`);
 
     // Seteamos la dirección ANTES de navegar
     setTransitionDirection(direction);

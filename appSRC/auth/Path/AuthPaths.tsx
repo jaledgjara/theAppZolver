@@ -7,8 +7,12 @@ export const AUTH_PATHS: Record<string, string> = {
   preAuth: "/(auth)/UserBasicInfoScreen",
   phoneVerified: "/(auth)/TypeOfUserScreen",
   preProfessionalForm: "/(auth)/FormProfessionalOne",
+  // Nuevas Rutas
+  pendingReview: "/(auth)/AccountStatusScreen", // La pantalla que creamos arriba
+  rejected: "/(auth)/AccountStatusScreen",
+
   authenticated: "/(client)/(tabs)/home",
-  authenticatedProfessional: "/(professional)/(tabs)/home"
+  authenticatedProfessional: "/(professional)/(tabs)/home",
 };
 
 // Always return a plain string

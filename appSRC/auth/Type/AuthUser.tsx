@@ -1,14 +1,15 @@
-
 export type UserRole = "client" | "professional" | "employer" | "admin";
 
 export type AuthStatus =
   | "unknown"
   | "anonymous"
-  | "preAuth"             
-  | "phoneVerified"       
-  | "preProfessionalForm" 
-  | "authenticated";
-
+  | "preAuth"
+  | "phoneVerified"
+  | "preProfessionalForm"
+  | "pendingReview"
+  | "rejected"
+  | "authenticated"
+  | "authenticatedProfessional";
 
 // appSRC/auth/Model/AuthUser.ts
 
@@ -18,10 +19,9 @@ export type AuthUser = {
   displayName: string | null;
   photoURL: string | null;
   phoneNumber: string | null;
-  role: "client" | "professional" | "admin";
+  role: "client" | "professional" | "admin" | null;
   profileComplete: boolean;
 };
-
 
 // appSRC/auth/Type/AuthUser.ts
 export type AuthUserSession = {

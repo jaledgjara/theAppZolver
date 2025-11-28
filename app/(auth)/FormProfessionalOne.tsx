@@ -1,6 +1,6 @@
 // app/(auth)/FormProfessionalOne.tsx
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 // Componentes
@@ -15,25 +15,37 @@ import { CustomPickerImageInput } from "@/appSRC/auth/Screen/CustomPickerImageIn
 const FormProfessionalOne = () => {
   const router = useRouter();
 
-  // 1. Instancias independientes del hook para cada documento
+  // 1. Traer la función para actualizar el Store Global
+  const { updateField } = useProfessionalForm();
+
+  // 2. Instancias locales del selector de imágenes
   const pickerFrente = useImagePicker();
   const pickerDorso = useImagePicker();
-  const pickerSelfie = useImagePicker();
+  // const pickerSelfie = useImagePicker(); // (Si decides usarlo después)
 
-  // 2. Validación: Todos deben tener una imagen cargada
-  const isFormValid = !!pickerFrente && !!pickerDorso && !!pickerSelfie;
+  // 3. Validación
+  const isFormValid = !!pickerFrente.image && !!pickerDorso.image;
 
-  // 3. Loading general si alguno está procesando
-  const isLoading =
-    pickerFrente.isLoading || pickerDorso.isLoading || pickerSelfie.isLoading;
+  const isLoading = pickerFrente.isLoading || pickerDorso.isLoading;
 
   const handleContinue = () => {
-    console.log("Datos validados:", {
-      frente: pickerFrente,
-      dorso: pickerDorso,
-      selfie: pickerSelfie,
+    // 🚨 VALIDACIÓN EXTRA DE SEGURIDAD
+    if (!pickerFrente.image || !pickerDorso.image) {
+      Alert.alert("Faltan datos", "Por favor carga ambas fotos del DNI.");
+      return;
+    }
+
+    console.log("💾 Guardando imágenes en Store Global:", {
+      front: pickerFrente.image,
+      back: pickerDorso.image,
     });
 
+    // 🔥🔥 AQUÍ ESTÁ LA SOLUCIÓN: Guardar en el estado global
+    updateField("dniFrontUri", pickerFrente.image);
+    updateField("dniBackUri", pickerDorso.image);
+    // updateField("selfieUri", pickerSelfie.image);
+
+    // Ahora sí avanzamos
     router.push("/(auth)/FormProfessionalTwo");
   };
 
@@ -76,14 +88,14 @@ const FormProfessionalOne = () => {
           />
 
           {/* SELFIE */}
-          <CustomPickerImageInput
+          {/* <CustomPickerImageInput
             title="Selfie con DNI"
             subtitle="Sostén tu DNI al lado de tu cara."
             iconTitle="camera-outline"
             // CORRECCIÓN: Usar pickerSelfie y verificar .image
-            isUploaded={!!pickerDorso.image}
-            onPress={pickerDorso.pickImage}
-          />
+            isUploaded={!!pickerDorso.takePhoto}
+            onPress={pickerDorso.takePhoto}
+          /> */}
         </View>
 
         {/* SECCIÓN INFERIOR: Botón (Empujado al fondo) */}

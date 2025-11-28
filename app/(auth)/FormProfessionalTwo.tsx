@@ -17,6 +17,7 @@ import { ServiceSwitcherCatalog } from "@/appSRC/auth/Screen/ServiceSwitcherCata
 import { PortfolioManager } from "@/appSRC/auth/Screen/PortofolioManager";
 import { CategorySelectorModal } from "@/appSRC/auth/Screen/CategorySelectorModal";
 import { useProfessionalForm } from "@/appSRC/auth/Hooks/useProfessionalForm";
+import { useImagePicker } from "@/appCOMP/images/Hooks/useImagePicker";
 
 // --- MÓDULOS ---
 
@@ -26,13 +27,15 @@ const FormProfessionalTwo = () => {
 
   // 🔥 EL CEREBRO (Hook)
   const {
+    portfolioImages, // Ahora funciona gracias al alias en el hook
+    addPortfolioImage, // Nueva función del hook
+    removeImage,
     // Estado
     serviceModes,
     selectedCategory,
     specialization,
     licenseNumber,
     biography,
-    portfolioImages,
     // Datos
     tags,
     loadingTags,
@@ -40,18 +43,28 @@ const FormProfessionalTwo = () => {
     loadingCategories,
     // Acciones
     toggleServiceMode,
-    pickImage,
-    removeImage,
     updateField,
     // Validaciones
     isZolverYaDisabled,
     isProfileValid,
   } = useProfessionalForm();
 
-  const handleContinue = () => {
-    router.push("/(auth)/FormProfessionalThree");
+  const portfolioPicker = useImagePicker();
+
+  // 📸 FUNCIÓN PUENTE:
+  // Toma la foto del picker local y la guarda INMEDIATAMENTE en el Store Global
+  const handleAddPortfolio = async () => {
+    const uri = await portfolioPicker.pickImage();
+    if (uri) {
+      console.log("📸 Foto agregada al portafolio global:", uri);
+      addPortfolioImage(uri);
+    }
   };
 
+  const handleContinue = () => {
+    // Como los datos ya están en el Store, solo navegamos
+    router.push("/(auth)/FormProfessionalThree");
+  };
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Perfil Profesional" showBackButton={true} />
@@ -192,7 +205,7 @@ const FormProfessionalTwo = () => {
         {/* 6. PORTAFOLIO (Componente Modular) */}
         <PortfolioManager
           images={portfolioImages}
-          onAdd={pickImage}
+          onAdd={handleAddPortfolio} // Usamos la función puente
           onRemove={removeImage}
         />
 

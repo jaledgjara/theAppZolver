@@ -6,28 +6,17 @@ import {
   isSignInWithEmailLink,
   OAuthProvider,
   onAuthStateChanged,
-  PhoneAuthProvider,
-  RecaptchaVerifier,
   sendSignInLinkToEmail,
   signInWithCredential,
   signInWithEmailLink,
-  signInWithPhoneNumber,
   signOut,
-  type User as FirebaseUser,
 } from "firebase/auth";
 import { SignInResult } from "../Type/SignInResult";
 import { useAuthStore } from "../Store/AuthStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
-import { Platform } from "react-native";
 import { syncUserSession } from "./SessionService";
 
-
-/**
- * Map a Firebase user + backend metadata to our internal AuthUser type.
- * This allows us to merge Firebase identity with SQL state cleanly.
- */
 export function mapFirebaseUserToAuthUser(
   fbUser: import("firebase/auth").User,
   opts?: {
@@ -47,15 +36,10 @@ export function mapFirebaseUserToAuthUser(
   };
 }
 
-/**
- * Initializes the Firebase auth listener and synchronizes
- * the SQL state from Supabase via session-sync.
- */
 export function initializeAuthListener() {
   const { setStatus, setUser, setBootLoading } = useAuthStore.getState();
 
   const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-    // No Firebase user → anonymous
     if (!fbUser) {
       console.log("[AuthListener] No Firebase user → anonymous");
       setUser(null);
@@ -68,7 +52,6 @@ export function initializeAuthListener() {
       console.log("[AuthListener] Firebase user detected → syncUserSession()");
       const backend = await syncUserSession();
 
-      // fallback local
       const storedProfile = await AsyncStorage.getItem("profileComplete");
       const localProfileFlag = storedProfile === "true";
 
@@ -77,7 +60,9 @@ export function initializeAuthListener() {
       const profileComplete =
         backend?.profile_complete ?? localProfileFlag ?? false;
 
-      // Construimos el usuario app
+      // Obtenemos identityStatus del backend, o 'pending' por defecto
+      const identityStatus = (backend as any)?.identityStatus ?? "pending";
+
       const appUser = mapFirebaseUserToAuthUser(fbUser, {
         phone,
         role,
@@ -86,22 +71,22 @@ export function initializeAuthListener() {
 
       useAuthStore.getState().setUser(appUser);
 
-      // 🔥 DECISIÓN DE ESTADO GLOBAL
+      // Decidir estado basado en toda la info
       const nextStatus: AuthStatus = decideAuthStatus({
         hasPhone: !!phone,
         role,
         profileComplete,
+        identityStatus,
       });
 
       useAuthStore.getState().setStatus(nextStatus);
 
       console.log(
         `[AuthListener] ✅ Sesión sincronizada → status=${nextStatus}`,
-        { hasPhone: !!phone, role, profileComplete }
+        { hasPhone: !!phone, role, profileComplete, identityStatus }
       );
     } catch (err: any) {
       console.error("[AuthListener] ❌ Error syncing session:", err.message);
-
       const fallbackUser = mapFirebaseUserToAuthUser(fbUser, {
         profileComplete: false,
       });
@@ -115,50 +100,38 @@ export function initializeAuthListener() {
   return unsubscribe;
 }
 
-/**
- * Decide the high-level AuthStatus based on SQL + Firebase state.
- * This is the brain of the onboarding flow.
- */
 function decideAuthStatus(params: {
   hasPhone: boolean;
   role: "client" | "professional" | null;
   profileComplete: boolean;
+  identityStatus?: string;
 }): AuthStatus {
-  const { hasPhone, role, profileComplete } = params;
+  const { hasPhone, role, profileComplete, identityStatus } = params;
 
-  // 1) No teléfono verificado → siempre preAuth
-  if (!hasPhone) {
-    return "preAuth";
-  }
+  if (!hasPhone) return "preAuth";
 
-  // 2) Teléfono verificado pero sin rol → elegir tipo de usuario
-  if (hasPhone && !role) {
-    return "phoneVerified";
-  }
+  if (hasPhone && !role) return "phoneVerified";
 
-  // 3) Cliente: teléfono + rol client
-  if (role === "client") {
-    // cliente va al Home; si profileComplete se desincroniza no importa:
-    // el gating fuerte está en hasPhone
-    return "authenticated";
-  }
+  if (role === "client") return "authenticated";
 
-  // 4) Profesional: requiere formulario extra
+  // Lógica profesional
   if (role === "professional") {
-    if (!profileComplete) {
-      return "preProfessionalForm";
-    }
-    return "authenticated";
+    if (!profileComplete) return "preProfessionalForm";
+
+    // 🔥 LÓGICA DE APROBACIÓN
+    if (identityStatus === "approved") return "authenticatedProfessional"; // OJO: Chequea si en tu DB dice 'approved' o 'verified'
+    if (identityStatus === "verified") return "authenticatedProfessional";
+    if (identityStatus === "rejected") return "rejected";
+
+    return "pendingReview"; // Default si es 'pending'
   }
 
-  // Fallback seguro
   return "preAuth";
 }
 
-
+// SIGN IN FUNC´S
 export async function signInWithAppleFirebase(): Promise<SignInResult> {
   try {
-
     // 1) Abrimos la hoja nativa de Apple (UI del sistema)
     const appleCredential = await AppleAuthentication.signInAsync({
       requestedScopes: [
@@ -175,7 +148,7 @@ export async function signInWithAppleFirebase(): Promise<SignInResult> {
     // 3) Creamos proveedor 'apple.com' y su credencial para Firebase
     const provider = new OAuthProvider("apple.com");
     const credential = provider.credential({
-      idToken: appleCredential.identityToken
+      idToken: appleCredential.identityToken,
     });
 
     // 4) Autenticamos en Firebase con esa credencial
@@ -200,7 +173,9 @@ export async function signInWithAppleFirebase(): Promise<SignInResult> {
 }
 
 WebBrowser.maybeCompleteAuthSession(); // limpia sesiones previas
-export async function signInWithGoogleCredential(idToken: string): Promise<SignInResult> {
+export async function signInWithGoogleCredential(
+  idToken: string
+): Promise<SignInResult> {
   try {
     const credential = GoogleAuthProvider.credential(idToken);
     await signInWithCredential(auth, credential);
@@ -212,7 +187,6 @@ export async function signInWithGoogleCredential(idToken: string): Promise<SignI
 
     return { ok: true, user: mapFirebaseUserToAuthUser(current) };
     console.log("RESPUESTA CORRECTA DE GOOGLE:");
-    
   } catch (e: any) {
     return { ok: false, code: e?.code, message: e?.message ?? String(e) };
   }
@@ -235,7 +209,9 @@ export async function signOutFirebase(): Promise<void> {
   }
 }
 
-export async function sendSignInLinkToEmailFirebase(email: string): Promise<SignInResult> {
+export async function sendSignInLinkToEmailFirebase(
+  email: string
+): Promise<SignInResult> {
   try {
     const actionCodeSettings = {
       url: "https://thezolverapp.web.app/auth/complete",
@@ -243,7 +219,6 @@ export async function sendSignInLinkToEmailFirebase(email: string): Promise<Sign
       iOS: { bundleId: "com.the.zolver.app" },
       android: { packageName: "com.the.zolver.app", installApp: true },
     };
-
 
     await sendSignInLinkToEmail(auth, email, actionCodeSettings);
     await AsyncStorage.setItem("lastEmail", email);
@@ -259,10 +234,14 @@ export async function sendSignInLinkToEmailFirebase(email: string): Promise<Sign
 /**
  * Maneja el link cuando el usuario vuelve desde el correo.
  */
-export async function handleSignInWithEmailLinkFirebase(url?: string | null): Promise<SignInResult> {
+export async function handleSignInWithEmailLinkFirebase(
+  url?: string | null
+): Promise<SignInResult> {
   try {
     if (!url) {
-      console.log("[Passwordless] No URL provided to handleSignInWithEmailLinkFirebase");
+      console.log(
+        "[Passwordless] No URL provided to handleSignInWithEmailLinkFirebase"
+      );
       return { ok: false, message: "No URL provided" };
     }
 
@@ -279,7 +258,9 @@ export async function handleSignInWithEmailLinkFirebase(url?: string | null): Pr
     const cred = await signInWithEmailLink(auth, savedEmail, url);
     const fbUser = cred.user;
 
-    const appUser = mapFirebaseUserToAuthUser(fbUser, { profileComplete: true });
+    const appUser = mapFirebaseUserToAuthUser(fbUser, {
+      profileComplete: true,
+    });
     console.log("[Passwordless] Successful sign-in via link", appUser.email);
 
     return { ok: true, user: appUser };

@@ -5,10 +5,12 @@ import { TransitionDirection } from "../Type/TransitionDirection";
 export type AuthStatus =
   | "unknown"
   | "anonymous"
-  | "preAuth"             // logged in, phone NOT verified
-  | "phoneVerified"       // phone verified, missing role
+  | "preAuth" // logged in, phone NOT verified
+  | "phoneVerified" // phone verified, missing role
   | "preProfessionalForm" // professional missing extra form
   | "authenticated"
+  | "pendingReview"
+  | "rejected"
   | "authenticatedProfessional";
 
 type AuthState = {

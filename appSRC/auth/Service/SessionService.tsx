@@ -1,5 +1,3 @@
-// appSRC/auth/Service/SessionService.tsx
-
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 
 export type BackendSession = {
@@ -10,6 +8,8 @@ export type BackendSession = {
   phone: string | null;
   role: "client" | "professional" | null;
   profile_complete: boolean;
+  // 👇 AGREGADO: Definimos el tipo aquí
+  identityStatus?: string;
 };
 
 export async function syncUserSession(): Promise<BackendSession | null> {
@@ -21,14 +21,13 @@ export async function syncUserSession(): Promise<BackendSession | null> {
     const fullUrl = `${baseUrl}/session-sync`;
 
     console.log("🌍 [sessionService] Base URL:", baseUrl);
-    console.log("📡 [sessionService] Full URL:", fullUrl);
     console.log(
       "🔑 [sessionService] Token (first 30 chars):",
       token.slice(0, 30)
     );
 
     const res = await fetch(fullUrl, {
-      method: "POST", // tu función acepta POST
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -58,6 +57,7 @@ export async function syncUserSession(): Promise<BackendSession | null> {
       phone: data.phone,
       role: data.role,
       profile_complete: data.profile_complete,
+      identityStatus: data.identityStatus,
     };
   } catch (err: any) {
     console.error("❌ [sessionService] Error:", err.message);

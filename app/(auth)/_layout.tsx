@@ -53,6 +53,16 @@ const _layout = () => {
         name="FormProfessionalThree"
         options={{ headerShown: false, animation }}
       />
+
+      <Stack.Screen
+        name="FormProfessionalFour"
+        options={{ headerShown: false, animation }}
+      />
+
+      <Stack.Screen
+        name="AccountStatusScreen"
+        options={{ headerShown: false, animation }}
+      />
     </Stack>
   );
 };
