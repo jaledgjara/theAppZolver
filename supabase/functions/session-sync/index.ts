@@ -12,16 +12,14 @@ const PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "thezolverapp";
 let cachedJwks: any = null;
 
 // --------------------------------------------
-// 2. Helpers
+// 2. Helpers (JWT & Crypto)
 // --------------------------------------------
 async function getGoogleJWKS() {
   if (cachedJwks) {
     console.log("💾 [JWKS] Usando claves en caché");
     return cachedJwks;
   }
-  console.log(
-    "globe_with_meridians [JWKS] Fetching nuevas claves de Google..."
-  );
+  console.log("🌐 [JWKS] Fetching nuevas claves de Google...");
   try {
     const res = await fetch(GOOGLE_JWKS_URL);
     if (!res.ok) throw new Error(`Google JWKS status: ${res.status}`);
@@ -51,7 +49,7 @@ async function importRsaKey(jwk: any): Promise<CryptoKey> {
 }
 
 // --------------------------------------------
-// 3. Lógica de Verificación
+// 3. Lógica de Verificación JWT
 // --------------------------------------------
 async function verifyFirebaseJWT(token: string) {
   console.log("🔍 [Verify] Iniciando validación del token...");
@@ -114,7 +112,7 @@ async function verifyFirebaseJWT(token: string) {
 }
 
 // --------------------------------------------
-// 4. Handler Principal
+// 4. Handler Principal (Supabase Logic)
 // --------------------------------------------
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -141,42 +139,73 @@ serve(async (req: Request) => {
       `🗄️ [DB] Buscando usuario en 'user_accounts' con auth_uid=${payload.sub}...`
     );
 
+    // 🔥 IMPORTANTE: Si la tabla no tiene las columnas 'first_name' y 'last_name', esto fallará.
+    // Asegúrate de ejecutar: ALTER TABLE public.user_accounts ADD COLUMN IF NOT EXISTS first_name text NULL, ADD COLUMN IF NOT EXISTS last_name text NULL;
     const { data: account, error } = await supabase
       .from("user_accounts")
-      .select("auth_uid, email, phone, role, profile_complete")
+      .select(
+        "auth_uid, email, phone, role, profile_complete, first_name, last_name"
+      )
       .eq("auth_uid", payload.sub)
       .maybeSingle();
 
     if (error) {
       console.error("❌ [DB] Error SQL:", error);
-      throw error;
+      throw error; // Esto es lo que dispara el 401 en tu log
     }
 
     if (!account) {
-      console.warn("⚠️ [DB] Usuario no encontrado en tabla user_accounts");
+      console.warn(
+        "⚠️ [DB] Usuario no encontrado en tabla user_accounts (¿Sync pendiente?)"
+      );
     }
 
-    // 3. 🔥 NUEVO: Consultar Perfil Profesional si corresponde
-    let identityStatus = "pending"; // Valor por defecto seguro
+    // 3. Consultar Perfil Profesional si corresponde
+    let identityStatus = "pending";
+    let professionalName = null;
 
     if (account?.role === "professional") {
       console.log(`🔍 Buscando perfil profesional para: ${payload.sub}`);
 
       const { data: profile, error: profError } = await supabase
         .from("professional_profiles")
-        .select("identity_status")
+        // 🔥 CORRECCIÓN: Agregamos legal_name al select
+        .select("identity_status, legal_name")
         .eq("user_id", payload.sub)
         .maybeSingle();
 
       if (profile) {
         identityStatus = profile.identity_status ?? "pending";
-        console.log(`✅ Status encontrado: ${identityStatus}`);
+        professionalName = profile.legal_name; // Recuperamos "Jaled Jara"
+        console.log(
+          `✅ Perfil encontrado. Status: ${identityStatus}, Nombre: ${professionalName}`
+        );
       } else {
         console.log("⚠️ No se encontró perfil profesional (aún no creado)");
       }
     }
 
-    // 4. Responder con TODOS los datos
+    // 4. Lógica de Nombre Final
+    // Si hay un nombre profesional ("Jaled Jara"), úsalo.
+    // Si no, intenta usar first_name + last_name.
+    // Si no, legal_name de user_accounts.
+
+    let finalName = account?.legal_name; // Backup
+
+    if (account?.first_name || account?.last_name) {
+      finalName = `${account.first_name ?? ""} ${
+        account.last_name ?? ""
+      }`.trim();
+    }
+
+    if (professionalName) {
+      finalName = professionalName; // Prioridad máxima al perfil profesional
+    }
+
+    // Para mantener compatibilidad con tu frontend actual que espera 'first_name' y 'last_name',
+    // podemos descomponer el nombre final o enviarlo como 'legal_name' o 'displayName'.
+    // Aquí enviamos todo para que el frontend decida.
+
     const responseData = {
       ok: true,
       uid: payload.sub,
@@ -185,14 +214,23 @@ serve(async (req: Request) => {
       phone: account?.phone ?? payload.phone_number ?? null,
       role: account?.role ?? null,
       profile_complete: account?.profile_complete ?? false,
-      identityStatus: identityStatus, // 👈 Dato crucial devuelto al front
+
+      // Enviamos el nombre calculado
+      displayName: finalName,
+
+      // Mantenemos estos por compatibilidad si tu AuthUser los usa
+      first_name: account?.first_name,
+      last_name: account?.last_name,
+      legal_name: finalName, // Enviamos explícitamente como legal_name también
+
+      identityStatus: identityStatus,
     };
 
     console.log("🚀 [Response] Enviando 200 OK:", responseData);
 
     return Response.json(responseData, { status: 200 });
   } catch (err: any) {
-    console.error("💥 Error:", err.message);
+    console.error("💥 Error General:", err.message);
     return Response.json({ code: 401, message: err.message }, { status: 401 });
   }
 });

@@ -8,8 +8,8 @@ export type BackendSession = {
   phone: string | null;
   role: "client" | "professional" | null;
   profile_complete: boolean;
-  // 👇 AGREGADO: Definimos el tipo aquí
-  identityStatus?: string;
+  legal_name: string | null;
+  identityStatus?: string | null; // 👈 NUEVO
 };
 
 export async function syncUserSession(): Promise<BackendSession | null> {
@@ -21,10 +21,6 @@ export async function syncUserSession(): Promise<BackendSession | null> {
     const fullUrl = `${baseUrl}/session-sync`;
 
     console.log("🌍 [sessionService] Base URL:", baseUrl);
-    console.log(
-      "🔑 [sessionService] Token (first 30 chars):",
-      token.slice(0, 30)
-    );
 
     const res = await fetch(fullUrl, {
       method: "POST",
@@ -35,7 +31,7 @@ export async function syncUserSession(): Promise<BackendSession | null> {
 
     console.log("📡 [sessionService] Response status:", res.status);
     const raw = await res.text();
-    console.log("📦 [sessionService] Raw response:", raw);
+    // console.log("📦 [sessionService] Raw response:", raw);
 
     let data: any;
     try {
@@ -57,7 +53,8 @@ export async function syncUserSession(): Promise<BackendSession | null> {
       phone: data.phone,
       role: data.role,
       profile_complete: data.profile_complete,
-      identityStatus: data.identityStatus,
+      legal_name: data.legal_name, // 👈 Mapeo
+      identityStatus: data.identityStatus, // 👈 Mapeo
     };
   } catch (err: any) {
     console.error("❌ [sessionService] Error:", err.message);

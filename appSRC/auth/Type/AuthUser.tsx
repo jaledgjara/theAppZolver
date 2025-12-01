@@ -17,10 +17,12 @@ export type AuthUser = {
   uid: string;
   email: string | null;
   displayName: string | null;
+  legalName: string | null;
   photoURL: string | null;
   phoneNumber: string | null;
   role: "client" | "professional" | "admin" | null;
   profileComplete: boolean;
+  identityStatus?: string | null; // 👈 NUEVO (Útil para lógica UI)
 };
 
 // appSRC/auth/Type/AuthUser.ts

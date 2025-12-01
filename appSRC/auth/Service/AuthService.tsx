@@ -17,22 +17,31 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 import { syncUserSession } from "./SessionService";
 
+// Helper to construct the AuthUser object
 export function mapFirebaseUserToAuthUser(
   fbUser: import("firebase/auth").User,
   opts?: {
     phone?: string | null;
     role?: "client" | "professional" | null;
     profileComplete?: boolean;
+    legalName?: string | null;
+    identityStatus?: string | null; // 👈 Param opcional
   }
 ): AuthUser {
+  // 🔥 Lógica de Prioridad: Si Supabase tiene nombre, lo usamos.
+  // Si no, fallback a Firebase displayName.
+  const finalName = opts?.legalName || fbUser.displayName || null;
+
   return {
     uid: fbUser.uid,
     email: fbUser.email ?? null,
-    displayName: fbUser.displayName ?? null,
+    displayName: finalName, // Usamos el mismo valor para ambos
+    legalName: finalName,
     photoURL: fbUser.photoURL ?? null,
     phoneNumber: opts?.phone ?? fbUser.phoneNumber ?? null,
     role: opts?.role ?? null,
     profileComplete: opts?.profileComplete ?? false,
+    identityStatus: opts?.identityStatus ?? null, // Guardamos status
   };
 }
 
@@ -50,7 +59,7 @@ export function initializeAuthListener() {
 
     try {
       console.log("[AuthListener] Firebase user detected → syncUserSession()");
-      const backend = await syncUserSession();
+      const backend = await syncUserSession(); // 🔥 Fetch de Supabase
 
       const storedProfile = await AsyncStorage.getItem("profileComplete");
       const localProfileFlag = storedProfile === "true";
@@ -59,19 +68,20 @@ export function initializeAuthListener() {
       const role = backend?.role ?? null;
       const profileComplete =
         backend?.profile_complete ?? localProfileFlag ?? false;
+      const identityStatus = backend?.identityStatus ?? "pending";
 
-      // Obtenemos identityStatus del backend, o 'pending' por defecto
-      const identityStatus = (backend as any)?.identityStatus ?? "pending";
-
+      // 🔥 Mapeo completo
       const appUser = mapFirebaseUserToAuthUser(fbUser, {
         phone,
         role,
         profileComplete,
+        legalName: backend?.legal_name,
+        identityStatus,
       });
 
       useAuthStore.getState().setUser(appUser);
 
-      // Decidir estado basado en toda la info
+      // 🔥 Decisión de estado
       const nextStatus: AuthStatus = decideAuthStatus({
         hasPhone: !!phone,
         role,
@@ -83,10 +93,16 @@ export function initializeAuthListener() {
 
       console.log(
         `[AuthListener] ✅ Sesión sincronizada → status=${nextStatus}`,
-        { hasPhone: !!phone, role, profileComplete, identityStatus }
+        {
+          role,
+          profileComplete,
+          identityStatus,
+          legalName: backend?.legal_name,
+        }
       );
     } catch (err: any) {
       console.error("[AuthListener] ❌ Error syncing session:", err.message);
+      // Fallback seguro
       const fallbackUser = mapFirebaseUserToAuthUser(fbUser, {
         profileComplete: false,
       });
@@ -114,22 +130,69 @@ function decideAuthStatus(params: {
 
   if (role === "client") return "authenticated";
 
-  // Lógica profesional
+  // Lógica profesional con identityStatus
   if (role === "professional") {
     if (!profileComplete) return "preProfessionalForm";
 
-    // 🔥 LÓGICA DE APROBACIÓN
-    if (identityStatus === "approved") return "authenticatedProfessional"; // OJO: Chequea si en tu DB dice 'approved' o 'verified'
-    if (identityStatus === "verified") return "authenticatedProfessional";
-    if (identityStatus === "rejected") return "rejected";
+    // Verifica los strings exactos que uses en tu base de datos
+    if (identityStatus === "approved" || identityStatus === "verified") {
+      return "authenticatedProfessional";
+    }
+    if (identityStatus === "rejected") {
+      return "rejected";
+    }
 
-    return "pendingReview"; // Default si es 'pending'
+    return "pendingReview"; // Si es 'pending' u otro
   }
 
   return "preAuth";
 }
 
+// appSRC/auth/Service/AuthService.tsx
+
+/**
+ * Actualiza el nombre completo (legal_name) en el backend y store.
+ */
+export async function updateUserIdentity(fullName: string): Promise<boolean> {
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error("No token");
+
+    // 1. Backend: Enviamos el string completo "Juan Carlos de la Vega"
+    const res = await fetch(
+      `${process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS}/update-user-identity`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ legal_name: fullName }), // <--- Enviamos solo una clave
+      }
+    );
+
+    // 2. Store: Actualización Optimista
+    const { user, setUser } = useAuthStore.getState();
+
+    if (user) {
+      setUser({
+        ...user,
+        legalName: fullName, // Guardamos el dato
+        displayName: fullName, // Actualizamos lo que ve la UI
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating identity:", error);
+    return false;
+  }
+}
+
+// -----------------
 // SIGN IN FUNC´S
+// -----------------
+
 export async function signInWithAppleFirebase(): Promise<SignInResult> {
   try {
     // 1) Abrimos la hoja nativa de Apple (UI del sistema)
