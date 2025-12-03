@@ -1,17 +1,18 @@
-// ProfessionalCard.tsx
-// A reusable card for showing a professional with avatar, name, category, and rating.
-
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
+import { COLORS } from "@/appASSETS/theme"; // Asegúrate de importar tus colores
 
 interface ProfessionalCardProps {
-  avatar: string;       // professional photo URL
-  name: string;         // full name
-  category: string;     // e.g., "Pintor"
-  rating: number;       // 0–5
-  onPress?: () => void; // press handler
+  avatar: string;
+  name: string;
+  category: string;
+  rating: number;
+  // --- NUEVOS CAMPOS ---
+  price?: number;
+  distance?: number | null; // Viene en metros desde PostGIS
+  onPress?: () => void;
 }
 
 export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
@@ -19,38 +20,65 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
   name,
   category,
   rating,
+  price,
+  distance,
   onPress,
 }) => {
+  // Lógica para mostrar "2.5 km" o "500 m"
+  const formattedDistance = distance
+    ? distance > 1000
+      ? `${(distance / 1000).toFixed(1)} km`
+      : `${Math.round(distance)} m`
+    : null;
+
   return (
     <BaseCard
       onPress={onPress}
       left={
         <Image
-          source={{ uri: avatar }}
+          source={{ uri: avatar || "https://via.placeholder.com/150" }}
           style={styles.avatar}
         />
       }
       middle={
-        <View>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.category}>{category}</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.name} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={styles.category} numberOfLines={1}>
+            {category}
+          </Text>
 
-          {/* Rating stars */}
+          {/* Rating */}
           <View style={styles.ratingRow}>
             {Array.from({ length: 5 }).map((_, index) => (
               <FontAwesome
                 key={index}
                 name="star"
-                size={16}
-                color={index < rating ? "#FFD700" : "#D9D9D9"}
-                style={{ marginRight: 4 }}
+                size={14}
+                color={index < Math.round(rating) ? "#FFD700" : "#D9D9D9"}
+                style={{ marginRight: 2 }}
               />
             ))}
           </View>
         </View>
       }
       right={
-        <FontAwesome name="chevron-right" size={22} color="#888" />
+        // --- AQUÍ MOSTRAMOS PRECIO Y DISTANCIA ---
+        <View style={styles.metaContainer}>
+          {price && <Text style={styles.price}>${price.toLocaleString()}</Text>}
+
+          {formattedDistance && (
+            <View style={styles.distanceBadge}>
+              <Ionicons
+                name="location-sharp"
+                size={10}
+                color={COLORS.primary}
+              />
+              <Text style={styles.distanceText}>{formattedDistance}</Text>
+            </View>
+          )}
+        </View>
       }
     />
   );
@@ -58,10 +86,15 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
 
 const styles = StyleSheet.create({
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 50,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: "#EEE",
+  },
+  infoContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingRight: 8,
   },
   name: {
     fontSize: 16,
@@ -71,10 +104,35 @@ const styles = StyleSheet.create({
   category: {
     fontSize: 14,
     color: "#777",
-    marginTop: 2,
+    marginVertical: 2,
   },
   ratingRow: {
     flexDirection: "row",
-    marginTop: 6,
+    marginTop: 2,
+  },
+  // --- Estilos Nuevos ---
+  metaContainer: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 4,
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#333",
+  },
+  distanceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F9FF",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+  },
+  distanceText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    marginLeft: 2,
+    fontWeight: "700",
   },
 });

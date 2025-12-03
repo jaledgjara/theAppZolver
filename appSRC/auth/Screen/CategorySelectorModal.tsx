@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/appASSETS/theme";
-import { ServiceCategory } from "@/appSRC/auth/Hooks/useServiceCatalog";
+import { ServiceCategory } from "@/appSRC/categories/Hooks/useServiceCatalog";
 
 interface Props {
   visible: boolean;

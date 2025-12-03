@@ -5,6 +5,10 @@ export default function ClientLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="messages" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="professionalDetails"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

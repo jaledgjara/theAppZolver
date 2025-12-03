@@ -1,27 +1,27 @@
-import { COLORS } from '@/appASSETS/theme';
-import React from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  ViewStyle, 
-  TextStyle 
-} from 'react-native';
+import { COLORS } from "@/appASSETS/theme";
+import React from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 
 interface CategoryItemProps {
   name: string;
-  icon: React.ReactNode;            // Accepts Emojis, Ionicons, MaterialIcons, etc.
+  icon: React.ReactNode; // Accepts Emojis, Ionicons, MaterialIcons, etc.
   onPress: () => void;
 
   // Optional overrides
   backgroundColor?: string;
   borderRadius?: number;
   shadow?: boolean;
-  size?: number;                    // Controls width/height square
+  size?: number; // Controls width/height square
   nameColor?: string;
   nameSize?: number;
-  containerStyle?: ViewStyle;       // Full custom container override
-  textStyle?: TextStyle;            // Custom text style override
+  containerStyle?: ViewStyle; // Full custom container override
+  textStyle?: TextStyle; // Custom text style override
 }
 
 /**
@@ -44,9 +44,8 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   nameSize = 14,
 
   containerStyle,
-  textStyle
+  textStyle,
 }) => {
-
   const dynamicStyle: ViewStyle = {
     backgroundColor,
     borderRadius,
@@ -56,20 +55,18 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.container, dynamicStyle, containerStyle]}
       onPress={onPress}
-      activeOpacity={0.85}
-    >
+      activeOpacity={0.85}>
       {icon}
 
-      <Text 
+      <Text
         style={[
-          styles.nameText, 
+          styles.nameText,
           { color: nameColor, fontSize: nameSize },
-          textStyle
-        ]}
-      >
+          textStyle,
+        ]}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -80,23 +77,23 @@ export default CategoryItem;
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     margin: 10,
   },
   nameText: {
     color: COLORS.primary,
-    marginTop: 10,
-    fontWeight: '600',
-    textAlign: 'center',
+    marginTop: 17,
+    fontWeight: "600",
+    textAlign: "center",
   },
 
   // subtle modern shadow
   shadow: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.07,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
-  }
+  },
 });

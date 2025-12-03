@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { useAuthStore } from "../Store/AuthStore";
-import { useServiceSelection } from "./useServiceCatalog";
+import { useServiceSelection } from "../../categories/Hooks/useServiceCatalog";
 import { ServiceMode } from "@/appSRC/users/Model/ServiceMode";
 import { useProfessionalOnboardingStore } from "../Type/ProfessionalAuthUser";
 import { ProfessionalProfileService } from "../Service/ProfessionalAuthService";
