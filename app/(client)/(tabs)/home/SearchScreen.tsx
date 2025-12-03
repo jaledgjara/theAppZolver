@@ -15,8 +15,8 @@ import { COLORS } from "@/appASSETS/theme";
 
 // Importamos lo nuevo
 import { ProfessionalCard } from "@/appSRC/home/Screens/ProfessionalCard";
-import { useServiceSearch } from "@/appSRC/searchable/Hooks/useServiceSearch";
 import SearchModeSelector from "@/appSRC/searchable/Screen/SearchModeSelector";
+import { useServiceSearch } from "@/appSRC/searchable/Hooks/useServiceSearch";
 
 const QUICK_SUGGESTIONS = [
   "Plomería",
@@ -29,13 +29,13 @@ const QUICK_SUGGESTIONS = [
 const SearchScreen = () => {
   const router = useRouter();
 
-  // 🔥 CONEXIÓN AL CEREBRO (HOOK)
-  const { query, results, loading, handleSearch } = useServiceSearch();
-  const [search, setSearch] = useState("");
-  const [searchMode, setSearchMode] = useState<"instant" | "quote">("instant");
+  // 🔥 HOOK CONECTADO
+  // Desestructuramos los handlers y el estado 'mode'
+  const { query, results, loading, mode, handleTextSearch, handleModeChange } =
+    useServiceSearch();
 
   const handleChipPress = (term: string) => {
-    handleSearch(term); // Usamos la función del hook
+    handleTextSearch(term);
   };
 
   return (
@@ -43,48 +43,46 @@ const SearchScreen = () => {
       <ToolBarTitle titleText="Búsqueda" showBackButton={true} />
 
       <View style={styles.headerContainer}>
+        {/* Barra de búsqueda de texto */}
         <SearchBar
-          value={query} // El valor viene del hook
-          onChangeText={handleSearch} // Cada letra dispara la búsqueda (con debounce)
+          value={query}
+          onChangeText={handleTextSearch}
           placeholder="¿Qué servicio necesitas hoy?"
         />
 
-        {/* 2. Insertamos el selector aquí */}
+        {/* ⚡️ SELECTOR DE MODO (Zolver Ya vs Presupuesto) */}
         <SearchModeSelector
-          currentMode={searchMode}
-          onModeChange={setSearchMode}
+          currentMode={mode}
+          onModeChange={handleModeChange}
         />
 
+        {/* Chips de sugerencia rápida */}
         <View style={styles.recommendationContainer}>
           <QuickChips items={QUICK_SUGGESTIONS} onPress={handleChipPress} />
         </View>
       </View>
 
-      {/* 🔥 LISTA DE RESULTADOS REALES */}
       <FlatList
         data={results}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
-        // Renderizamos la tarjeta evolucionada
         renderItem={({ item }) => (
           <ProfessionalCard
-            avatar={item.avatar_url || ""}
-            name={item.name} // Nombre del servicio (ej: Reparación Split)
-            category={item.description} // Descripción corta
+            avatar={item.photo_url || "https://via.placeholder.com/150"}
+            name={item.legal_name}
+            category={item.specialization_title}
             rating={item.rating}
-            price={item.price} // Precio real
-            distance={item.distance_meters} // Distancia calculada por PostGIS
+            // price={0} // Precio a convenir según la lógica nueva
+            distance={item.dist_meters} // Distancia real desde PostGIS
             onPress={() => {
-              // Navegamos al perfil del profesional
               router.push({
                 pathname: "/(client)/professionalDetails/[id]",
-                params: { id: item.professional_id },
+                params: { id: item.user_id },
               });
             }}
           />
         )}
-        // Mostrar Placeholder solo si no hay búsqueda activa
         ListEmptyComponent={
           !loading && query.length === 0 ? (
             <StatusPlaceholder
@@ -93,7 +91,6 @@ const SearchScreen = () => {
               subtitle="Comienza a escribir para encontrar servicios cercanos"
             />
           ) : !loading && query.length > 0 ? (
-            // Caso: Buscó pero no encontró nada
             <StatusPlaceholder
               icon="magnify-close"
               title="Sin resultados"
@@ -101,7 +98,6 @@ const SearchScreen = () => {
             />
           ) : null
         }
-        // Loader al buscar
         ListFooterComponent={
           loading ? (
             <ActivityIndicator
