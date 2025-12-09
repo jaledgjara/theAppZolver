@@ -5,6 +5,10 @@ export default function HomeLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
 
+      <Stack.Screen name="LocationScreen" />
+
+      <Stack.Screen name="AddLocationScreen" />
+
       <Stack.Screen name="SearchScreen" />
 
       <Stack.Screen name="CategoryDetailsView/[id]" />

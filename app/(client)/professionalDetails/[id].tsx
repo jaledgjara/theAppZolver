@@ -1,37 +1,78 @@
+// app/(client)/professionalDetails/[id].tsx
+
 import React from "react";
 import {
   View,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
   Text,
+  ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { COLORS } from "@/appASSETS/theme";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-
-// Importamos nuestros componentes nuevos
+import { COLORS, SIZES } from "@/appASSETS/theme";
 import {
-  ProfileHeaderCard,
   AboutCard,
-  FeatureListCard,
   AvailabilityCard,
+  FeatureListCard,
+  ProfileHeaderCard,
 } from "@/appSRC/searchable/Screen/ProfileHeaderCard";
 import { useProfessionalDetails } from "@/appSRC/searchable/Hooks/useProfessionalDetails";
-
-// Importamos el hook real
+import PortfolioCard from "@/appSRC/searchable/Screen/PortfolioCard";
+import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
 
 const ProfessionalDetailsView = () => {
-  const { id } = useLocalSearchParams();
-  const professionalId = Array.isArray(id) ? id[0] : id;
+  const router = useRouter();
+  // Recibimos id y mode ('instant' o 'quote')
+  const { id, mode } = useLocalSearchParams<{
+    id: string;
+    mode: ProfessionalTypeWork;
+  }>();
 
-  // 🔥 Hook conectado a Supabase
-  const { profile, loading, error } = useProfessionalDetails(professionalId);
+  // Validamos modo por defecto si viene undefined (fallback a quote)
+  const currentMode = mode || "quote";
+  const isInstant = currentMode === "instant";
+
+  const { profile, loading, error } = useProfessionalDetails(id);
+
+  // --- Lógica de Acciones del Footer ---
+  const handlePrimaryAction = () => {
+    if (!profile) return;
+
+    if (isInstant) {
+      // ⚡️ FLUJO ZOLVER YA: Confirmar y agendar
+      Alert.alert(
+        "Reservar Servicio",
+        `¿Deseas reservar a ${profile.legal_name} con tarifa inmediata?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Continuar",
+            onPress: () => {
+              // Navegar al calendario de reserva
+              console.log("Navegando a ScheduleScreen...");
+              // router.push(...)
+            },
+          },
+        ]
+      );
+    } else {
+      // 📄 FLUJO PRESUPUESTO: Ir al chat directo
+      router.push({
+        pathname: "/(client)/messages/MessagesDetailsScreen/[id]",
+        params: {
+          id: profile.user_id,
+          name: profile.legal_name,
+        },
+      });
+    }
+  };
 
   if (loading) {
     return (
-      <View style={mainStyles.center}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
@@ -39,55 +80,71 @@ const ProfessionalDetailsView = () => {
 
   if (error || !profile) {
     return (
-      <View style={mainStyles.center}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text style={{ color: "red" }}>Error cargando perfil</Text>
       </View>
     );
   }
 
-  // Preparamos datos para la UI (Mapeo)
-  const certifications = [];
-  if (profile.enrollment_number)
-    certifications.push(`Matrícula: ${profile.enrollment_number}`);
-  if (profile.cuit_cuil) certifications.push("Identidad Verificada (CUIT)");
-
   return (
     <View style={mainStyles.container}>
-      <ToolBarTitle titleText="Perfil del Profesional" showBackButton={true} />
+      <ToolBarTitle
+        titleText={isInstant ? "Reserva Inmediata" : "Solicitar Presupuesto"}
+        showBackButton={true}
+      />
 
       <ScrollView
         contentContainerStyle={mainStyles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {/* 1. Header con Avatar y Rating */}
+        {/* 1. Info Card (Común para ambos) */}
         <ProfileHeaderCard profile={profile} />
 
-        {/* 2. Disponibilidad (Estática por ahora, o dinámica si usas el JSON) */}
-        <AvailabilityCard />
+        {/* 2. Disponibilidad (SOLO Zolver Ya) */}
+        {isInstant && <AvailabilityCard />}
 
-        {/* 3. Biografía */}
+        {/* 3. Sobre mí (Común) */}
         <AboutCard text={profile.biography} />
 
-        {/* 4. Credenciales Reales */}
-        <FeatureListCard items={certifications} />
+        {/* 4. Portafolio (Imágenes - Común pero vital para Presupuesto) */}
+        {/* Pasamos un array de fotos ficticio si no existe en BD aún */}
+        <PortfolioCard
+          images={
+            profile.portfolio_photos || [
+              "https://via.placeholder.com/300",
+              "https://via.placeholder.com/301",
+            ]
+          }
+        />
+
+        {/* 5. Credenciales (Opcional, bueno para confianza) */}
+        {profile.enrollment_number && (
+          <FeatureListCard
+            items={[`Matrícula: ${profile.enrollment_number}`]}
+          />
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Footer de Acción */}
+      {/* FOOTER DINÁMICO */}
       <View style={mainStyles.footer}>
         <View>
-          <Text style={mainStyles.priceLabel}>Radio de cobertura</Text>
+          {/* En Zolver Ya mostramos precio hora, en Presupuesto mostramos radio o texto */}
+          <Text style={mainStyles.priceLabel}>{"Radio de cobertura"}</Text>
           <Text style={mainStyles.priceValue}>
-            {profile.coverage_radius_km || 5} km
+            {`${profile.coverage_radius_km || 5} km`}
           </Text>
         </View>
 
         <TouchableOpacity
-          style={mainStyles.bookButton}
-          onPress={() =>
-            console.log("Iniciar Chat / Reservar", profile.user_id)
-          }>
-          <Text style={mainStyles.bookButtonText}>Contactar</Text>
+          style={[
+            mainStyles.bookButton,
+            { backgroundColor: isInstant ? COLORS.primary : COLORS.tertiary },
+          ]}
+          onPress={handlePrimaryAction}>
+          <Text style={mainStyles.bookButtonText}>
+            {isInstant ? "RESERVAR" : "CONTACTAR"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -97,32 +154,39 @@ const ProfessionalDetailsView = () => {
 export default ProfessionalDetailsView;
 
 const mainStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F7FA" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
+  container: { flex: 1, backgroundColor: "#F9F9F9" },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
   footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: "white",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingVertical: 40,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: "#EEE",
+    borderColor: "#EEE",
     elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
     marginBottom: 5,
   },
-  priceLabel: { fontSize: 12, color: "#888" },
-  priceValue: { fontSize: 18, fontWeight: "bold", color: COLORS.primary },
+  priceLabel: { fontSize: 12, color: COLORS.textSecondary },
+  priceValue: { fontSize: 20, fontWeight: "bold", color: COLORS.textPrimary },
   bookButton: {
-    backgroundColor: COLORS.tertiary,
-    paddingVertical: 15,
-    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
     borderRadius: 25,
+    elevation: 2,
   },
-  bookButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  bookButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+    textTransform: "uppercase",
+  },
 });

@@ -1,52 +1,39 @@
 import { useState, useEffect, useCallback } from "react";
-import * as Location from "expo-location";
+// Remove local Location import, we rely on the Store now
+// import * as Location from "expo-location";
 import { SearchService } from "@/appSRC/searchable/Service/SearchService";
 import { ProfessionalResult } from "@/appSRC/searchable/Type/LocationType";
 import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { useLocationStore } from "@/appSRC/location/Store/LocationStore"; // Import Store
 
 export function useServiceSearch() {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<ProfessionalTypeWork>("instant");
   const [results, setResults] = useState<ProfessionalResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [userLocation, setUserLocation] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
 
-  // 1. Obtener ubicación al montar
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          console.warn("⚠️ Permiso ubicación denegado");
-          return;
-        }
-        const loc = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          lat: loc.coords.latitude,
-          lng: loc.coords.longitude,
-        });
-        console.log(
-          "📍 Ubicación usuario:",
-          loc.coords.latitude,
-          loc.coords.longitude
-        );
-      } catch (e) {
-        console.error("Error GPS:", e);
-      }
-    })();
-  }, []);
+  // 1. Listen to the Active Address from the Global Store
+  const activeAddress = useLocationStore((state) => state.activeAddress);
 
   const executeSearch = useCallback(
     async (text: string, currentMode: ProfessionalTypeWork) => {
+      // If we don't have an active address, we might not want to search (or search without coords)
+      if (!activeAddress?.coords) {
+        console.warn("⚠️ No active address selected for search");
+        // Optional: setResults([]) or search without location if your DB supports it
+      }
+
       setLoading(true);
       try {
+        const lat = activeAddress?.coords?.lat;
+        const lng = activeAddress?.coords?.lng;
+
+        console.log("📍 Searching with coords:", lat, lng);
+
         const data = await SearchService.searchProfessionals(
           text,
-          userLocation?.lat,
-          userLocation?.lng,
+          lat,
+          lng,
           currentMode
         );
         setResults(data || []);
@@ -57,17 +44,25 @@ export function useServiceSearch() {
         setLoading(false);
       }
     },
-    [userLocation]
+    [activeAddress] // 🔥 Re-create function when address changes
   );
+
+  // 2. React to Address Changes (Uber Style)
+  useEffect(() => {
+    // Whenever activeAddress changes, we re-run the search with the current query/mode
+    executeSearch(query, mode);
+  }, [activeAddress, mode]); // 🔥 Trigger on address or mode change
 
   const handleTextSearch = (text: string) => {
     setQuery(text);
+    // We don't need to pass mode here explicitly if we use the state,
+    // but usually search inputs trigger immediately.
     executeSearch(text, mode);
   };
 
-  // ✅ Recibe explícitamente el tipo SearchMode
   const handleModeChange = (newMode: ProfessionalTypeWork) => {
     setMode(newMode);
+    // The useEffect will handle the search, but if you want immediate feedback:
     executeSearch(query, newMode);
   };
 
@@ -78,5 +73,6 @@ export function useServiceSearch() {
     mode,
     handleTextSearch,
     handleModeChange,
+    activeAddress, // Optional: return this if you want to show "Searching near..." in UI
   };
 }

@@ -1,60 +1,100 @@
-import AntDesign from '@expo/vector-icons/AntDesign';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, StyleSheet, View, Text } from 'react-native';
-import { AUTH_PATHS } from '@/appSRC/auth/Path/AuthPaths';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { COLORS, FONTS } from '@/appASSETS/theme';
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useLocation } from "@/appSRC/location/Hooks/useLocation";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 
 interface ToolBarHomeProps {
-  titleText: string;
   showMenukButton?: boolean;
-  onPress?: () => void;
 }
 
 export const ToolBarHome: React.FC<ToolBarHomeProps> = ({
-  titleText,
-  showMenukButton = false,
-  onPress,
+  showMenukButton = true,
 }) => {
   const router = useRouter();
 
+  // 🟢 Lógica de Ubicación (Smart Component)
+  const { activeAddress, loading } = useLocation();
 
-  const handleBackButton = () => {
-    if (onPress) {
-      onPress();
-    } else if (showMenukButton) {
-      console.log('Presionado el botton');
-    }
+  const titleText = activeAddress
+    ? `${activeAddress.address_street} ${activeAddress.address_number}`
+    : loading
+    ? "Cargando ubicación..."
+    : "Seleccionar ubicación";
+
+  // Acción única para toda la barra
+  const handleGlobalPress = () => {
+    console.log("📍 [ToolBarHome] Navegando a selección de dirección...");
+    router.push("/(client)/home/LocationScreen");
   };
 
   return (
-    <View style={styles.container}>
-      {showMenukButton && (
-        <Pressable onPress={handleBackButton} hitSlop={10}>
-          <MaterialIcons name="menu-open" size={18} color="white" />
-        </Pressable>
+    <Pressable
+      onPress={handleGlobalPress}
+      // Efecto visual nativo para Android
+      android_ripple={{ color: "rgba(255,255,255,0.2)" }}
+      // ✅ CORRECCIÓN: Un solo prop 'style' dinámico
+      style={({ pressed }) => [
+        styles.container,
+        pressed && { opacity: 0.9 }, // Efecto de opacidad para iOS (y Android si no usa ripple)
+      ]}>
+      {/* Icono Menú (Solo visual, el click lo captura el padre) */}
+      {showMenukButton ? (
+        <View style={styles.menuIconWrapper}>
+          <MaterialIcons name="menu" size={28} color="white" />
+        </View>
+      ) : (
+        <View style={{ width: 28 }} />
       )}
-      <Text style={styles.title}>{titleText}</Text>
-    </View>
+
+      {/* Contenedor Central de Texto */}
+      <View style={styles.textContainer}>
+        <Text style={styles.title} numberOfLines={1}>
+          {titleText}
+        </Text>
+        <MaterialIcons name="keyboard-arrow-down" size={20} color="white" />
+      </View>
+
+      {/* Espaciador para balancear layout */}
+      <View style={{ width: 28 }} />
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    height: 130,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    height: 130, // Altura cómoda
     paddingHorizontal: 20,
-    paddingTop: 70,
-    paddingBottom: 10,
+    paddingTop: 50, // Status bar
+    paddingBottom: 15,
     backgroundColor: COLORS.tertiary,
+  },
+  menuIconWrapper: {
+    // No es touchable por sí mismo, es parte del bloque
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  textContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.15)", // Fondo sutil
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginHorizontal: 10,
   },
   title: {
     ...FONTS.body3,
     color: COLORS.white,
-    marginRight: 5,
-    paddingHorizontal: 10
-  }
+    fontWeight: "600",
+    marginRight: 4,
+    maxWidth: "85%",
+  },
 });

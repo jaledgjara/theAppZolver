@@ -4,21 +4,27 @@ import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWor
 
 export const SearchService = {
   /**
-   * Llama a la RPC 'search_professionals' configurada en PostgreSQL
+   * Búsqueda por Texto (Search Bar)
    */
   async searchProfessionals(
     query: string,
     lat?: number,
     lng?: number,
-    mode: ProfessionalTypeWork = "all" // ✅ Tipado fuerte
+    mode: ProfessionalTypeWork = "all"
   ) {
-    console.log(`📡 [API] Buscando: "${query}" | Modo: ${mode}`);
+    // 🔥 EL FIX MÁGICO: Usar '??' permite que el 0 pase como número y no como null
+    const safeLat = lat ?? null;
+    const safeLng = lng ?? null;
+
+    console.log(
+      `📡 [API] Search: "${query}" | Loc: ${safeLat},${safeLng} | Mode: ${mode}`
+    );
 
     const { data, error } = await supabase.rpc("search_professionals", {
       search_term: query,
-      user_lat: lat || null,
-      user_lng: lng || null,
-      search_mode: mode, // TypeScript valida que esto coincida con lo que espera la DB
+      user_lat: safeLat, // Antes: lat || null (Error si lat es 0)
+      user_lng: safeLng, // Antes: lng || null
+      search_mode: mode,
     });
 
     if (error) throw error;
@@ -26,13 +32,55 @@ export const SearchService = {
   },
 
   /**
-   * Obtiene el perfil completo por ID (para la pantalla de detalles)
+   * Búsqueda por Categoría (Home Icons)
+   */
+  async getProfessionalByCategory(
+    categoryId: string,
+    mode: ProfessionalTypeWork = "all",
+    lat?: number,
+    lng?: number
+  ) {
+    // 🔥 EL FIX MÁGICO AQUÍ TAMBIÉN
+    const safeLat = lat ?? null;
+    const safeLng = lng ?? null;
+
+    console.log(
+      `📡 [API] Category: ${categoryId} | Loc: ${safeLat},${safeLng} | Mode: ${mode}`
+    );
+
+    const { data, error } = await supabase.rpc("search_professionals", {
+      search_term: "",
+      user_lat: safeLat,
+      user_lng: safeLng,
+      search_mode: mode,
+      filter_category_id: categoryId,
+    });
+
+    if (error) {
+      console.error("❌ [API] Error fetching category:", error);
+      return [];
+    }
+
+    // LOG PARA VERIFICAR SI FUNCIONÓ EL FILTRO DE RADIO
+    if (data && data.length > 0) {
+      console.log(
+        `✅ [API] Found ${data.length} pros. Top 1 Dist: ${data[0].dist_meters}m`
+      );
+    } else {
+      console.log(`GJ [API] No pros found (Coverage Radius working!)`);
+    }
+
+    return data as ProfessionalResult[];
+  },
+
+  /**
+   * Detalles (Sin cambios por ahora)
    */
   async getProfessionalById(id: string) {
     const { data, error } = await supabase
       .from("professional_profiles")
       .select("*")
-      .eq("user_id", id) // Ojo: usamos user_id o id según tu navegación
+      .eq("user_id", id)
       .single();
 
     if (error) throw error;

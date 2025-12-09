@@ -17,10 +17,10 @@ import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 import { COLORS } from "@/appASSETS/theme";
 import { useServiceSelection } from "@/appSRC/categories/Hooks/useServiceCatalog";
 import { getCategoryVectorIcon } from "@/appSRC/categories/Screens/CategoryIcons";
+import { useLocation } from "@/appSRC/location/Hooks/useLocation";
 
 const Home = () => {
   const router = useRouter();
-
   // Hook de la capa de dominio
   const { categories, loadingCategories, fetchCategories, error } =
     useServiceSelection();
@@ -57,10 +57,7 @@ const Home = () => {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <ToolBarHome
-        titleText="Av. Bolougne Sur Mer 432"
-        showMenukButton={true}
-      />
+      <ToolBarHome />
 
       <View>
         <SearchBar
@@ -122,7 +119,7 @@ const styles = StyleSheet.create({
   },
   listContentContainer: {
     alignItems: "center",
-    paddingHorizontal: 5, // Padding reducido para acomodar las 3 columnas grandes
+    paddingHorizontal: 5,
     paddingBottom: 40,
   },
   listContainer: {

@@ -1,67 +1,85 @@
-import React from "react";
-import {
-  FontAwesome6,
-  MaterialIcons,
-  MaterialCommunityIcons,
-  Ionicons,
-} from "@expo/vector-icons";
+import { FontAwesome6, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
+import React from "react";
 
 export const getCategoryVectorIcon = (
   slug: string | null,
   size: number = 35,
   color: string = COLORS.primary
 ): React.ReactNode => {
-  // Normalizamos el slug
+  // 1. Normalización: Convertir a minúsculas y quitar espacios para evitar errores humanos
   const safeSlug = slug?.toLowerCase().trim() ?? "default";
 
+  // 2. Mapeo: El 'case' debe coincidir con la columna 'icon_slug' de Supabase
   switch (safeSlug) {
-    // --- Oficios Principales ---
-    case "pintor":
-    case "paint-roller":
-      return <FontAwesome6 name="paint-roller" size={size} color={color} />;
-
-    case "gasista":
-    case "fire":
-      return <FontAwesome6 name="fire-burner" size={size} color={color} />;
-
-    case "electricista":
-    case "bolt":
-      return <FontAwesome6 name="bolt" size={size} color={color} />;
-
-    case "plomero":
-    case "faucet":
-      return <FontAwesome6 name="faucet-drip" size={size} color={color} />;
-
-    case "albañil":
-    case "trowel":
-      return <FontAwesome6 name="trowel" size={size} color={color} />;
-
-    case "carpintero":
-      return <FontAwesome6 name="hammer" size={size} color={color} />;
-
+    // --- LIMPIEZA ---
+    // DB Slug: "sparkles"
+    case "sparkles":
     case "limpieza":
-    case "broom":
       return <FontAwesome6 name="broom" size={size} color={color} />;
 
+    // --- CERRAJERÍA ---
+    // DB Slug: "key"
+    case "key":
+      return <FontAwesome6 name="key" size={size} color={color} />;
+
+    // --- PINTOR ---
+    // DB Slug: "color-palette"
+    case "color-palette":
+    case "pintor":
+      return <Ionicons name="color-palette" size={size} color={color} />;
+
+    // --- JARDINERO ---
+    // DB Slug: "leaf"
+    case "leaf":
     case "jardinero":
-    case "plant":
       return <FontAwesome6 name="plant-wilt" size={size} color={color} />;
 
-    case "aire-acondicionado":
-      return <FontAwesome6 name="snowflake" size={size} color={color} />;
+    // --- GASISTA ---
+    // DB Slug: "flame"
+    case "flame":
+    case "gasista":
+      return <FontAwesome6 name="fire-burner" size={size} color={color} />;
 
-    case "flete":
-    case "truck":
+    // --- FLETES ---
+    // DB Slug: "bus" (Aunque en DB dice bus, renderizamos un camión para mejor UX)
+    case "bus":
+    case "fletes":
       return <FontAwesome6 name="truck-fast" size={size} color={color} />;
 
-    case "tecnico-pc":
+    // --- ELECTRICISTA ---
+    // DB Slug: "flash"
+    case "flash":
+    case "electricista":
+      return <FontAwesome6 name="bolt" size={size} color={color} />;
+
+    // --- PLOMERIA ---
+    // DB Slug: "water"
+    case "water":
+    case "plomeria":
+      return <FontAwesome6 name="faucet-drip" size={size} color={color} />;
+
+    // --- ALBAÑIL ---
+    // DB Slug: "construct"
+    case "construct":
+    case "albañil":
+      return <FontAwesome6 name="trowel" size={size} color={color} />;
+
+    // --- REFRIGERACIÓN ---
+    // DB Slug: "snow"
+    case "snow":
+    case "refrigeración":
+      return <FontAwesome6 name="snowflake" size={size} color={color} />;
+
+    // --- TECNICO PC (Ejemplo futuro) ---
     case "computer":
       return <MaterialIcons name="computer" size={size} color={color} />;
 
-    // --- Fallback por defecto ---
+    // --- DEFAULT (Fallback) ---
     default:
-      // Un maletín genérico si no encontramos el icono específico
+      console.warn(
+        `⚠️ Icono no encontrado para slug: "${safeSlug}". Usando default.`
+      );
       return <Ionicons name="briefcase" size={size} color={color} />;
   }
 };

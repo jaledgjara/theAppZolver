@@ -17,20 +17,11 @@ import { COLORS } from "@/appASSETS/theme";
 import { ProfessionalCard } from "@/appSRC/home/Screens/ProfessionalCard";
 import SearchModeSelector from "@/appSRC/searchable/Screen/SearchModeSelector";
 import { useServiceSearch } from "@/appSRC/searchable/Hooks/useServiceSearch";
-
-const QUICK_SUGGESTIONS = [
-  "Plomería",
-  "Limpieza",
-  "Jardinería",
-  "Electricidad",
-  "Gasista",
-];
+import { useServiceSelection } from "@/appSRC/categories/Hooks/useServiceCatalog";
 
 const SearchScreen = () => {
   const router = useRouter();
-
-  // 🔥 HOOK CONECTADO
-  // Desestructuramos los handlers y el estado 'mode'
+  const { categories, loadingCategories } = useServiceSelection();
   const { query, results, loading, mode, handleTextSearch, handleModeChange } =
     useServiceSearch();
 
@@ -56,9 +47,20 @@ const SearchScreen = () => {
           onModeChange={handleModeChange}
         />
 
-        {/* Chips de sugerencia rápida */}
+        {/* Sección de Sugerencias (Chips) */}
         <View style={styles.recommendationContainer}>
-          <QuickChips items={QUICK_SUGGESTIONS} onPress={handleChipPress} />
+          {loadingCategories ? (
+            <ActivityIndicator color={COLORS.primary} size="small" />
+          ) : (
+            <QuickChips
+              items={
+                categories.length > 0
+                  ? categories.map((cat) => cat.name)
+                  : ["Plomería", "Gasista"]
+              } // Fallback visual
+              onPress={handleChipPress}
+            />
+          )}
         </View>
       </View>
 
@@ -78,7 +80,10 @@ const SearchScreen = () => {
             onPress={() => {
               router.push({
                 pathname: "/(client)/professionalDetails/[id]",
-                params: { id: item.user_id },
+                params: {
+                  id: item.user_id,
+                  mode: mode,
+                },
               });
             }}
           />
