@@ -43,21 +43,17 @@ const ProfessionalDetailsView = () => {
 
     if (isInstant) {
       // ⚡️ FLUJO ZOLVER YA: Confirmar y agendar
-      Alert.alert(
-        "Reservar Servicio",
-        `¿Deseas reservar a ${profile.legal_name} con tarifa inmediata?`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Continuar",
-            onPress: () => {
-              // Navegar al calendario de reserva
-              console.log("Navegando a ScheduleScreen...");
-              // router.push(...)
-            },
-          },
-        ]
-      );
+      // Dentro de handlePrimaryAction
+      router.push({
+        pathname: "/(client)/(tabs)/home/ReservationRequestScreen",
+        params: {
+          id: profile.user_id,
+          name: profile.legal_name,
+          category: profile.specialization_title,
+          mode: isInstant ? "instant" : "quote",
+          price: 5000,
+        },
+      });
     } else {
       // 📄 FLUJO PRESUPUESTO: Ir al chat directo
       router.push({

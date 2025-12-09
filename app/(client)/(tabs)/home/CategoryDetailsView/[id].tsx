@@ -52,7 +52,7 @@ const CategoryDetailsView = () => {
             // price={0} // Precio a convenir según la lógica nueva
             onPress={() => {
               router.push({
-                pathname: "/(client)/professionalDetails/[id]",
+                pathname: "(client)/(tabs)/home/ProfessionalDetails/[id]",
                 params: {
                   id: item.user_id,
                   mode: mode,
