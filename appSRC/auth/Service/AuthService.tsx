@@ -10,6 +10,7 @@ import {
   signInWithCredential,
   signInWithEmailLink,
   signOut,
+  User,
 } from "firebase/auth";
 import { SignInResult } from "../Type/SignInResult";
 import { useAuthStore } from "../Store/AuthStore";
@@ -17,15 +18,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 import { syncUserSession } from "./SessionService";
 
-// Helper to construct the AuthUser object
+// =========================================================
+// 1. Mappers & Helpers
+// =========================================================
+
 export function mapFirebaseUserToAuthUser(
-  fbUser: import("firebase/auth").User,
+  fbUser: User,
   opts?: {
     phone?: string | null;
-    role?: "client" | "professional" | null;
+    role?: "client" | "professional" | "admin" | null;
     profileComplete?: boolean;
     legalName?: string | null;
-    identityStatus?: string | null; // 👈 Param opcional
+    identityStatus?: string | null;
   }
 ): AuthUser {
   // 🔥 Lógica de Prioridad: Si Supabase tiene nombre, lo usamos.
@@ -35,106 +39,42 @@ export function mapFirebaseUserToAuthUser(
   return {
     uid: fbUser.uid,
     email: fbUser.email ?? null,
-    displayName: finalName, // Usamos el mismo valor para ambos
+    displayName: finalName,
     legalName: finalName,
     photoURL: fbUser.photoURL ?? null,
     phoneNumber: opts?.phone ?? fbUser.phoneNumber ?? null,
     role: opts?.role ?? null,
     profileComplete: opts?.profileComplete ?? false,
-    identityStatus: opts?.identityStatus ?? null, // Guardamos status
+    identityStatus: opts?.identityStatus ?? null,
   };
 }
 
-export function initializeAuthListener() {
-  const { setStatus, setUser, setBootLoading } = useAuthStore.getState();
-
-  const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-    if (!fbUser) {
-      console.log("[AuthListener] No Firebase user → anonymous");
-      setUser(null);
-      setStatus("anonymous");
-      setBootLoading(false);
-      return;
-    }
-
-    try {
-      console.log("[AuthListener] Firebase user detected → syncUserSession()");
-      const backend = await syncUserSession(); // 🔥 Fetch de Supabase
-
-      const storedProfile = await AsyncStorage.getItem("profileComplete");
-      const localProfileFlag = storedProfile === "true";
-
-      const phone = backend?.phone ?? fbUser.phoneNumber ?? null;
-      const role = backend?.role ?? null;
-      const profileComplete =
-        backend?.profile_complete ?? localProfileFlag ?? false;
-      const identityStatus = backend?.identityStatus ?? "pending";
-
-      // 🔥 Mapeo completo
-      const appUser = mapFirebaseUserToAuthUser(fbUser, {
-        phone,
-        role,
-        profileComplete,
-        legalName: backend?.legal_name,
-        identityStatus,
-      });
-
-      useAuthStore.getState().setUser(appUser);
-
-      // 🔥 Decisión de estado
-      const nextStatus: AuthStatus = decideAuthStatus({
-        hasPhone: !!phone,
-        role,
-        profileComplete,
-        identityStatus,
-      });
-
-      useAuthStore.getState().setStatus(nextStatus);
-
-      console.log(
-        `[AuthListener] ✅ Sesión sincronizada → status=${nextStatus}`,
-        {
-          role,
-          profileComplete,
-          identityStatus,
-          legalName: backend?.legal_name,
-        }
-      );
-    } catch (err: any) {
-      console.error("[AuthListener] ❌ Error syncing session:", err.message);
-      // Fallback seguro
-      const fallbackUser = mapFirebaseUserToAuthUser(fbUser, {
-        profileComplete: false,
-      });
-      useAuthStore.getState().setUser(fallbackUser);
-      useAuthStore.getState().setStatus("preAuth");
-    } finally {
-      setBootLoading(false);
-    }
-  });
-
-  return unsubscribe;
-}
-
+/**
+ * Lógica centralizada para determinar el estado de la App
+ * basándose en los datos del usuario.
+ */
 function decideAuthStatus(params: {
   hasPhone: boolean;
-  role: "client" | "professional" | null;
+  role: "client" | "professional" | "admin" | null;
   profileComplete: boolean;
-  identityStatus?: string;
+  identityStatus?: string | null;
 }): AuthStatus {
   const { hasPhone, role, profileComplete, identityStatus } = params;
 
+  // 1. Si no hay teléfono, flujo básico incompleto
   if (!hasPhone) return "preAuth";
 
+  // 2. Si hay teléfono pero no rol seleccionado
   if (hasPhone && !role) return "phoneVerified";
 
+  // 3. Cliente: Si tiene rol, pasa directo
   if (role === "client") return "authenticated";
 
-  // Lógica profesional con identityStatus
+  // 4. Profesional: Lógica de aprobación y formulario
   if (role === "professional") {
     if (!profileComplete) return "preProfessionalForm";
 
-    // Verifica los strings exactos que uses en tu base de datos
+    // Verificar estados de identidad (ajusta los strings según tu DB)
     if (identityStatus === "approved" || identityStatus === "verified") {
       return "authenticatedProfessional";
     }
@@ -142,23 +82,107 @@ function decideAuthStatus(params: {
       return "rejected";
     }
 
-    return "pendingReview"; // Si es 'pending' u otro
+    // Si completó perfil pero no está aprobado ni rechazado
+    return "pendingReview";
   }
 
+  // Fallback por seguridad
   return "preAuth";
 }
 
-// appSRC/auth/Service/AuthService.tsx
+// =========================================================
+// 2. Listener Principal (Auth Guard Logic)
+// =========================================================
+
+export function initializeAuthListener() {
+  const { setUser, setStatus, setBootLoading } = useAuthStore.getState();
+
+  console.log("👂 [AuthListener] Subscribing to Firebase Auth state...");
+
+  return onAuthStateChanged(auth, async (firebaseUser) => {
+    console.log(
+      "👤 [AuthListener] Event:",
+      firebaseUser ? "User Found" : "No User"
+    );
+
+    if (!firebaseUser) {
+      // ✅ CORRECCIÓN CRÍTICA:
+      // Usamos "unknown" para ir a WelcomeScreen.
+      // "anonymous" forzaría ir a SignInScreen.
+      console.log("⚪ [AuthListener] No User -> Welcome Screen (unknown)");
+      setUser(null);
+      setStatus("unknown");
+      setBootLoading(false);
+      return;
+    }
+
+    // ⏳ CASO 2: Usuario detectado
+    try {
+      console.log("🔄 [AuthListener] Syncing with Supabase...");
+
+      // Intentamos obtener el perfil del backend
+      const backendSession = await syncUserSession();
+
+      if (!backendSession || !backendSession.ok) {
+        // 🚨 ALERTA ZOMBI: Firebase tiene usuario, pero Supabase NO.
+        console.warn(
+          "🧟 [AuthListener] Zombie User detected! (Firebase Yes, DB No)"
+        );
+        console.log("🧹 [AuthListener] Forcing Sign Out to clean state...");
+
+        await signOut(auth); // Esto disparará el listener de nuevo con null
+        return;
+      }
+
+      // ✅ CASO 3: Usuario válido y sincronizado
+      console.log("✅ [AuthListener] Session Valid synced");
+
+      const appUser = mapFirebaseUserToAuthUser(firebaseUser, {
+        role: backendSession.role,
+        profileComplete: backendSession.profile_complete,
+        legalName: backendSession.legal_name,
+        phone: backendSession.phone,
+        identityStatus: backendSession.identityStatus,
+      });
+
+      setUser(appUser);
+
+      // Calculamos el estado usando la función auxiliar
+      const nextStatus = decideAuthStatus({
+        hasPhone: !!backendSession.phone,
+        role: backendSession.role,
+        profileComplete: backendSession.profile_complete,
+        identityStatus: backendSession.identityStatus,
+      });
+
+      console.log(`🔀 [AuthListener] Decided Status: ${nextStatus}`);
+      setStatus(nextStatus);
+    } catch (error) {
+      console.error("🔴 [AuthListener] Error syncing:", error);
+      // En caso de error crítico de red o lógica, limpiamos para no bloquear
+      setUser(null);
+      setStatus("unknown");
+    } finally {
+      setBootLoading(false);
+    }
+  });
+}
+
+// =========================================================
+// 3. User Actions & Updates
+// =========================================================
 
 /**
  * Actualiza el nombre completo (legal_name) en el backend y store.
  */
 export async function updateUserIdentity(fullName: string): Promise<boolean> {
   try {
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) throw new Error("No token");
+    const user = auth.currentUser;
+    if (!user) throw new Error("No authenticated user");
 
-    // 1. Backend: Enviamos el string completo "Juan Carlos de la Vega"
+    const token = await user.getIdToken();
+
+    // 1. Backend: Enviamos el nombre a la Edge Function
     const res = await fetch(
       `${process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS}/update-user-identity`,
       {
@@ -167,16 +191,20 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ legal_name: fullName }), // <--- Enviamos solo una clave
+        body: JSON.stringify({ legal_name: fullName }),
       }
     );
 
-    // 2. Store: Actualización Optimista
-    const { user, setUser } = useAuthStore.getState();
+    if (!res.ok) {
+      console.error("Failed to update identity in backend");
+      return false;
+    }
 
-    if (user) {
-      setUser({
-        ...user,
+    // 2. Store: Actualización Optimista
+    const store = useAuthStore.getState();
+    if (store.user) {
+      store.setUser({
+        ...store.user,
         legalName: fullName, // Guardamos el dato
         displayName: fullName, // Actualizamos lo que ve la UI
       });
@@ -188,7 +216,6 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
     return false;
   }
 }
-
 // -----------------
 // SIGN IN FUNC´S
 // -----------------

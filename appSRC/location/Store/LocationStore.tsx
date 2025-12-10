@@ -1,5 +1,3 @@
-// appSRC/location/Store/LocationStore.tsx
-
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -8,6 +6,8 @@ import { Address } from "../Type/LocationType";
 interface LocationState {
   activeAddress: Address | null;
   setActiveAddress: (address: Address | null) => void;
+  // 👇 Función necesaria para limpiar al cerrar sesión
+  reset: () => void;
 }
 
 export const useLocationStore = create<LocationState>()(
@@ -38,9 +38,15 @@ export const useLocationStore = create<LocationState>()(
 
         set({ activeAddress: address });
       },
+
+      // 👇 IMPLEMENTACIÓN DEL RESET
+      reset: () => {
+        console.log("🧹 [STORE] Reseteando ubicación (Logout)");
+        set({ activeAddress: null });
+      },
     }),
     {
-      name: "zolver-location-storage",
+      name: "zolver-location-storage", // Nombre de la key en AsyncStorage
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

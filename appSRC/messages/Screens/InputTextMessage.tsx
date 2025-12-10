@@ -1,109 +1,134 @@
+import React, { useState } from "react";
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
-import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import IconButton from "@/appCOMP/button/IconButton";
+import { useRouter } from "expo-router";
 
+interface MessageInputProps {
+  onQuotePress?: () => void;
+}
 
-const MessageInput = () => {
-  const [message, setMessage] = useState('');
+export const MessageInput: React.FC<MessageInputProps> = ({ onQuotePress }) => {
+  const [message, setMessage] = useState("");
+  const router = useRouter();
 
-  // Lógica de ejemplo para el botón de enviar/micrófono
-  const handleSendPress = () => {
+  // 1. Obtener el Rol del Usuario desde el Store
+  const user = useAuthStore((state) => state.user);
+
+  // Verificación de seguridad básica si user es null
+  if (!user) return null;
+
+  const isProfessional = user.role === "professional";
+
+  // 2. Lógica de renderizado del botón de acción
+  const handleActionPress = () => {
     if (message.trim()) {
-      Alert.alert("Mensaje Enviado", message.trim());
-      setMessage(''); // Limpiar el input después de enviar
+      // Si hay texto: ENVIAR MENSAJE
+      console.log("Enviando mensaje:", message);
+      setMessage("");
     } else {
-      // Si el campo está vacío, la acción predeterminada es enviar un audio
-      Alert.alert("Acción", "Grabando mensaje de voz...");
+      // Si el input está VACÍO:
+      if (isProfessional) {
+        // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
+        // Si se pasa una función personalizada (onQuotePress), se usa esa.
+        // Si no, se navega por defecto a la pantalla de Presupuesto.
+        if (onQuotePress) {
+          onQuotePress();
+        } else {
+          router.push("/(professional)/messages/ReservationRequestScreen");
+        }
+      } else {
+        // ACCIÓN DE AUDIO (Cliente)
+        Alert.alert("Audio", "Grabando mensaje de voz...");
+      }
     }
   };
 
-  const sendIconName = message.trim() ? 'send' : 'mic';
+  // 3. Determinar qué icono mostrar
+  const getIconName = () => {
+    if (message.trim()) return "send"; // Siempre enviar si hay texto
+    if (isProfessional) return "add"; // '+' si es profesional y está vacío
+    return "mic"; // Micrófono en otros casos
+  };
+
+  // Color dinámico para diferenciar la acción de "Agregar" vs "Enviar"
+  const getButtonColor = () => {
+    if (!message.trim() && isProfessional) return COLORS.tertiary;
+    return COLORS.primary;
+  };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
-      style={styles.avoidingView}
-    >
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      style={styles.avoidingView}>
       <View style={styles.outerContainer}>
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             value={message}
             onChangeText={setMessage}
-            placeholder="Escribe un mensaje..."
+            placeholder={
+              isProfessional
+                ? "Escribe o envía un presupuesto..."
+                : "Escribe un mensaje..."
+            }
             placeholderTextColor={COLORS.textSecondary}
             multiline={true}
+            maxLength={500}
           />
-
         </View>
 
         <IconButton
           size={50}
-          backgroundColor="#007AFF"
-          onPress={() => console.log("Send!")}
-          icon={
-            <Ionicons name="paper-plane-outline" size={26} color="#fff" />
-          }
-          style={{ marginLeft: 10 }}
+          backgroundColor={getButtonColor()}
+          onPress={handleActionPress}
+          icon={<Ionicons name={getIconName() as any} size={24} color="#fff" />}
+          style={styles.sendButton}
         />
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-export default MessageInput;
-
 const styles = StyleSheet.create({
   avoidingView: {
-    paddingHorizontal: 0,
-    backgroundColor: 'white',
-    alignContent: 'center',
-    height: 120,
-    paddingTop: 5
+    width: "100%",
   },
   outerContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,     // Más espacio horizontal
-    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    padding: 10,
+    paddingBottom: Platform.OS === "ios" ? 30 : 10,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#EEE",
   },
-
   inputContainer: {
     flex: 1,
-    width: '100%',   // El input crece todo lo posible
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxHeight: 60,            // Permite mayor crecimiento
-    backgroundColor: '#EDEDED',
-    borderRadius: 25,
-    paddingHorizontal: 18,     // Más cómodo para escribir
-    paddingVertical: 12,       // Más alto visualmente
-  },
-
-  input: {
-    flex: 1,
-    maxHeight: 190,
+    backgroundColor: "#F2F2F7",
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginRight: 10,
     minHeight: 40,
-    color: '#000',
-    fontSize: 16,
-    paddingHorizontal: 6,
-    paddingTop: 0,
-    paddingBottom: 0,
+    maxHeight: 100,
   },
-  icon: {
-    marginBottom: 5,
-    marginHorizontal: 5,
+  input: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    paddingTop: 0,
   },
   sendButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 50,
-    padding: 10,
-    marginLeft: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
+    elevation: 2,
+  },
 });

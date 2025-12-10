@@ -1,5 +1,6 @@
-import { auth } from "@/APIconfig/firebaseAPIConfig";
+import { auth } from "@/APIconfig/firebaseAPIConfig"; //
 
+// 1. 👇 AGREGAMOS identityStatus AL TIPO
 export type BackendSession = {
   ok: boolean;
   uid: string;
@@ -9,7 +10,7 @@ export type BackendSession = {
   role: "client" | "professional" | null;
   profile_complete: boolean;
   legal_name: string | null;
-  identityStatus?: string | null; // 👈 NUEVO
+  identityStatus?: string | null; // 👈 ESTO FALTABA
 };
 
 export async function syncUserSession(): Promise<BackendSession | null> {
@@ -20,7 +21,7 @@ export async function syncUserSession(): Promise<BackendSession | null> {
     const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS;
     const fullUrl = `${baseUrl}/session-sync`;
 
-    console.log("🌍 [sessionService] Base URL:", baseUrl);
+    // console.log("📡 [sessionService] Syncing with:", fullUrl);
 
     const res = await fetch(fullUrl, {
       method: "POST",
@@ -29,20 +30,21 @@ export async function syncUserSession(): Promise<BackendSession | null> {
       },
     });
 
-    console.log("📡 [sessionService] Response status:", res.status);
     const raw = await res.text();
-    // console.log("📦 [sessionService] Raw response:", raw);
 
     let data: any;
     try {
       data = JSON.parse(raw);
     } catch {
-      throw new Error(`Invalid JSON from session-sync: ${raw}`);
+      throw new Error(`Invalid JSON: ${raw}`);
     }
 
     if (!res.ok) {
-      const msg = data.message || data.error || "Error syncing session";
-      throw new Error(msg);
+      console.error(
+        "❌ [sessionService] Server Error:",
+        data.message || data.error
+      );
+      throw new Error(data.message || "Error syncing session");
     }
 
     return {
@@ -53,11 +55,11 @@ export async function syncUserSession(): Promise<BackendSession | null> {
       phone: data.phone,
       role: data.role,
       profile_complete: data.profile_complete,
-      legal_name: data.legal_name, // 👈 Mapeo
-      identityStatus: data.identityStatus, // 👈 Mapeo
+      legal_name: data.legal_name,
+      identityStatus: data.identityStatus, // 👈 Y LO MAPEAMOS AQUÍ
     };
   } catch (err: any) {
-    console.error("❌ [sessionService] Error:", err.message);
+    console.error("❌ [sessionService] Exception:", err.message);
     return null;
   }
 }

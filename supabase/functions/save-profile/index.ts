@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
-// Decodificador simple de JWT (para extraer UID)
+// Decodificador simple de JWT
 function decodeJwt(token: string) {
   try {
     const base64Url = token.split(".")[1];
@@ -40,7 +40,7 @@ serve(async (req: Request) => {
     if (!authHeader) throw new Error("Missing Auth Header");
 
     const token = authHeader.replace("Bearer ", "");
-    const payload = decodeJwt(token); // En producción, usar librería 'jose' para verificar firma, o confiar en que Firebase en cliente es seguro y esto corre en SSL.
+    const payload = decodeJwt(token);
 
     if (!payload || !payload.sub) throw new Error("Invalid Token");
     const userId = payload.sub;
@@ -50,6 +50,18 @@ serve(async (req: Request) => {
     const { profileData, portfolioUrls, docFrontUrl, docBackUrl } = body;
 
     console.log(`[save-profile] Guardando perfil para: ${userId}`);
+
+    // 🔥 CORRECCIÓN: Definir si tiene Zolver Ya activado
+    const hasZolverYa = profileData.serviceModes?.includes("zolver_ya");
+
+    // Lógica del precio
+    const finalPrice =
+      hasZolverYa && profileData.instantServicePrice
+        ? parseFloat(profileData.instantServicePrice)
+        : null;
+
+    console.log(`💰 ZOLVER YA ACTIVE?: ${hasZolverYa}`);
+    console.log(`🏷️ FINAL PRICE: ${finalPrice}`);
 
     // 3. Preparar Payload para la DB
     const dbPayload = {
@@ -64,6 +76,10 @@ serve(async (req: Request) => {
       enrollment_number: profileData.licenseNumber,
       biography: profileData.biography,
       portfolio_urls: portfolioUrls,
+
+      // 👇 Campos nuevos de precio y servicio
+      instant_service_price: finalPrice,
+
       // Ubicación
       base_lat: profileData.location?.latitude || 0,
       base_lng: profileData.location?.longitude || 0,
@@ -85,9 +101,13 @@ serve(async (req: Request) => {
     if (error) throw error;
 
     // 5. Actualizar flag en user_accounts
+    // IMPORTANTE: Aseguramos que el rol sea 'professional' también aquí por si acaso
     await supabaseAdmin
       .from("user_accounts")
-      .update({ profile_complete: true })
+      .update({
+        profile_complete: true,
+        role: "professional", // Refuerzo de seguridad
+      })
       .eq("auth_uid", userId);
 
     return new Response(JSON.stringify({ success: true, data }), {

@@ -22,9 +22,10 @@ const INITIAL_DATA = {
   biography: "",
   portfolioUris: [] as string[],
   serviceModes: ["zolver_ya"],
+  instantServicePrice: "",
   location: null,
   radiusKm: 5,
-  schedule: INITIAL_SCHEDULE, // 👈 ¡Aquí estaba el problema! Antes era []
+  schedule: INITIAL_SCHEDULE,
   cbuAlias: "",
 };
 
@@ -38,6 +39,7 @@ interface OnboardingState {
   biography: string;
   portfolioUris: string[];
   serviceModes: string[];
+  instantServicePrice: string;
   location: { latitude: number; longitude: number } | null;
   radiusKm: number;
   schedule: typeof INITIAL_SCHEDULE; // Tipado automático

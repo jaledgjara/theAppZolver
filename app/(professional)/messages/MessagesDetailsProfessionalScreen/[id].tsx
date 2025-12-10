@@ -1,75 +1,53 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { useLocalSearchParams } from 'expo-router';
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar';
-import MessageInput from '@/appSRC/messages/Screens/InputTextMessage';
+import React from "react";
+import { View, StyleSheet, Text } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { COLORS } from "@/appASSETS/theme";
+import { MessageInput } from "@/appSRC/messages/Screens/InputTextMessage";
 
 const MessagesDetailsProfessionalScreen = () => {
-  const { id, name } = useLocalSearchParams();
+  const { id, name, reservationId } = useLocalSearchParams();
+  const router = useRouter();
+
+  // Función para navegar a la creación de presupuesto
+  const handleCreateQuoteNavigation = () => {
+    router.push({
+      pathname: "/(professional)/messages/ReservationRequestScreen",
+      params: {
+        clientId: id,
+        clientName: name,
+        mode: "quote",
+      },
+    });
+  };
 
   return (
     <View style={styles.container}>
       <ToolBarTitle
-        titleText={name as string}
+        titleText={(name as string) || "Chat"}
         showBackButton={true}
       />
 
       <View style={styles.chatArea}>
-        <Text style={styles.placeholderText}></Text>
+        {/* Aquí iría la <FlatList> de mensajes (MessageCard) */}
+        <Text style={styles.placeholderText}>Historial de chat con {name}</Text>
       </View>
 
-      <MessageInput />
+      {/* Pasamos la función de acción al Input */}
+      <MessageInput onQuotePress={handleCreateQuoteNavigation} />
     </View>
-  )
-}
+  );
+};
 
-export default MessagesDetailsProfessionalScreen
+export default MessagesDetailsProfessionalScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   chatArea: {
-    flex: 1, // Esta área tomará todo el espacio restante
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: '#A0A0A0',
-    fontSize: 14,
-  },
-  // Estilos del MessageInputBar y sus componentes internos (copiados y simplificados)
-  outerContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  inputContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    maxHeight: 120,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    padding: 16,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  input: {
-    flex: 1,
-    maxHeight: 100,
-    minHeight: 35,
-    fontSize: 16,
-    paddingHorizontal: 5,
-    paddingTop: 0,
-    paddingBottom: 0,
-  },
-  sendButton: {
-    backgroundColor: '#007AFF', // Simulación de COLORS.primary
-    borderRadius: 50,
-    padding: 10,
-    marginLeft: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
+  placeholderText: { color: COLORS.textSecondary, fontStyle: "italic" },
 });

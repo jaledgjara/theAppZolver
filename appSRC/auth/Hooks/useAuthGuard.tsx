@@ -138,7 +138,7 @@ export function useAuthGuard() {
         if (!isNavReady) return;
         router.replace(target);
         prevStatus.current = status;
-      }, 50);
+      }, 100);
     });
   }, [isNavReady, isBootLoading, status, pathname, user?.profileComplete]);
 

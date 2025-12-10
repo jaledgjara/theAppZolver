@@ -1,34 +1,36 @@
-// appSRC/auth/Hooks/useSignOut.tsx
-import { useCallback } from "react";
-import { useRouter } from "expo-router";
 import { useAuthStore } from "../Store/AuthStore";
-import { AUTH_PATHS } from "../Path/AuthPaths";
-import { signOutFirebase } from "../Service/AuthService";
+import { signOut } from "firebase/auth";
+import { auth } from "@/APIconfig/firebaseAPIConfig";
+import { useRouter } from "expo-router";
+// 👇 1. IMPORTA TU STORE DE UBICACIÓN
+import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
 
-export function useSignOut() {
-  const { reset, setStatus, setTransitionDirection } = useAuthStore();
+export const useSignOut = () => {
+  const router = useRouter();
+  const resetAuth = useAuthStore((state) => state.reset);
 
-  const handleSignOut = useCallback(async () => {
+  // 👇 2. OBTÉN LA FUNCIÓN RESET
+  const resetLocation = useLocationStore((state) => state.reset);
+
+  const handleSignOut = async () => {
     try {
-      console.log("[useSignOut] User requested sign out");
+      // A. Cerrar en Firebase
+      await signOut(auth);
 
-      await signOutFirebase(); // solo cierra Firebase
+      // B. Limpiar Store de Autenticación
+      resetAuth();
 
-      // Reset global del store
-      reset();
+      // C. 👇 LIMPIAR STORE DE UBICACIÓN (El fantasma)
+      resetLocation();
 
-      // Estado final del flujo: anonymous
-      setStatus("anonymous");
+      console.log("👋 Sesión cerrada y ubicación limpiada.");
 
-      // Para animaciones de salida
-      setTransitionDirection("back");
-
-      // Navegación NO se maneja aquí. AuthGuard lo hace.
-
-    } catch (err) {
-      console.error("[useSignOut] ❌ Error:", err);
+      // D. Redirigir
+      router.replace("/(auth)/WelcomeScreen");
+    } catch (error) {
+      console.error("Error signing out:", error);
     }
-  }, [reset, setStatus, setTransitionDirection]);
+  };
 
   return { handleSignOut };
-}
+};

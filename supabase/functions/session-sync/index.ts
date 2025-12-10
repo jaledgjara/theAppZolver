@@ -55,7 +55,7 @@ async function verifyFirebaseJWT(token: string) {
   console.log("🔍 [Verify] Iniciando validación del token...");
   const parts = token.split(".");
   if (parts.length !== 3) {
-    console.error("❌ [Verify] Token malformado (no tiene 3 partes)");
+    console.error("❌ [Verify] Token malformado");
     throw new Error("Malformed JWT");
   }
   const [hB64, pB64, sigB64] = parts;
@@ -72,16 +72,13 @@ async function verifyFirebaseJWT(token: string) {
   let jwk = jwks.keys.find((k: any) => k.kid === header.kid);
 
   if (!jwk) {
-    console.warn("⚠️ [Verify] KID no encontrado en caché. Forzando refresh...");
+    console.warn("⚠️ [Verify] KID no encontrado. Intentando refrescar...");
     cachedJwks = null;
     jwks = await getGoogleJWKS();
     jwk = jwks.keys.find((k: any) => k.kid === header.kid);
   }
 
   if (!jwk) {
-    console.error(
-      `❌ [Verify] KID ${header.kid} no existe en las claves de Google actuales.`
-    );
     throw new Error(`No matching JWK for kid=${header.kid}`);
   }
 
@@ -97,7 +94,6 @@ async function verifyFirebaseJWT(token: string) {
   );
 
   if (!isValid) {
-    console.error("❌ [Verify] La firma criptográfica es INVÁLIDA");
     throw new Error("Invalid JWT signature");
   }
 
@@ -135,77 +131,37 @@ serve(async (req: Request) => {
     const payload = await verifyFirebaseJWT(token);
 
     // 2. Consultar Base de Datos (User Account)
-    console.log(
-      `🗄️ [DB] Buscando usuario en 'user_accounts' con auth_uid=${payload.sub}...`
-    );
+    console.log(`🗄️ [DB] Buscando usuario: ${payload.sub}`);
 
-    // 🔥 IMPORTANTE: Si la tabla no tiene las columnas 'first_name' y 'last_name', esto fallará.
-    // Asegúrate de ejecutar: ALTER TABLE public.user_accounts ADD COLUMN IF NOT EXISTS first_name text NULL, ADD COLUMN IF NOT EXISTS last_name text NULL;
+    // 🔥 CORRECCIÓN: Quitamos first_name/last_name y usamos legal_name
     const { data: account, error } = await supabase
       .from("user_accounts")
-      .select(
-        "auth_uid, email, phone, role, profile_complete, first_name, last_name"
-      )
+      .select("auth_uid, email, phone, role, profile_complete, legal_name")
       .eq("auth_uid", payload.sub)
       .maybeSingle();
 
     if (error) {
       console.error("❌ [DB] Error SQL:", error);
-      throw error; // Esto es lo que dispara el 401 en tu log
+      throw error;
     }
 
-    if (!account) {
-      console.warn(
-        "⚠️ [DB] Usuario no encontrado en tabla user_accounts (¿Sync pendiente?)"
-      );
-    }
-
-    // 3. Consultar Perfil Profesional si corresponde
+    // 3. Consultar estado profesional (si aplica)
     let identityStatus = "pending";
-    let professionalName = null;
 
     if (account?.role === "professional") {
-      console.log(`🔍 Buscando perfil profesional para: ${payload.sub}`);
-
-      const { data: profile, error: profError } = await supabase
+      // Solo pedimos identity_status para evitar errores si legal_name no está en esta tabla
+      const { data: profile } = await supabase
         .from("professional_profiles")
-        // 🔥 CORRECCIÓN: Agregamos legal_name al select
-        .select("identity_status, legal_name")
+        .select("identity_status")
         .eq("user_id", payload.sub)
         .maybeSingle();
 
       if (profile) {
         identityStatus = profile.identity_status ?? "pending";
-        professionalName = profile.legal_name; // Recuperamos "Jaled Jara"
-        console.log(
-          `✅ Perfil encontrado. Status: ${identityStatus}, Nombre: ${professionalName}`
-        );
-      } else {
-        console.log("⚠️ No se encontró perfil profesional (aún no creado)");
       }
     }
 
-    // 4. Lógica de Nombre Final
-    // Si hay un nombre profesional ("Jaled Jara"), úsalo.
-    // Si no, intenta usar first_name + last_name.
-    // Si no, legal_name de user_accounts.
-
-    let finalName = account?.legal_name; // Backup
-
-    if (account?.first_name || account?.last_name) {
-      finalName = `${account.first_name ?? ""} ${
-        account.last_name ?? ""
-      }`.trim();
-    }
-
-    if (professionalName) {
-      finalName = professionalName; // Prioridad máxima al perfil profesional
-    }
-
-    // Para mantener compatibilidad con tu frontend actual que espera 'first_name' y 'last_name',
-    // podemos descomponer el nombre final o enviarlo como 'legal_name' o 'displayName'.
-    // Aquí enviamos todo para que el frontend decida.
-
+    // 4. Armar Respuesta Final
     const responseData = {
       ok: true,
       uid: payload.sub,
@@ -215,19 +171,15 @@ serve(async (req: Request) => {
       role: account?.role ?? null,
       profile_complete: account?.profile_complete ?? false,
 
-      // Enviamos el nombre calculado
-      displayName: finalName,
+      // ✅ Enviamos el nombre correcto
+      legal_name: account?.legal_name ?? null,
+      displayName: account?.legal_name ?? null, // Fallback para compatibilidad
 
-      // Mantenemos estos por compatibilidad si tu AuthUser los usa
-      first_name: account?.first_name,
-      last_name: account?.last_name,
-      legal_name: finalName, // Enviamos explícitamente como legal_name también
-
+      // Datos extra
       identityStatus: identityStatus,
     };
 
-    console.log("🚀 [Response] Enviando 200 OK:", responseData);
-
+    console.log("🚀 [Response] 200 OK para:", account?.legal_name);
     return Response.json(responseData, { status: 200 });
   } catch (err: any) {
     console.error("💥 Error General:", err.message);
