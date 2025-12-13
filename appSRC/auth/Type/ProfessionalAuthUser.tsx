@@ -1,6 +1,9 @@
 import { create } from "zustand";
 
-// 1. Definimos la estructura de los días por defecto
+// 1. Definición de Arquitectura: Enum para Tipos de Trabajo
+export type ProfessionalTypeWork = "instant" | "quote" | "all";
+
+// 2. Definimos la estructura de los días por defecto (Sin cambios)
 const INITIAL_SCHEDULE = [
   { day: "Lun", active: true, from: "09:00", to: "18:00" },
   { day: "Mar", active: true, from: "09:00", to: "18:00" },
@@ -11,7 +14,7 @@ const INITIAL_SCHEDULE = [
   { day: "Dom", active: false, from: "10:00", to: "14:00" },
 ];
 
-// 2. Estado inicial con el horario cargado
+// 3. Estado inicial
 const INITIAL_DATA = {
   dniFrontUri: null,
   dniBackUri: null,
@@ -21,7 +24,11 @@ const INITIAL_DATA = {
   licenseNumber: "",
   biography: "",
   portfolioUris: [] as string[],
-  serviceModes: ["zolver_ya"],
+
+  // ARQUITECTURA: Reemplazamos 'serviceModes' (array) por 'typeWork' (Enum)
+  // Inicializamos en "instant" como solicitaste
+  typeWork: "instant" as ProfessionalTypeWork,
+
   instantServicePrice: "",
   location: null,
   radiusKm: 5,
@@ -38,11 +45,14 @@ interface OnboardingState {
   licenseNumber: string;
   biography: string;
   portfolioUris: string[];
-  serviceModes: string[];
+
+  // ARQUITECTURA: Propiedad fuertemente tipada
+  typeWork: ProfessionalTypeWork;
+
   instantServicePrice: string;
   location: { latitude: number; longitude: number } | null;
   radiusKm: number;
-  schedule: typeof INITIAL_SCHEDULE; // Tipado automático
+  schedule: typeof INITIAL_SCHEDULE;
   cbuAlias: string;
 
   setData: (data: Partial<OnboardingState>) => void;

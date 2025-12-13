@@ -1,6 +1,6 @@
-import { auth } from "@/APIconfig/firebaseAPIConfig"; //
+import { auth } from "@/APIconfig/firebaseAPIConfig";
 
-// 1. 👇 AGREGAMOS identityStatus AL TIPO
+// 1. Definición Actualizada del Tipo
 export type BackendSession = {
   ok: boolean;
   uid: string;
@@ -10,7 +10,8 @@ export type BackendSession = {
   role: "client" | "professional" | null;
   profile_complete: boolean;
   legal_name: string | null;
-  identityStatus?: string | null; // 👈 ESTO FALTABA
+  identityStatus?: string | null;
+  type_work?: "instant" | "quote" | "all" | null; // 👈 Nuevo campo
 };
 
 export async function syncUserSession(): Promise<BackendSession | null> {
@@ -56,7 +57,8 @@ export async function syncUserSession(): Promise<BackendSession | null> {
       role: data.role,
       profile_complete: data.profile_complete,
       legal_name: data.legal_name,
-      identityStatus: data.identityStatus, // 👈 Y LO MAPEAMOS AQUÍ
+      identityStatus: data.identityStatus,
+      type_work: data.type_work, // 👈 Mapeo final
     };
   } catch (err: any) {
     console.error("❌ [sessionService] Exception:", err.message);

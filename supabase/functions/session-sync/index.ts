@@ -133,7 +133,6 @@ serve(async (req: Request) => {
     // 2. Consultar Base de Datos (User Account)
     console.log(`🗄️ [DB] Buscando usuario: ${payload.sub}`);
 
-    // 🔥 CORRECCIÓN: Quitamos first_name/last_name y usamos legal_name
     const { data: account, error } = await supabase
       .from("user_accounts")
       .select("auth_uid, email, phone, role, profile_complete, legal_name")
@@ -147,17 +146,19 @@ serve(async (req: Request) => {
 
     // 3. Consultar estado profesional (si aplica)
     let identityStatus = "pending";
+    let typeWork = null; // 👈 Variable para type_work
 
     if (account?.role === "professional") {
-      // Solo pedimos identity_status para evitar errores si legal_name no está en esta tabla
+      // 🚀 Agregamos type_work a la consulta
       const { data: profile } = await supabase
         .from("professional_profiles")
-        .select("identity_status")
+        .select("identity_status, type_work")
         .eq("user_id", payload.sub)
         .maybeSingle();
 
       if (profile) {
         identityStatus = profile.identity_status ?? "pending";
+        typeWork = profile.type_work ?? "instant"; // Default seguro si es null
       }
     }
 
@@ -170,16 +171,20 @@ serve(async (req: Request) => {
       phone: account?.phone ?? payload.phone_number ?? null,
       role: account?.role ?? null,
       profile_complete: account?.profile_complete ?? false,
-
-      // ✅ Enviamos el nombre correcto
       legal_name: account?.legal_name ?? null,
-      displayName: account?.legal_name ?? null, // Fallback para compatibilidad
+      displayName: account?.legal_name ?? null,
 
-      // Datos extra
+      // ✅ Datos del Perfil Profesional
       identityStatus: identityStatus,
+      type_work: typeWork, // 👈 Se envía al cliente
     };
 
-    console.log("🚀 [Response] 200 OK para:", account?.legal_name);
+    console.log(
+      "🚀 [Response] 200 OK para:",
+      account?.legal_name,
+      "| Type:",
+      typeWork
+    );
     return Response.json(responseData, { status: 200 });
   } catch (err: any) {
     console.error("💥 Error General:", err.message);

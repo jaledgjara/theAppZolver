@@ -40,13 +40,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: "#FFF",
     borderRadius: 16, // Bordes más modernos
-    // Sombra "Soft Shadow" estilo iOS/Material moderno
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06, // Sombra más sutil y elegante
+    shadowOpacity: 0.06,
     shadowRadius: 12,
-    elevation: 2, // Android suave
-    overflow: "hidden", // Asegura que nada se salga del borde redondeado
+    elevation: 2,
+    overflow: "hidden",
   },
   header: {
     paddingHorizontal: 20,
@@ -55,25 +54,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600", // Muy bold para jerarquía
+    fontSize: SIZES.body2,
+    fontWeight: "600",
     color: "#333",
     letterSpacing: 0.5,
   },
   date: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "500",
     marginTop: 4,
-    color: COLORS.primary, // Usamos el color primario para la fecha (toque de marca)
+    color: COLORS.primary,
     textTransform: "uppercase",
   },
   listContainer: {
-    paddingHorizontal: 20, // Padding interno para la lista
+    paddingHorizontal: 20,
     paddingBottom: 10,
   },
   separator: {
     height: 1,
-    backgroundColor: "#F0F0F0", // Separador muy sutil
+    backgroundColor: "#F0F0F0",
     width: "100%",
   },
 });

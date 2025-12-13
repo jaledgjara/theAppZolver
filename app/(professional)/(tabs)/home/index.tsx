@@ -1,120 +1,47 @@
 import React from "react";
-import {
-  View,
-  ScrollView,
-  RefreshControl,
-  StyleSheet,
-  Text,
-} from "react-native";
-// 1. Imports de Lógica y Datos
-import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { useProDashboard } from "@/appSRC/reservations/Hooks/useProDashboard";
-// 2. Imports de Componentes UI
-import SectionCard from "@/appSRC/homeProf/Screens/SectionCard";
-import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
-import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
-import { COLORS } from "@/appASSETS/theme";
+import { View, StyleSheet, Text } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { useProfessionalOnboardingStore } from "@/appSRC/auth/Type/ProfessionalAuthUser"; //
+
+// Importamos las pantallas correspondientes
+import IndexInstantScreen from "@/appSRC/reservations/Screens/Instant/IndexInstantScreen";
+import IndexQuoteScreen from "@/appSRC/reservations/Screens/Quote/IndexQuoteScreen";
 
 const ProfessionalHomeScreen = () => {
-  // A. Contexto Global
-  const { user } = useAuthStore();
+  // 1. Obtenemos el tipo de trabajo del Store Global
+  const { typeWork } = useProfessionalOnboardingStore();
 
-  // B. El "Thinker" (Hook de Lógica)
-  const { data, isLoading, isRefreshing, error, refetch } = useProDashboard(
-    user?.uid
-  );
+  // 2. Definimos la lógica de visualización (Clean Code)
+  const isInstant = typeWork === "instant";
+  const isQuote = typeWork === "quote";
+  const isHybrid = typeWork === "all";
 
-  // C. Estado de Carga Bloqueante
-  if (isLoading) {
-    return <MiniLoaderScreen />;
-  }
-
-  // D. Manejo de Errores
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={{ color: COLORS.error }}>{error}</Text>
-      </View>
-    );
-  }
-
-  // E. Renderizado Declarativo
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText={"Inicio"} />
+      {/* El título se adapta al contexto del profesional */}
+      <ToolBarTitle titleText={isQuote ? "Presupuestos" : "Inicio"} />
 
-      <ScrollView
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refetch}
-            colors={[COLORS.primary]} // Android
-            tintColor={COLORS.primary} // iOS
-          />
-        }>
-        {/* SECCIÓN 1: AGENDA DE HOY */}
-        <View>
-          {data.today.length === 0 ? (
-            <StatusPlaceholder
-              icon="calendar-blank-outline"
-              title="Agenda despejada"
-              subtitle="No tienes servicios programados para el día de hoy. ¡Buen descanso!"
-            />
-          ) : (
-            <SectionCard
-              title="Reservaciones de hoy"
-              data={data.today.map((res) => ({
-                title: res.title || "Servicio sin título",
-                // Formato: 14:00 hs
-                subtitle: `${res.schedule.startDate.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })} hs`,
-                isTime: true, // Icono de reloj
-                status: "Confirmado", // Badge Verde
-                onPress: () => console.log("Ir a detalle hoy", res.id),
-              }))}
-            />
-          )}
-        </View>
-
-        {/* SECCIÓN 2: PENDIENTES */}
-        {data.pending.length > 0 && (
-          <SectionCard
-            title="Confirmaciones pendientes"
-            data={data.pending.map((res) => ({
-              // Intentamos mostrar nombre del servicio o cliente
-              title: res.title || "Solicitud Nueva",
-              subtitle: `Solicitud de ${res.serviceCategory}`,
-              status: "Pendiente", // Badge Naranja
-              onPress: () => console.log("Ir a detalle pendiente", res.id),
-            }))}
-          />
+      <View style={styles.contentContainer}>
+        {/* CASO 1: Profesional de Servicio Inmediato (Uber-like) */}
+        {(isInstant || isHybrid) && (
+          // Aquí renderizamos la pantalla de Radar/Mapa
+          <IndexInstantScreen />
         )}
 
-        {/* SECCIÓN 3: ALERTAS */}
-        {data.alerts.length > 0 && (
-          <SectionCard
-            title="Alertas recientes"
-            data={data.alerts.map((res) => ({
-              title:
-                res.status === "canceled_client"
-                  ? "Cancelación de cliente"
-                  : "Disputa abierta",
-              // Mapeamos el título original al subtítulo para dar contexto
-              subtitle: res.title || "Ver detalles",
-              status: res.status === "canceled_client" ? "Cancelado" : "Alerta", // Badge Rojo/Amarillo
-              onPress: () => console.log("Ver alerta", res.id),
-            }))}
-          />
+        {/* CASO 2: Profesional de Presupuestos (Habitissimo-like) */}
+        {isQuote && (
+          // Aquí renderizamos la pantalla de Bandeja de Entrada
+          <IndexQuoteScreen />
         )}
 
-        {/* Espacio extra al final */}
-        <View style={{ height: 80 }} />
-      </ScrollView>
+        {/* DEBUG: Si solicitaste ver un texto específico para validar */}
+        {/* {typeWork === 'instant' && (
+          <View style={styles.debugContainer}>
+            <Text>Modo Instantáneo Activo</Text>
+          </View>
+        )} 
+        */}
+      </View>
     </View>
   );
 };
@@ -122,16 +49,15 @@ const ProfessionalHomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9F9F9",
+    backgroundColor: "white",
   },
   contentContainer: {
-    padding: 16,
-    gap: 24,
-  },
-  center: {
     flex: 1,
-    justifyContent: "center",
+  },
+  debugContainer: {
+    padding: 20,
     alignItems: "center",
+    justifyContent: "center",
   },
 });
 

@@ -1,9 +1,9 @@
-import { COLORS } from '@/appASSETS/theme';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COLORS } from "@/appASSETS/theme";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // ENUM: 3 Tipos de filtros
-type ReservationFilter = 'upcoming' | 'completed' | 'canceled';
+type ReservationFilter = "upcoming" | "completed" | "canceled";
 
 // INTERFACE: Props del componente
 interface TabbedReservationFiltersProps {
@@ -11,15 +11,14 @@ interface TabbedReservationFiltersProps {
   onFilterChange: (filter: ReservationFilter) => void;
 }
 
-export const TabbedReservationFilters: React.FC<TabbedReservationFiltersProps> = ({
-  currentFilter,
-  onFilterChange,
-}) => {
-    // FILTERS: Definimos los filtros con sus etiquetas
+export const TabbedReservationFilters: React.FC<
+  TabbedReservationFiltersProps
+> = ({ currentFilter, onFilterChange }) => {
+  // FILTERS: Definimos los filtros con sus etiquetas
   const filters: { id: ReservationFilter; label: string }[] = [
-    { id: 'upcoming', label: 'Próximas' },
-    { id: 'completed', label: 'Completadas' },
-    { id: 'canceled', label: 'Canceladas' },
+    { id: "upcoming", label: "Próximas" },
+    { id: "completed", label: "Completadas" },
+    { id: "canceled", label: "Canceladas" },
   ];
 
   return (
@@ -31,14 +30,12 @@ export const TabbedReservationFilters: React.FC<TabbedReservationFiltersProps> =
             styles.tabButton,
             currentFilter === filter.id && styles.tabButtonActive,
           ]}
-          onPress={() => onFilterChange(filter.id)}
-        >
+          onPress={() => onFilterChange(filter.id)}>
           <Text
             style={[
               styles.tabText,
               currentFilter === filter.id && styles.tabTextActive,
-            ]}
-          >
+            ]}>
             {filter.label}
           </Text>
         </TouchableOpacity>
@@ -49,31 +46,31 @@ export const TabbedReservationFilters: React.FC<TabbedReservationFiltersProps> =
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
     padding: 3,
   },
   tabButton: {
-    flex: 1, 
+    flex: 1,
     paddingVertical: 15,
-    alignItems: 'center',
-    position: 'relative',
+    alignItems: "center",
+    position: "relative",
   },
   tabButtonActive: {
     backgroundColor: COLORS.primary,
-    borderRadius: 30
+    borderRadius: 30,
   },
   tabText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.textSecondary
+    fontWeight: "500",
+    color: COLORS.textSecondary,
   },
   tabTextActive: {
     color: COLORS.textPrimary,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

@@ -1,10 +1,9 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
-import WeekCalendarSnap from '@/appSRC/reservationsProf/Screens/WeekCalendarSnap'
-import { COLORS, FONTS, SIZES } from '@/appASSETS/theme'
-import { CalendarReservationCard } from '@/appCOMP/cards/CalendarReservationCard'
-import { router } from 'expo-router'
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
+import { CalendarReservationCard } from "@/appCOMP/cards/CalendarReservationCard";
+import { router } from "expo-router";
 
 export const MOCK_RESERVATIONS = [
   {
@@ -40,11 +39,7 @@ export const MOCK_RESERVATIONS = [
 const reservations = () => {
   return (
     <View style={styles.container}>
-
-      <ToolBarTitle
-        titleText={'Reservas'}
-      />
-      <WeekCalendarSnap />
+      <ToolBarTitle titleText={"Reservas"} />
 
       <View style={styles.divider}></View>
 
@@ -59,41 +54,40 @@ const reservations = () => {
               time={item.time}
               name={item.name}
               service={item.service}
-              status={'Confirmada'}
+              status={"Confirmada"}
               onPress={() =>
                 router.push(
                   `/(professional)/(tabs)/reservations/ReservationsDetailsScreen/${item.id}`
                 )
               }
-
             />
           )}
         />
       </View>
     </View>
-  )
-}
+  );
+};
 
-export default reservations
+export default reservations;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
-    flex: 1
+    backgroundColor: "white",
+    flex: 1,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E9E9E9',
+    backgroundColor: "#E9E9E9",
   },
   contentContainer: {
     flex: 1,
-    paddingBottom: 20
+    paddingBottom: 20,
   },
   title: {
     fontSize: SIZES.h2,
     paddingHorizontal: 20,
     paddingTop: 10,
-    fontWeight: '600',
-    color: COLORS.textPrimary
-  }
-})
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+});

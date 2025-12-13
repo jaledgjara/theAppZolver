@@ -17,6 +17,10 @@ import { useAuthStore } from "../Store/AuthStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 import { syncUserSession } from "./SessionService";
+import {
+  ProfessionalTypeWork,
+  useProfessionalOnboardingStore,
+} from "../Type/ProfessionalAuthUser";
 
 // =========================================================
 // 1. Mappers & Helpers
@@ -94,21 +98,16 @@ function decideAuthStatus(params: {
 // 2. Listener Principal (Auth Guard Logic)
 // =========================================================
 
+// ... imports existentes
+
 export function initializeAuthListener() {
   const { setUser, setStatus, setBootLoading } = useAuthStore.getState();
 
   console.log("👂 [AuthListener] Subscribing to Firebase Auth state...");
 
   return onAuthStateChanged(auth, async (firebaseUser) => {
-    console.log(
-      "👤 [AuthListener] Event:",
-      firebaseUser ? "User Found" : "No User"
-    );
-
+    // 1. Caso: Usuario Deslogueado
     if (!firebaseUser) {
-      // ✅ CORRECCIÓN CRÍTICA:
-      // Usamos "unknown" para ir a WelcomeScreen.
-      // "anonymous" forzaría ir a SignInScreen.
       console.log("⚪ [AuthListener] No User -> Welcome Screen (unknown)");
       setUser(null);
       setStatus("unknown");
@@ -116,27 +115,22 @@ export function initializeAuthListener() {
       return;
     }
 
-    // ⏳ CASO 2: Usuario detectado
+    // 2. Caso: Usuario Detectado -> Sincronización
     try {
       console.log("🔄 [AuthListener] Syncing with Supabase...");
 
-      // Intentamos obtener el perfil del backend
       const backendSession = await syncUserSession();
 
+      // Validación Zombie (Firebase Ok, pero BD falló o no existe)
       if (!backendSession || !backendSession.ok) {
-        // 🚨 ALERTA ZOMBI: Firebase tiene usuario, pero Supabase NO.
-        console.warn(
-          "🧟 [AuthListener] Zombie User detected! (Firebase Yes, DB No)"
-        );
-        console.log("🧹 [AuthListener] Forcing Sign Out to clean state...");
-
-        await signOut(auth); // Esto disparará el listener de nuevo con null
+        console.warn("🧟 [AuthListener] Zombie User detected!");
+        await signOut(auth);
         return;
       }
 
-      // ✅ CASO 3: Usuario válido y sincronizado
       console.log("✅ [AuthListener] Session Valid synced");
 
+      // Mapeo
       const appUser = mapFirebaseUserToAuthUser(firebaseUser, {
         role: backendSession.role,
         profileComplete: backendSession.profile_complete,
@@ -147,7 +141,7 @@ export function initializeAuthListener() {
 
       setUser(appUser);
 
-      // Calculamos el estado usando la función auxiliar
+      // Decisión de Estado
       const nextStatus = decideAuthStatus({
         hasPhone: !!backendSession.phone,
         role: backendSession.role,
@@ -155,11 +149,68 @@ export function initializeAuthListener() {
         identityStatus: backendSession.identityStatus,
       });
 
-      console.log(`🔀 [AuthListener] Decided Status: ${nextStatus}`);
+      // =================================================================
+      // 🕵️‍♂️ ZOLVER DEBUGGER: "THE HUGE CONSOLE LOG"
+      // =================================================================
+      console.log("\n");
+      console.log(
+        "╔════════════════════════════════════════════════════════════╗"
+      );
+      console.log(
+        "║               🚀 ZOLVER SESSION DEBUGGER                   ║"
+      );
+      console.log(
+        "╠════════════════════════════════════════════════════════════╣"
+      );
+      console.log(`║ 👤 User Name:    ${appUser.displayName || "Sin Nombre"} `);
+      console.log(`║ 📧 Email:        ${appUser.email} `);
+      console.log(`║ 🆔 UID:          ${appUser.uid.substring(0, 8)}... `);
+      console.log(`║ 🎭 Role:         ${backendSession.role || "N/A"} `);
+      console.log(
+        "╠────────────────────────────────────────────────────────────╣"
+      );
+
+      // --- LÓGICA ESPECÍFICA PARA PROFESIONALES ---
+      if (backendSession.role === "professional") {
+        // Leemos el dato que viene de SessionService (inyectado desde la Edge Function)
+        const profType = (backendSession as any).type_work;
+
+        console.log(
+          `║ 🛠  TYPE WORK:    [ ${
+            profType ? profType.toUpperCase() : "UNDEFINED"
+          } ]  <-- LOOK HERE!`
+        );
+        console.log(`║ 📡 Identity:     ${backendSession.identityStatus} `);
+        console.log(
+          `║ ✅ Completed:    ${
+            backendSession.profile_complete ? "YES" : "NO"
+          } `
+        );
+
+        // 🔥🔥🔥 CORRECCIÓN CRÍTICA 🔥🔥🔥
+        // Si detectamos un modo de trabajo, lo guardamos en el Store Global
+        // para que la UI sepa qué pantalla mostrar.
+        if (profType) {
+          console.log(`💾 [AuthService] Saving TypeWork to Store: ${profType}`);
+          useProfessionalOnboardingStore.getState().setData({
+            typeWork: profType as ProfessionalTypeWork,
+          });
+        }
+        // 🔥🔥🔥 FIN CORRECCIÓN 🔥🔥🔥
+      } else {
+        console.log(`║ 👤 Client Mode:  Active`);
+      }
+
+      console.log(`║ 🔀 Next Status:  ${nextStatus}`);
+      console.log(
+        "╚════════════════════════════════════════════════════════════╝"
+      );
+      console.log("\n");
+      // =================================================================
+
       setStatus(nextStatus);
     } catch (error) {
       console.error("🔴 [AuthListener] Error syncing:", error);
-      // En caso de error crítico de red o lógica, limpiamos para no bloquear
       setUser(null);
       setStatus("unknown");
     } finally {
@@ -167,7 +218,6 @@ export function initializeAuthListener() {
     }
   });
 }
-
 // =========================================================
 // 3. User Actions & Updates
 // =========================================================

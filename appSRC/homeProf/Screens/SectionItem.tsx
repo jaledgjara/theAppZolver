@@ -104,9 +104,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   title: {
-    fontSize: 17, // Texto grande solicitado
-    fontWeight: "700", // Más peso visual
-    color: "#1A1A1A", // Casi negro para contraste
+    fontSize: SIZES.body3,
+    fontWeight: "500",
+    color: "#1A1A1A",
     marginBottom: 4,
     letterSpacing: 0.3,
   },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: SIZES.h4,
     color: COLORS.textSecondary, // Gris profesional
     fontWeight: "500",
   },
