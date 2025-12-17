@@ -12,38 +12,33 @@ import { getTodayRangeString } from "../Helper/GetTodayRangeString";
 // ============================================================================
 
 //A
-export const createInstantReservation = async (payload: ReservationPayload) => {
-  const endTime = new Date(payload.startTime);
-  endTime.setHours(endTime.getHours() + (payload.durationHours || 1));
-
-  // Formato Postgres TSTZRANGE: [start, end)
-  const rangeString = `[${payload.startTime.toISOString()},${endTime.toISOString()})`;
-
-  // Formato Postgres POINT: (x,y) -> (lng,lat) cuidado con el orden
-  // Nota: Postgres suele usar (lng, lat) para tipos geográficos
-  const pointString = `(${payload.location.coords.lng},${payload.location.coords.lat})`;
-
-  // LLAMADA RPC ACTUALIZADA
+export const createReservationService = async (payload: ReservationPayload) => {
+  // 1. RPC CALL
+  // We map the snake_case Payload to the p_ arguments of the RPC
   const { data, error } = await supabase.rpc("create_reservation_bypass", {
-    p_client_id: payload.clientId,
-    p_professional_id: payload.professionalId,
-    p_category: payload.category,
-    p_modality: "instant",
+    // Keys
+    p_client_id: payload.client_id,
+    p_professional_id: payload.professional_id,
+    p_category: payload.service_category,
+    p_modality: payload.service_modality,
 
-    // ✅ Nuevos Campos
+    // Content
     p_title: payload.title,
     p_description: payload.description,
-    p_service_tags: payload.tags, // Supabase serializa JSONB automáticamente
+    p_service_tags: payload.service_tags,
 
-    p_address_display: payload.location.addressText,
-    p_address_coords: pointString, // Pasamos el string formateado como Point
+    // Location (Already formatted by Builder)
+    p_address_display: payload.address_street, // passing the full string here
+    p_address_coords: payload.address_coords || null,
 
-    p_range: rangeString,
-    p_status: "pending_approval",
+    // Time (Already formatted by Builder)
+    p_range: payload.scheduled_range,
+    p_status: payload.status,
 
-    p_price_estimated: payload.priceEstimated,
-    p_price_final: payload.priceEstimated * 1.2, // Ejemplo con Fee (ajustar lógica)
-    p_platform_fee: payload.priceEstimated * 0.2,
+    // Money
+    p_price_estimated: payload.price_estimated,
+    p_price_final: payload.price_final,
+    p_platform_fee: payload.platform_fee || 0,
   });
 
   if (error) {
@@ -51,37 +46,13 @@ export const createInstantReservation = async (payload: ReservationPayload) => {
     throw new Error(error.message);
   }
 
-  return data as ReservationDTO;
-};
-
-//B
-export const createQuoteReservation = async (
-  payload: ReservationPayload
-): Promise<Reservation> => {
-  const duration = 1;
-  const endTime = new Date(payload.startTime);
-  endTime.setHours(endTime.getHours() + duration);
-  const rangeString = `[${payload.startTime.toISOString()},${endTime.toISOString()})`;
-
-  const { data, error } = await supabase.rpc("create_reservation_bypass", {
-    p_client_id: payload.clientId,
-    p_professional_id: payload.professionalId,
-    p_category: payload.category,
-    p_modality: "quote",
-    p_title: payload.title,
-    p_description: payload.description,
-    p_address: payload.location,
-    p_range: rangeString,
-    p_status: "quoting",
-    p_price_estimated: 0,
-    p_price_final: null,
-    p_platform_fee: 0,
-  });
-
-  if (error) throw new Error(error.message);
-
+  // 2. Map response to Domain Entity
   return mapReservationFromDTO(data as ReservationDTO);
 };
+
+// Aliases for compatibility with your existing Hooks
+export const createInstantReservation = createReservationService;
+export const createQuoteReservation = createReservationService;
 
 // ============================================================================
 // 1. FETCHING: A)INSTANT B)QUOTE C)CLIENTS

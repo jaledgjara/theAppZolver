@@ -15,53 +15,63 @@ import { useRouter } from "expo-router";
 
 interface MessageInputProps {
   onQuotePress?: () => void;
+  // 👇 1. NUEVA PROP: Función para enviar el texto al padre
+  onSendText?: (text: string) => void;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ onQuotePress }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({
+  onQuotePress,
+  onSendText,
+}) => {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  // 1. Obtener el Rol del Usuario desde el Store
+  // Obtener el Rol del Usuario desde el Store
   const user = useAuthStore((state) => state.user);
 
-  // Verificación de seguridad básica si user es null
   if (!user) return null;
 
   const isProfessional = user.role === "professional";
 
-  // 2. Lógica de renderizado del botón de acción
+  // 2. Lógica Principal del Botón
   const handleActionPress = () => {
-    if (message.trim()) {
-      // Si hay texto: ENVIAR MENSAJE
-      console.log("Enviando mensaje:", message);
-      setMessage("");
+    const textToSend = message.trim();
+
+    if (textToSend) {
+      // --- CASO A: HAY TEXTO (ENVIAR) ---
+      if (onSendText) {
+        onSendText(textToSend); // 🚀 Disparamos el envío a Supabase
+      }
+      setMessage(""); // Limpiamos el input inmediatamente
     } else {
-      // Si el input está VACÍO:
+      // --- CASO B: INPUT VACÍO (ACCIONES EXTRA) ---
       if (isProfessional) {
-        // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
-        // Si se pasa una función personalizada (onQuotePress), se usa esa.
-        // Si no, se navega por defecto a la pantalla de Presupuesto.
+        // Acción de Presupuesto (Solo Pros)
         if (onQuotePress) {
           onQuotePress();
         } else {
           router.push("/(professional)/messages/ReservationRequestScreen");
         }
       } else {
-        // ACCIÓN DE AUDIO (Cliente)
-        Alert.alert("Audio", "Grabando mensaje de voz...");
+        // Acción de Audio (Clientes - Placeholder por ahora)
+        Alert.alert(
+          "Próximamente",
+          "El envío de audio estará disponible pronto."
+        );
       }
     }
   };
 
   // 3. Determinar qué icono mostrar
   const getIconName = () => {
-    if (message.trim()) return "send"; // Siempre enviar si hay texto
+    if (message.trim()) return "send"; // Siempre avión si hay texto
     if (isProfessional) return "add"; // '+' si es profesional y está vacío
-    return "mic"; // Micrófono en otros casos
+    return "mic"; // Micrófono para clientes vacíos
   };
 
-  // Color dinámico para diferenciar la acción de "Agregar" vs "Enviar"
+  // Color dinámico
   const getButtonColor = () => {
+    // Si es Pro y está vacío (modo agregar), usamos color terciario/acento
     if (!message.trim() && isProfessional) return COLORS.tertiary;
     return COLORS.primary;
   };
@@ -85,6 +95,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onQuotePress }) => {
             placeholderTextColor={COLORS.textSecondary}
             multiline={true}
             maxLength={500}
+            // Importante para la experiencia de usuario en chat
+            blurOnSubmit={false}
           />
         </View>
 
@@ -121,14 +133,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginRight: 10,
     minHeight: 40,
-    maxHeight: 100,
+    maxHeight: 100, // Límite de crecimiento vertical
   },
   input: {
     fontSize: 16,
     color: COLORS.textPrimary,
-    paddingTop: 0,
+    paddingTop: 0, // Alineación vertical en Android
+    maxHeight: 90,
   },
   sendButton: {
     elevation: 2,
+    marginBottom: 2, // Ajuste visual menor
   },
 });

@@ -1,24 +1,79 @@
-import React from "react";
-import { View, StyleSheet, Text } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
+// 1. Componentes Visuales y UI
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS } from "@/appASSETS/theme";
 import { MessageInput } from "@/appSRC/messages/Screens/InputTextMessage";
+import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
+import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
+import { ChatMessage } from "@/appSRC/messages/Type/MessageType";
+import { useMessages } from "@/appSRC/messages/Hooks/useMessage";
+
+// 2. Lógica de Negocio y Tipos
 
 const MessagesDetailsProfessionalScreen = () => {
-  const { id, name, reservationId } = useLocalSearchParams();
+  // Params: id (Cliente ID), conversationId (ID del Chat)
+  const { id, name, conversationId } = useLocalSearchParams();
   const router = useRouter();
 
-  // Función para navegar a la creación de presupuesto
+  // 3. Inicializamos el Hook Maestro
+  const { messages, loading, sendMessage } = useMessages(
+    conversationId as string,
+    id as string
+  );
+
+  // Referencia para controlar el scroll del listado
+  const flatListRef = useRef<FlatList>(null);
+
+  // 4. Efecto: Scroll al fondo cuando llegan mensajes nuevos
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Pequeño delay para asegurar que el layout se calculó
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
+  // 5. Navegación a Crear Presupuesto
   const handleCreateQuoteNavigation = () => {
     router.push({
       pathname: "/(professional)/messages/ReservationRequestScreen",
       params: {
         clientId: id,
         clientName: name,
+        conversationId: conversationId, // Pasamos el ID del chat para volver luego
         mode: "quote",
       },
     });
+  };
+
+  // 6. Factory: Decide qué componente pintar según el tipo
+  const renderMessageItem = ({ item }: { item: ChatMessage }) => {
+    switch (item.type) {
+      case "budget_proposal":
+        return (
+          <ChatBudgetCard
+            message={item}
+            onPress={() => console.log("Ir a detalle de reserva", item.data)}
+          />
+        );
+
+      case "image":
+        // Si implementaste burbuja de imagen, iría aquí.
+        // Por ahora usamos fallback de texto si no existe componente
+        return (
+          <ChatBubble
+            message={{ ...item, type: "text", text: "📷 Imagen enviada" }}
+          />
+        );
+
+      case "text":
+      default:
+        return <ChatBubble message={item} />;
+    }
   };
 
   return (
@@ -29,12 +84,37 @@ const MessagesDetailsProfessionalScreen = () => {
       />
 
       <View style={styles.chatArea}>
-        {/* Aquí iría la <FlatList> de mensajes (MessageCard) */}
-        <Text style={styles.placeholderText}>Historial de chat con {name}</Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessageItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            // Mantiene el teclado manejable y permite tocar burbujas
+            keyboardShouldPersistTaps="handled"
+            // Optimizaciones de rendimiento para listas largas
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+            // Layout animado al aparecer nuevos items (Opcional)
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+          />
+        )}
       </View>
 
-      {/* Pasamos la función de acción al Input */}
-      <MessageInput onQuotePress={handleCreateQuoteNavigation} />
+      {/* 7. Input Conectado */}
+      <MessageInput
+        onSendText={sendMessage} // Conecta con Supabase
+        onQuotePress={handleCreateQuoteNavigation} // Navegación de Pro
+      />
     </View>
   );
 };
@@ -42,12 +122,21 @@ const MessagesDetailsProfessionalScreen = () => {
 export default MessagesDetailsProfessionalScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
+  container: {
+    flex: 1,
+    backgroundColor: "#F4F6F8", // Fondo gris muy suave para resaltar burbujas
+  },
   chatArea: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 12, // Espacio lateral para las burbujas
+  },
+  loadingContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  placeholderText: { color: COLORS.textSecondary, fontStyle: "italic" },
+  listContent: {
+    paddingVertical: 16,
+    paddingBottom: 20, // Espacio extra al final
+  },
 });

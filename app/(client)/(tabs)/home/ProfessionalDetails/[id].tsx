@@ -22,6 +22,8 @@ import {
 import { useProfessionalDetails } from "@/appSRC/searchable/Hooks/useProfessionalDetails";
 import PortfolioCard from "@/appSRC/searchable/Screen/PortfolioCard";
 import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { useStartConversation } from "@/appSRC/conversation/Hooks/useStartConversation";
 
 const ProfessionalDetailsView = () => {
   const router = useRouter();
@@ -34,40 +36,44 @@ const ProfessionalDetailsView = () => {
   // Validamos modo por defecto si viene undefined (fallback a quote)
   const currentMode = mode || "quote";
   const isInstant = currentMode === "instant";
-
+  const { startConversation, loading: isCreatingChat } = useStartConversation();
   const { profile, loading, error } = useProfessionalDetails(id);
+  const { user } = useAuthStore(); // Necesitamos saber quién soy yo (Cliente)
 
-  // --- Lógica de Acciones del Footer ---
-
-  // --- Lógica de Acciones del Footer ---
-  const handlePrimaryAction = () => {
-    if (!profile) return;
+  const handlePrimaryAction = async () => {
+    if (!profile || !user?.uid) return;
 
     if (isInstant) {
-      // ⚡️ FLUJO ZOLVER YA: Confirmar y agendar
-      console.log("🚀 Iniciando reserva con Category ID:", profile.category_id);
-
+      // ⚡️ FLUJO ZOLVER YA (Sin cambios)
+      console.log("🚀 Iniciando reserva inmediata...");
       router.push({
         pathname: "/(client)/(tabs)/home/ReservationRequestScreen",
         params: {
           id: profile.user_id,
           name: profile.legal_name,
           categoryId: profile.category_id,
-          // Respaldo visual
           category: profile.category_name || "General",
-          mode: isInstant ? "instant" : "quote",
+          mode: "instant",
           price: profile.price_per_hour || 5000,
         },
       });
     } else {
-      // 📄 FLUJO PRESUPUESTO
-      router.push({
-        pathname: "/(client)/messages/MessagesDetailsScreen/[id]",
-        params: {
-          id: profile.user_id,
-          name: profile.legal_name,
-        },
-      });
+      // 📄 FLUJO PRESUPUESTO / CONTACTO (USANDO EL HOOK)
+
+      // 1. Usamos la función del hook en lugar del servicio directo
+      const resolvedId = await startConversation(profile.user_id);
+
+      // 2. Si el hook nos devolvió un ID, navegamos
+      if (resolvedId) {
+        router.push({
+          pathname: "/(client)/messages/MessagesDetailsScreen/[id]",
+          params: {
+            id: profile.user_id,
+            name: profile.legal_name,
+            conversationId: resolvedId, // ✅ ID Seguro
+          },
+        });
+      }
     }
   };
 

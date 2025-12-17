@@ -1,5 +1,3 @@
-// appSRC/reservations/Type/ReservationDTO.ts
-
 import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
 
 export type ReservationStatusDTO =
@@ -16,108 +14,68 @@ export type ReservationStatusDTO =
 
 export type ServiceModalityDTO = "instant" | "quote";
 
+// 1. DTO (What comes from DB)
 export interface ReservationDTO {
   id: string;
   client_id: string;
   professional_id: string;
   service_category: string;
-  service_modality: "instant" | "quote";
+  service_modality: ServiceModalityDTO;
 
-  // Nuevos campos estructurados
   title: string;
   description: string;
-  service_tags: ServiceTag[]; // ✅ JSONB mapeado
+  service_tags: ServiceTag[];
 
-  address_display: string; // ✅ Texto humano
-  address_coords: { x: number; y: number } | null; // ✅ Point
+  address_display: string;
+  address_coords: { x: number; y: number } | null;
 
   scheduled_range: string;
-  price_estimated?: number;
-  price_final?: number;
-  platform_fee?: number;
+  price_estimated: number;
+  price_final: number;
+  platform_fee: number;
   status: string;
   created_at: string;
 
   professional?: {
     legal_name: string | null;
-    photo_url: string | null;
+    photo_url?: string | null;
   };
 }
 
-/**
- * Reservation (Domain Entity)
- * La versión limpia y tipada para usar dentro de la UI y Hooks.
- */
+// 2. DOMAIN ENTITY (UI)
 export interface Reservation {
   id: string;
   clientId: string;
   professionalId: string;
+  // ... (Keep your existing Domain interface here) ...
+}
 
-  serviceCategory: string;
-  serviceModality: ServiceModalityDTO;
+/**
+ * 3. PAYLOAD (What goes to DB)
+ * ✅ Corrected to snake_case to match SQL columns
+ */
+export interface ReservationPayload {
+  client_id: string;
+  professional_id: string;
+
+  service_category: string;
+  service_modality: "instant" | "quote";
+
+  service_tags: any[]; // JSONB array
 
   title: string;
   description: string;
-  photos: string[];
 
-  location: {
-    street: string;
-    number?: string;
-    coordinates?: { latitude: number; longitude: number }; // Más amigable para Mapas
-  };
+  address_street: string;
+  address_number: string;
+  address_coords?: string; // String formatted as "(lng,lat)" or undefined
 
-  // Transformamos el 'scheduled_range' string a objetos Date reales
-  schedule: {
-    startDate: Date;
-    endDate: Date;
-  };
+  scheduled_range: string; // Tstzrange "[start, end)"
 
-  financials: {
-    currency: string;
-    priceEstimated?: number;
-    priceFinal?: number;
-    platformFee?: number;
-    proPayout?: number;
-  };
+  currency: string;
+  price_estimated: number;
+  price_final: number;
+  platform_fee?: number;
 
-  status: ReservationStatusDTO;
-  createdAt: Date;
-
-  professional: {
-    name: string;
-    avatar: string | null;
-  };
-}
-
-export interface ReservationPayload {
-  clientId: string;
-  professionalId: string;
-  category: string;
-
-  // Datos Estructurados
-  tags: ServiceTag[]; // ✅ Array de tags
-  title: string; // Generado (Tag A + Tag B)
-  description: string; // Input opcional
-
-  // Ubicación Rica
-  location: {
-    addressText: string; // "Av. Siempre Viva 123"
-    coords: {
-      // { lat: -32.9, lng: -68.8 }
-      lat: number;
-      lng: number;
-    };
-  };
-
-  startTime: Date;
-  durationHours: number;
-
-  // Datos Económicos
-  priceEstimated: number;
-  pricePerHour: number; // Para referencia
-
-  professional: {
-    name: string;
-    avatar: string | null;
-  };
+  status: string;
 }

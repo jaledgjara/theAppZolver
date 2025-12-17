@@ -1,79 +1,86 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+
+// Componentes UI (Tus componentes visuales)
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import MessageCard from "@/appSRC/messages/Screens/MessageCard";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen"; // Asumiendo ruta
+import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder"; // Asumiendo ruta
 
-// app/(professional)/(tabs)/messages/index.tsx
+// Lógica de Negocio (El Hook)
+import { useProFetchingConversation } from "@/appSRC/conversation/Hooks/useProFetchingConversation";
 
-// app/(professional)/(tabs)/messages/index.tsx
-
-export const MESSAGES_DATA = [
-  {
-    id: "7pMDHNthDHWB30Khu5KJTOZu7oW2", // Dami Young (ID Firebase)
-    name: "Dami Young",
-    lastMessage: "¿Llegaste bien?",
-    avatarUrl: "https://randomuser.me/api/portraits/men/11.jpg",
-  },
-  {
-    id: "1pMDHNthDHWB30Khu5KJTOZu7oW2", // Clara Martínez
-    name: "Clara Martínez",
-    lastMessage: "Te mando el archivo ahora.",
-    avatarUrl: "https://randomuser.me/api/portraits/women/21.jpg",
-  },
-  {
-    id: "2pMDHNthDHWB30Khu5KJTOZu7oW2", // Lucas Ribeiro
-    name: "Lucas Ribeiro",
-    lastMessage: "¿Entrenamos mañana?",
-    avatarUrl: "https://randomuser.me/api/portraits/men/32.jpg",
-  },
-  {
-    id: "3pMDHNthDHWB30Khu5KJTOZu7oW2", // Sofía Hernández
-    name: "Sofía Hernández",
-    lastMessage: "Perfecto, confirmado.",
-    avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
-  },
-  {
-    id: "4pMDHNthDHWB30Khu5KJTOZu7oW2", // Javier Ortega
-    name: "Javier Ortega",
-    lastMessage: "Estoy saliendo.",
-    avatarUrl: "https://randomuser.me/api/portraits/men/55.jpg",
-  },
-  {
-    id: "5pMDHNthDHWB30Khu5KJTOZu7oW2", // Mina Okabe
-    name: "Mina Okabe",
-    lastMessage: "¡Me encanta esa idea!",
-    avatarUrl: "https://randomuser.me/api/portraits/women/68.jpg",
-  },
-];
 const MessagesProfesional = () => {
   const router = useRouter();
 
+  // 1. Consumimos el estado del Hook
+  const { conversations, loading, refreshConversations } =
+    useProFetchingConversation();
+
+  // ESTADO 1: CARGANDO (Si es la carga inicial)
+  if (loading && conversations.length === 0) {
+    return (
+      <View style={styles.container}>
+        <ToolBarTitle titleText="Mensajes" />
+        <MiniLoaderScreen />
+      </View>
+    );
+  }
+
+  // ESTADO 2: VACÍO (No hay chats)
+  if (!loading && conversations.length === 0) {
+    return (
+      <View style={styles.container}>
+        <ToolBarTitle titleText="Mensajes" />
+        <View style={styles.emptyContainer}>
+          <StatusPlaceholder
+            icon="message-text-outline"
+            title="Bandeja Vacía"
+            subtitle="Aún no has iniciado conversaciones con clientes."
+            // Opcional: Un botón para ir al Home si quisieras
+            // buttonTitle="Ir al Inicio"
+            // onButtonPress={() => router.push("/(professional)/(tabs)/home")}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  // ESTADO 3: CON DATOS (Lista de Chats)
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Mensajes" />
 
       <FlatList
-        data={MESSAGES_DATA}
+        data={conversations}
         keyExtractor={(item) => item.id}
+        refreshing={loading}
+        onRefresh={refreshConversations}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <Pressable
             onPress={() =>
               router.push({
                 pathname:
                   "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
-                params: { id: item.id, name: item.name },
+                // Pasamos datos clave para que la siguiente pantalla cargue rápido
+                params: {
+                  id: item.partner.id, // ID del Cliente
+                  name: item.partner.name, // Nombre para el Toolbar
+                  conversationId: item.id, // ID de la Conversación (Optimización)
+                },
               })
             }>
             <MessageCard
-              name={item.name}
-              lastMessage={item.lastMessage}
-              avatarUrl={item.avatarUrl}
+              name={item.partner.name} // ✅ Usamos el 'PartnerProfileSummary' aquí
+              lastMessage={item.preview.content}
+              avatarUrl={item.partner.avatar || undefined}
+              // timestamp={item.preview.timestamp} // Sugerencia futura
             />
           </Pressable>
         )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -86,9 +93,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
   listContent: {
-    paddingHorizontal: 5,
-    paddingBottom: 20,
-    paddingTop: 5,
+    paddingVertical: 10,
   },
 });

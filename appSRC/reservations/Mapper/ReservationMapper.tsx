@@ -1,47 +1,31 @@
-// appSRC/reservations/Helper/ReservationMapper.ts
-
 import {
   Reservation,
   ReservationDTO,
   ReservationStatusDTO,
-} from "../Type/ReservationType";
+} from "../Type/ReservationType"; //
 
 /**
- * Parsea el string de rango de postgres "[start, end)" a objetos Date
- * BLINDADO para React Native (Android/iOS)
+ * 🛠 HELPER: Parse Postgres Range
+ * Converts "[2023-01-01, 2023-01-02)" to Javascript Date objects.
+ * "Blindado" logic provided in context.
  */
 const parseRange = (rangeStr: string): { start: Date; end: Date } => {
   if (!rangeStr) return { start: new Date(), end: new Date() };
 
-  // 1. Limpieza de caracteres de rango [], (), ""
   const cleanStr = rangeStr.replace(/[\[\]()"]/g, "");
-
-  // 2. Separar inicio y fin
   const parts = cleanStr.split(",");
 
   const parseDateSafe = (dateStr: string) => {
     if (!dateStr) return new Date();
-
-    // A. Trim: Quitamos espacios
     let safeStr = dateStr.trim();
-
-    // B. Fix ISO: Espacio -> T
     safeStr = safeStr.replace(" ", "T");
-
-    // C. Fix Microsegundos: Postgres envía 6 dígitos (.145578), JS soporta 3 (.145)
-    // Si encontramos más de 3 dígitos de ms, los cortamos.
-    // Ejemplo: .145578+00 -> .145+00
+    // Fix microseconds (Postgres .123456 -> JS .123)
     safeStr = safeStr.replace(/(\.\d{3})\d+/, "$1");
-
-    // D. Fix Timezone: Postgres "+00" -> ISO "Z"
-    // React Native suele fallar con "+00" simple.
+    // Fix Timezone (+00 -> Z)
     if (safeStr.endsWith("+00")) {
       safeStr = safeStr.replace("+00", "Z");
     }
-
     const date = new Date(safeStr);
-
-    // Validación final: Si sigue fallando, devolvemos fecha actual para no romper la UI
     return isNaN(date.getTime()) ? new Date() : date;
   };
 
@@ -51,16 +35,23 @@ const parseRange = (rangeStr: string): { start: Date; end: Date } => {
   };
 };
 
+/**
+ * 🗺 MAPPER PRINCIPAL
+ * Transforms Database DTO -> Domain Entity (Safe for UI)
+ */
 export const mapReservationFromDTO = (dto: ReservationDTO): Reservation => {
+  // 1. Time Range Parsing
   const { start, end } = parseRange(dto.scheduled_range);
 
+  // 2. Location Parsing (Postgres Point -> Lat/Lng)
+  // Postgres sends { x: lng, y: lat }, UI needs { latitude, longitude }
   const coords = dto.address_coords
     ? { latitude: dto.address_coords.y, longitude: dto.address_coords.x }
     : undefined;
 
+  // 3. Safe Professional Parsing (Prevents crash if join is missing)
   const proName = dto.professional?.legal_name || "Profesional Zolver";
-  // Como no hay columna de foto en la DB, dejamos null
-  const proAvatar = null;
+  const proAvatar = dto.professional?.photo_url || null;
 
   return {
     id: dto.id,
@@ -68,17 +59,17 @@ export const mapReservationFromDTO = (dto: ReservationDTO): Reservation => {
     professionalId: dto.professional_id,
 
     serviceCategory: dto.service_category,
-    serviceModality: dto.service_modality,
+    serviceModality: dto.service_modality, // 'instant' | 'quote'
 
-    title: dto.title || "Servicio Sin Título",
+    title: dto.title || "Servicio",
     description: dto.description || "",
+    photos: [], // If you have photos in DTO, map them here
 
-    photos: [],
-
+    // 📍 UBICACIÓN AUTOMÁTICA
     location: {
-      street: dto.address_display,
-      number: "",
-      coordinates: coords,
+      street: dto.address_display || "Ubicación registrada",
+      number: "", // Usually included in address_display string
+      coordinates: coords, // ✅ Critical for Maps
     },
 
     schedule: {
@@ -88,9 +79,9 @@ export const mapReservationFromDTO = (dto: ReservationDTO): Reservation => {
 
     financials: {
       currency: "ARS",
-      priceEstimated: dto.price_estimated,
-      priceFinal: dto.price_final,
-      platformFee: dto.platform_fee,
+      priceEstimated: dto.price_estimated || 0,
+      priceFinal: dto.price_final || 0,
+      platformFee: dto.platform_fee || 0,
     },
 
     status: dto.status as ReservationStatusDTO,

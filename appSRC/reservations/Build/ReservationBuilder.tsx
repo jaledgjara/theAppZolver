@@ -1,60 +1,90 @@
-import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
+import { Address } from "@/appSRC/location/Type/LocationType";
 import { ReservationPayload } from "../Type/ReservationType";
+import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
+// ✅ Correct Import based on your snippet
 
-interface BuilderInput {
+export interface BuilderInput {
+  // Common Data
   clientId: string;
   professionalId: string;
   category: string;
-
-  selectedTags: ServiceTag[]; // ✅ Recibimos el array de objetos
-  description: string;
-
-  // Recibimos el objeto Address completo del Store
-  activeAddress: {
-    address_street: string;
-    address_number: string;
-    coords: { lat: number; lng: number };
-  };
-
-  startTime: Date;
   isInstant: boolean;
+  startTime: Date;
   pricePerHour: number;
+
+  // Location Data (From Store)
+  activeAddress?: Address | null;
+
+  // Variable Data
+  selectedTags?: ServiceTag[];
+  title?: string;
+  description?: string;
+  proposedPrice?: number;
 }
 
 export const buildReservationPayload = (
   input: BuilderInput
 ): ReservationPayload => {
-  // 1. Generar título inteligente
-  const title =
-    input.selectedTags.length > 0
-      ? input.selectedTags.map((t) => t.label).join(" + ")
-      : "Servicio General";
+  // 1. TITLE LOGIC
+  let finalTitle = input.title || "Servicio General";
+  if (!input.title && input.selectedTags && input.selectedTags.length > 0) {
+    finalTitle = input.selectedTags.map((t) => t.label).join(", ");
+  }
 
-  // 2. Formatear Dirección de Visualización
-  const addressText = `${input.activeAddress.address_street} ${input.activeAddress.address_number}`;
+  // 2. ADDRESS & COORDS LOGIC
+  let finalAddress = "Ubicación a coordinar";
+  let finalCoordsStr = undefined;
 
-  // 3. Calcular estimación inicial (Lógica básica)
-  const duration = 1; // Default 1 hora MVP
-  const estimatedTotal = input.pricePerHour * duration;
+  if (input.activeAddress) {
+    const { address_street, address_number, floor, apartment, coords } =
+      input.activeAddress;
 
+    // Readable String
+    finalAddress = `${address_street} ${address_number}`;
+    if (floor || apartment) {
+      finalAddress += ` (Piso ${floor || "-"} ${apartment || ""})`;
+    }
+
+    // Coordinates Formatting for Postgres Point
+    // ⚠️ CRITICAL: Postgres Point is (x, y) -> (Longitude, Latitude)
+    if (coords && coords.lng !== undefined && coords.lat !== undefined) {
+      finalCoordsStr = `(${coords.lng},${coords.lat})`;
+    }
+  }
+
+  // 3. PRICING LOGIC
+  const finalPrice = input.isInstant
+    ? input.pricePerHour
+    : input.proposedPrice || 0;
+
+  // 4. TIME LOGIC (Default 2 hours)
+  const endTime = new Date(input.startTime);
+  endTime.setHours(endTime.getHours() + 2);
+
+  // 5. RETURN PAYLOAD (snake_case)
   return {
-    clientId: input.clientId,
-    professionalId: input.professionalId,
-    category: input.category,
+    client_id: input.clientId,
+    professional_id: input.professionalId,
 
-    tags: input.selectedTags,
-    title: title,
+    service_category: input.category,
+    service_modality: input.isInstant ? "instant" : "quote",
+
+    service_tags: input.selectedTags || [],
+
+    title: finalTitle,
     description: input.description || "",
 
-    location: {
-      addressText: addressText,
-      coords: input.activeAddress.coords, // Pasamos las coordenadas reales
-    },
+    address_street: finalAddress,
+    address_number: input.activeAddress?.address_number || "",
+    address_coords: finalCoordsStr, // ✅ Ready for RPC
 
-    startTime: input.startTime,
-    durationHours: duration,
+    scheduled_range: `[${input.startTime.toISOString()},${endTime.toISOString()})`,
 
-    priceEstimated: estimatedTotal,
-    pricePerHour: input.pricePerHour,
+    currency: "ARS",
+    price_estimated: finalPrice,
+    price_final: finalPrice,
+    platform_fee: finalPrice * 0.15, // Example 15% fee
+
+    status: "draft", // Initial status
   };
 };
