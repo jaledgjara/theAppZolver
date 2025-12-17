@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,65 +11,105 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { COLORS } from "@/appASSETS/theme";
-import { useCreateReservation } from "@/appSRC/reservations/Hooks/useCreateReservation";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
-import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { buildReservationPayload } from "@/appSRC/reservations/Build/ReservationBuilder";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
-// 👇 IMPORTACIÓN DEL BUILDER (El encargado de la limpieza)
+// Componentes
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import QuickChips from "@/appCOMP/quickChips/QuickChips";
+
+// Hooks & Servicios
+import { COLORS } from "@/appASSETS/theme";
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { useCreateReservation } from "@/appSRC/reservations/Hooks/useCreateReservation";
+import { buildReservationPayload } from "@/appSRC/reservations/Build/ReservationBuilder";
+import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
+import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { useReservationPricing } from "@/appSRC/reservations/Hooks/useReservationPricing";
+import { useServiceMetadata } from "@/appSRC/searchable/Hooks/useServiceMetadata";
+import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
 
 const ReservationRequestScreen = () => {
-  // 1. ESTADO & HOOKS
+  // --- 1. CONTEXTO Y PARAMS ---
   const user = useAuthStore((state) => state.user);
-  const { createReservation, loading } = useCreateReservation();
-
-  // 2. PARÁMETROS (Contexto)
+  const activeAddress = useLocationStore((state) => state.activeAddress); // <--- LECTURA DEL STORE
   const params = useLocalSearchParams();
+  const router = useRouter();
+
   const professionalId = params.id as string;
   const professionalName = (params.name as string) || "Profesional";
-  const category = (params.category as string) || "General";
+  const categoryIdParam = params.categoryId as string;
+  const categoryName = (params.category as string) || "General";
   const mode = (params.mode as ProfessionalTypeWork) || "quote";
   const pricePerHour = params.price ? parseFloat(params.price as string) : 0;
   const isInstant = mode === "instant";
 
-  // 3. INPUTS DEL USUARIO
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [address, setAddress] = useState("");
-  const [startTime] = useState(new Date()); // MVP: Fecha fija "Ahora"
+  // --- 2. LOGICA DE NEGOCIO ---
+  const { createReservation, loading: submitting } = useCreateReservation();
+  const { tags: availableTags, loading: loadingTags } = useServiceMetadata(
+    categoryIdParam,
+    categoryName
+  );
 
-  // 4. HANDLER LIMPIO ✨
+  // Estado Local
+  const [selectedTags, setSelectedTags] = useState<ServiceTag[]>([]);
+  const [description, setDescription] = useState("");
+  // Eliminamos 'address' del estado local
+  const [startTime] = useState(new Date());
+
+  const estimates = useReservationPricing(
+    selectedTags,
+    pricePerHour,
+    isInstant
+  );
+
+  // --- 3. HANDLERS ---
+  const handleTagToggle = (tag: ServiceTag) => {
+    const exists = selectedTags.find((t) => t.id === tag.id);
+    if (exists) {
+      setSelectedTags(selectedTags.filter((t) => t.id !== tag.id));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
   const handleSend = () => {
-    // Validaciones de UI (Solo checkear que existan datos)
-    if (!user?.uid)
-      return Alert.alert("Error", "Sesión inválida. Recarga la App.");
-    if (!title.trim() || !description.trim() || !address.trim()) {
+    if (!user?.uid) return Alert.alert("Error", "Sesión inválida.");
+
+    // 1. Validación de Integridad
+    if (!activeAddress)
       return Alert.alert(
         "Faltan datos",
-        "Completa todos los campos por favor."
+        "Por favor selecciona una dirección de servicio."
       );
-    }
 
-    // Delegamos la complejidad al Builder 🏗️
+    // 2. Construcción del Payload
+    // NOTA: Ya no calculamos 'generatedTitle' ni 'addressString' aquí.
+    // Pasamos los objetos completos al Builder.
     const payload = buildReservationPayload({
       clientId: user.uid,
       professionalId,
-      category,
-      title,
-      description,
-      address,
+      category: categoryName,
+
+      // Pasamos los datos crudos para que el Builder haga la magia
+      selectedTags: selectedTags,
+      activeAddress: activeAddress, // <--- Pasamos el objeto completo (tiene coords)
+
+      description: description,
       startTime,
       isInstant,
       pricePerHour,
     });
 
-    // Ejecutamos la acción 🚀
     createReservation(mode, payload);
   };
 
+  const handleChangeLocation = () => {
+    // Aquí navegarías a tu pantalla de selección de dirección si es necesario
+    // router.push("/(client)/(tabs)/profile/addresses");
+    Alert.alert("Navegación", "Ir a mis direcciones (Implementar ruta)");
+  };
+
+  // --- 4. RENDER ---
   return (
     <View style={styles.container}>
       <ToolBarTitle
@@ -81,7 +121,7 @@ const ReservationRequestScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Tarjeta de Información */}
+          {/* Info Card - Sin cambios */}
           <View style={styles.infoCard}>
             <Text style={styles.proName}>Zolver: {professionalName}</Text>
             <View
@@ -101,71 +141,103 @@ const ReservationRequestScreen = () => {
             </View>
           </View>
 
-          {/* Formulario */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Título Breve</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Cambio de cerradura"
-              value={title}
-              onChangeText={setTitle}
-            />
+          {/* Sección de Tags (INPUT PRINCIPAL) */}
+          <View style={styles.section}>
+            <Text style={styles.label}>¿Qué necesitas realizar?</Text>
+            {loadingTags ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <QuickChips
+                items={availableTags}
+                selectedIds={selectedTags.map((t) => t.id)}
+                onToggle={handleTagToggle}
+              />
+            )}
           </View>
 
+          {/* IMPLEMENTACIÓN DE LA OPCIÓN 1: Enfoque Híbrido */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Detalle</Text>
+            <Text style={styles.labelSecondary}>Notas opcionales</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe el trabajo..."
+              style={[styles.input, styles.textAreaSecondary]}
+              placeholder="Ej: El timbre no funciona, traer herramientas especiales..."
+              placeholderTextColor="#999"
               multiline
-              numberOfLines={4}
+              numberOfLines={3}
               value={description}
               onChangeText={setDescription}
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Dirección</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Calle y altura..."
-              value={address}
-              onChangeText={setAddress}
-            />
-          </View>
+          {/* IMPLEMENTACIÓN DE LA OPCIÓN 2: Ubicación desde Store */}
+          <View style={styles.section}>
+            <Text style={styles.label}>Ubicación del servicio</Text>
+            <View style={styles.locationContainer}>
+              <View style={styles.locationIconContainer}>
+                <Text style={{ fontSize: 20 }}>📍</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                {activeAddress ? (
+                  <>
+                    <Text style={styles.locationTitle}>
+                      {activeAddress.label || "Mi Ubicación"}
+                    </Text>
+                    <Text style={styles.locationText}>
+                      {activeAddress.address_street}{" "}
+                      {activeAddress.address_number}
+                    </Text>
+                    {activeAddress.apartment && (
+                      <Text style={styles.locationSubText}>
+                        Piso: {activeAddress.floor}, Depto:{" "}
+                        {activeAddress.apartment}
+                      </Text>
+                    )}
+                  </>
+                ) : (
+                  <Text style={[styles.locationText, { color: COLORS.error }]}>
+                    Sin dirección seleccionada
+                  </Text>
+                )}
+              </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Horario</Text>
-            <Text style={styles.readOnlyText}>
-              {isInstant ? "Lo antes posible (Ahora)" : "A coordinar"}
-            </Text>
+              {/* Botón discreto para cambiar si es necesario */}
+              <TouchableOpacity onPress={handleChangeLocation}>
+                <Text style={styles.changeLink}>Cambiar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
 
-        {/* Footer */}
+        {/* Footer - Sin cambios */}
         <View style={styles.footer}>
-          {isInstant && (
+          <View style={styles.priceContainer}>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Total Estimado (2hs)</Text>
-              <Text style={styles.priceValue}>
-                ${(pricePerHour * 2 * 1.1).toFixed(0)}
+              <Text style={styles.priceLabel}>Tiempo Estimado:</Text>
+              <Text style={styles.priceValueSmall}>
+                {estimates.hoursLabel} hs
               </Text>
             </View>
-          )}
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Total Estimado:</Text>
+              <Text style={styles.priceValue}>
+                ${estimates.finalPrice.toLocaleString()}
+              </Text>
+            </View>
+          </View>
 
           <TouchableOpacity
             style={[
               styles.submitButton,
               { backgroundColor: isInstant ? COLORS.primary : COLORS.tertiary },
-              (!user || loading) && { opacity: 0.5 },
+              submitting && { opacity: 0.5 },
             ]}
             onPress={handleSend}
-            disabled={loading || !user}>
-            {loading ? (
+            disabled={submitting}>
+            {submitting ? (
               <ActivityIndicator color="white" />
             ) : (
               <Text style={styles.submitButtonText}>
-                {isInstant ? "CONFIRMAR PEDIDO" : "ENVIAR SOLICITUD"}
+                {isInstant ? `CONFIRMAR` : "ENVIAR SOLICITUD"}
               </Text>
             )}
           </TouchableOpacity>
@@ -179,9 +251,10 @@ export default ReservationRequestScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
-  scrollContent: { padding: 20 },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  section: { marginBottom: 24 }, // Aumentado ligeramente para separar bloques
   infoCard: {
-    marginBottom: 25,
+    marginBottom: 20,
     padding: 15,
     backgroundColor: "#F8F9FA",
     borderRadius: 10,
@@ -196,8 +269,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   badgeText: { fontSize: 12, fontWeight: "bold" },
+
+  // ESTILOS PARA INPUTS
   inputGroup: { marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: "600", color: "#555", marginBottom: 8 },
+  label: { fontSize: 15, fontWeight: "700", color: "#333", marginBottom: 10 },
+
+  // Estilo "Secundario" para el Híbrido (Texto opcional)
+  labelSecondary: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#777",
+    marginBottom: 6,
+  },
   input: {
     backgroundColor: "#FFF",
     borderWidth: 1,
@@ -207,13 +290,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  textArea: { height: 100, textAlignVertical: "top" },
-  readOnlyText: {
-    fontSize: 16,
-    color: "#666",
-    fontStyle: "italic",
-    marginTop: 5,
+  textAreaSecondary: {
+    height: 60, // Menor altura para denotar menos importancia
+    textAlignVertical: "top",
+    backgroundColor: "#FAFAFA", // Fondo ligeramente gris
+    fontSize: 14,
   },
+
+  // ESTILOS PARA UBICACIÓN (READ ONLY)
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F4F8",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E1E8ED",
+  },
+  locationIconContainer: {
+    marginRight: 12,
+    width: 32,
+    alignItems: "center",
+  },
+  locationTitle: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  locationText: { fontSize: 15, color: "#333", fontWeight: "500" },
+  locationSubText: { fontSize: 12, color: "#666", marginTop: 2 },
+  changeLink: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: "600",
+    paddingLeft: 8,
+  },
+
+  // Footer styles
   footer: {
     padding: 20,
     borderTopWidth: 1,
@@ -224,14 +338,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
+  priceContainer: { marginBottom: 15 },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 5,
     alignItems: "center",
   },
   priceLabel: { fontSize: 14, color: "#666" },
-  priceValue: { fontSize: 22, fontWeight: "bold", color: COLORS.textPrimary },
+  priceValueSmall: { fontSize: 16, fontWeight: "600", color: "#444" },
+  priceValue: { fontSize: 24, fontWeight: "bold", color: COLORS.textPrimary },
   submitButton: {
     borderRadius: 12,
     paddingVertical: 16,

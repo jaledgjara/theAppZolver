@@ -1,16 +1,21 @@
-// appSRC/reservations/Utils/ReservationBuilder.ts
+import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
 import { ReservationPayload } from "../Type/ReservationType";
 
-/**
- * Datos simples que vienen del Formulario UI
- */
 interface BuilderInput {
   clientId: string;
   professionalId: string;
   category: string;
-  title: string;
+
+  selectedTags: ServiceTag[]; // ✅ Recibimos el array de objetos
   description: string;
-  address: string;
+
+  // Recibimos el objeto Address completo del Store
+  activeAddress: {
+    address_street: string;
+    address_number: string;
+    coords: { lat: number; lng: number };
+  };
+
   startTime: Date;
   isInstant: boolean;
   pricePerHour: number;
@@ -19,46 +24,37 @@ interface BuilderInput {
 export const buildReservationPayload = (
   input: BuilderInput
 ): ReservationPayload => {
-  const duration = 2; // Default MVP (2 horas)
+  // 1. Generar título inteligente
+  const title =
+    input.selectedTags.length > 0
+      ? input.selectedTags.map((t) => t.label).join(" + ")
+      : "Servicio General";
 
-  // 1. Lógica de Negocio: Cálculo de Precios
-  const priceEstimated = input.isInstant ? input.pricePerHour * duration : 0;
-  // Fee del 10% si es instantáneo
-  const platformFee = input.isInstant ? priceEstimated * 0.1 : 0;
+  // 2. Formatear Dirección de Visualización
+  const addressText = `${input.activeAddress.address_street} ${input.activeAddress.address_number}`;
 
-  // 2. Construcción del Payload Limpio
+  // 3. Calcular estimación inicial (Lógica básica)
+  const duration = 1; // Default 1 hora MVP
+  const estimatedTotal = input.pricePerHour * duration;
+
   return {
-    // Identificadores
     clientId: input.clientId,
     professionalId: input.professionalId,
     category: input.category,
 
-    // Contenido User Generated
-    title: input.title,
-    description: input.description,
-    address: input.address,
-    photos: [], // MVP: Vacío
+    tags: input.selectedTags,
+    title: title,
+    description: input.description || "",
 
-    // Objetos Estructurales (Mapeados aquí para no ensuciar la vista)
     location: {
-      street: input.address,
-      coordinates: { latitude: 0, longitude: 0 }, // Placeholder MVP
+      addressText: addressText,
+      coords: input.activeAddress.coords, // Pasamos las coordenadas reales
     },
 
-    schedule: {
-      startDate: input.startTime,
-      endDate: new Date(input.startTime.getTime() + duration * 60 * 60 * 1000),
-    },
-
-    financials: {
-      currency: "ARS",
-      priceEstimated: priceEstimated,
-      platformFee: platformFee,
-      priceFinal: input.isInstant ? priceEstimated : undefined, // Solo instant tiene precio final ya
-    },
-
-    // Compatibilidad Legacy (Si tu servicio aún usa estos campos planos)
     startTime: input.startTime,
     durationHours: duration,
+
+    priceEstimated: estimatedTotal,
+    pricePerHour: input.pricePerHour,
   };
 };

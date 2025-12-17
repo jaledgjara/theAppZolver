@@ -1,60 +1,51 @@
-// A universal card layout used across Zolver.
-// It standardizes spacing, shadows, rounding and left/middle/right sections.
-
-import { TouchableOpacity, View, StyleSheet } from "react-native";
-
+import React from "react";
+import { TouchableOpacity, View, StyleSheet, ViewStyle } from "react-native";
+import { COLORS } from "@/appASSETS/theme";
 
 interface BaseCardProps {
-  left?: React.ReactNode;
-  middle: React.ReactNode;
-  right?: React.ReactNode;
+  children: React.ReactNode;
   onPress?: () => void;
+  style?: ViewStyle; // Para sobreescribir márgenes si es necesario
+  disabled?: boolean;
 }
 
 export const BaseCard: React.FC<BaseCardProps> = ({
-  left,
-  middle,
-  right,
+  children,
   onPress,
+  style,
+  disabled = false,
 }) => {
+  const Container = onPress ? TouchableOpacity : View;
+
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
-      {left && <View style={styles.left}>{left}</View>}
-
-      <View style={styles.middle}>{middle}</View>
-
-      {right && <View style={styles.right}>{right}</View>}
-    </TouchableOpacity>
+    // @ts-ignore: TouchableOpacity types vs View types compatibility
+    <Container
+      style={[styles.card, style]}
+      onPress={!disabled ? onPress : undefined}
+      activeOpacity={0.7}
+      disabled={disabled || !onPress}>
+      {children}
+    </Container>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    padding: 16,
-    height: 120,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 10,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  left: {
-    marginRight: 16,
-  },
-  middle: {
-    flex: 1,
-  },
-  right: {
-    marginLeft: 10,
+    backgroundColor: "white",
+    borderRadius: 12, // Radio consistente en toda la app
+    padding: 12, // Padding interno estándar
+    marginVertical: 6,
+    marginHorizontal: 16, // Márgenes laterales estándar
+
+    // Sombra "Nativa" Robusta
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, // Sutil pero visible
+    shadowRadius: 6,
+    elevation: 3, // Android
+
+    // Borde sutil para definición extra
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
 });

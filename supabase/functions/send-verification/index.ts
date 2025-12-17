@@ -71,19 +71,30 @@ serve(async (req: Request): Promise<Response> => {
     const { phone } = await req.json().catch(() => ({} as any));
     console.log("📞 Incoming phone:", phone);
 
-    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS START ---
-    // Agregue aquí todos los formatos posibles de su número
-    const WHITELIST_NUMBERS = ["+542616837344", "+5492616837344", "2616837344"];
+    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS CONFIG ---
+    // LISTA MAESTRA DE NÚMEROS DE DESARROLLO
+    const WHITELIST_NUMBERS = [
+      "+542616837340",
+      "+542616837341",
+      "+542616837342",
+      "+542616837344", // Tu número principal
+      "+542616837345",
+      "+542616837346",
+      "+542616837347",
+      "+542616837348",
+      "+542616837349",
+      "+542616837350",
+      "+542616837351",
+      "+542616837352",
+    ];
 
-    // Normalizamos quitando espacios para comparar mejor
+    // Limpieza básica del número para comparar
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
+    // 1. BYPASS LOGIC
     if (WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
-      console.log(
-        `⚠️ DEV MODE: Bypassing Twilio for whitelist number: ${phone}`
-      );
+      console.log(`⚠️ DEV MODE: Mocking SEND for whitelist number: ${phone}`);
 
-      // Retornamos una respuesta falsa de éxito (Mock Response)
       return json(
         {
           sid: "dev_bypass_fake_sid",
@@ -96,10 +107,10 @@ serve(async (req: Request): Promise<Response> => {
         200
       );
     }
-    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS END ---
+    // --- END DEV BYPASS ---
 
     // ============================================================
-    // LÓGICA ORIGINAL (Se ejecuta si NO es su número)
+    // 2. LÓGICA ORIGINAL (Twilio Real)
     // ============================================================
 
     // @ts-ignore
@@ -113,7 +124,8 @@ serve(async (req: Request): Promise<Response> => {
       return json({ error: "Phone is required" }, 400);
     }
     if (!SID || !TOKEN || !VERIFY_SID) {
-      return json({ error: "Missing Twilio credentials" }, 500);
+      // Si faltan credenciales pero no es whitelist, fallamos
+      return json({ error: "Missing Twilio credentials configuration" }, 500);
     }
 
     const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/Verifications`;
@@ -129,7 +141,9 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     const payload = await twilioRes.json().catch(() => ({}));
+
     if (!twilioRes.ok) {
+      console.error("Twilio Error:", payload);
       return json(
         { error: "Twilio error", details: payload },
         twilioRes.status

@@ -1,7 +1,14 @@
+import React from "react";
+// Asegúrate de tener instalados estos paquetes o cambia FontAwesome6 por FontAwesome5 si da error
 import { FontAwesome6, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
-import React from "react";
 
+/**
+ * Mapea el 'icon_slug' de la base de datos a un Icono Vectorial.
+ * * @param slug - El string que viene de la columna 'icon_slug' en Supabase (ej: 'key', 'sparkles')
+ * @param size - Tamaño del icono (default: 35)
+ * @param color - Color del icono (default: Primary)
+ */
 export const getCategoryVectorIcon = (
   slug: string | null,
   size: number = 35,
@@ -15,12 +22,13 @@ export const getCategoryVectorIcon = (
     // --- LIMPIEZA ---
     // DB Slug: "sparkles"
     case "sparkles":
-    case "limpieza":
+    case "limpieza": // Fallback por si quedó el nombre viejo
       return <FontAwesome6 name="broom" size={size} color={color} />;
 
     // --- CERRAJERÍA ---
     // DB Slug: "key"
     case "key":
+    case "cerrajeria":
       return <FontAwesome6 name="key" size={size} color={color} />;
 
     // --- PINTOR ---
@@ -71,8 +79,9 @@ export const getCategoryVectorIcon = (
     case "refrigeración":
       return <FontAwesome6 name="snowflake" size={size} color={color} />;
 
-    // --- TECNICO PC (Ejemplo futuro) ---
+    // --- TECNICO PC ---
     case "computer":
+    case "pc":
       return <MaterialIcons name="computer" size={size} color={color} />;
 
     // --- DEFAULT (Fallback) ---

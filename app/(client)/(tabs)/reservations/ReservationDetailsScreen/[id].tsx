@@ -1,155 +1,143 @@
+import React from "react";
 import {
   ActivityIndicator,
   StyleSheet,
   Text,
   View,
-  Image,
   ScrollView,
+  RefreshControl,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useLocalSearchParams } from "expo-router";
-import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons"; // Iconos estándar
+
+// Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { BaseCard } from "@/appCOMP/cards/BaseCard";
-import Entypo from "@expo/vector-icons/Entypo";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import ReservationDetailsCard from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard";
+import { ReservationDetailsCard } from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard"; // Usamos tu componente modular
+import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { useReservationDetail } from "@/appSRC/reservations/Hooks/useClientReservationDetail";
+import {
+  getStatusConfig,
+  mapStatusToUI,
+} from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 
-export type ReservationStatus = "confirmed" | "on_route" | "finalized";
-
-export interface ReservationCardProps {
-  id: string;
-  name: string;
-  date: string;
-  time?: string;
-  service: string;
-  status: ReservationStatus;
-  avatar: any;
-}
-
-const MOCK_RESERVATIONS: ReservationCardProps[] = [
-  {
-    id: "1",
-    name: "Juan Perez",
-    date: "15 Diciembre, 2024",
-    service: "Servicio de Pintura",
-    status: "confirmed",
-    avatar: { uri: "https://randomuser.me/api/portraits/men/1.jpg" },
-  },
-  {
-    id: "2",
-    name: "María García",
-    date: "15 Diciembre, 2024",
-    time: "10:00 AM",
-    service: "Instalación Eléctrica",
-    status: "on_route",
-    avatar: { uri: "https://randomuser.me/api/portraits/women/2.jpg" },
-  },
-  {
-    id: "3",
-    name: "Ricardo López",
-    date: "01 Noviembre, 2024",
-    service: "Reparación de Cañerías",
-    status: "finalized",
-    avatar: { uri: "https://randomuser.me/api/portraits/men/3.jpg" },
-  },
-];
-
-const getStatusColors = (status: ReservationStatus) => {
-  switch (status) {
-    case "confirmed":
-      return { text: "Confirmada", bg: "#D4EDDA", color: "#155724" };
-    case "on_route":
-      return { text: "En Camino", bg: "#007AFF", color: "#FFF" };
-    case "finalized":
-      return { text: "Finalizada", bg: "#D1ECF1", color: "#0C5460" };
-    default:
-      return { text: "Estado", bg: "#EEE", color: "#333" };
-  }
-};
+// Helper de colores para status (Consistente con la Card)
 
 const ReservationDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const reservationId = Array.isArray(id) ? id[0] : id;
+  const router = useRouter();
 
-  const [reservation, setReservation] = useState<ReservationCardProps | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
+  // 1. Data Fetching
+  const { reservation, isLoading, isError, refetch } =
+    useReservationDetail(reservationId);
 
-  useEffect(() => {
-    setIsLoading(true);
-
-    setTimeout(() => {
-      const found = MOCK_RESERVATIONS.find((r) => r.id === reservationId);
-      setReservation(found || null);
-      setIsLoading(false);
-    }, 500);
-  }, [reservationId]);
-
+  // 2. Loading State
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.text}>Cargando detalle...</Text>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>Cargando detalle...</Text>
       </View>
     );
   }
 
-  if (!reservation) {
+  // 3. Error State
+  if (isError || !reservation) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.title}>Error</Text>
-        <Text style={styles.text}>
-          Reserva no encontrada ({reservationId}).
-        </Text>
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+        <Text style={styles.errorTitle}>Error al cargar</Text>
+        <Text style={styles.errorText}>No pudimos encontrar esta reserva.</Text>
+        <LargeButton title="Volver" onPress={() => router.back()} />
       </View>
     );
   }
-  const res = reservation;
-  const status = getStatusColors(res.status);
+
+  // 4. Data Preparation
+  const statusUI = mapStatusToUI(reservation.status);
+  const statusStyle = getStatusConfig(statusUI);
+
+  // Precios (Calculados o Estimados)
+  const priceService = reservation.financials.priceEstimated || 0;
+  const platformFee = reservation.financials.platformFee || 0;
+  const totalAmount =
+    reservation.financials.priceFinal || priceService + platformFee;
+
+  // Formato de Fechas
+  const dateObj = new Date(reservation.schedule.startDate);
+  const dateStr = dateObj.toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const timeStr = dateObj.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText="Detalle de la Reserva" showBackButton={true} />
+      <ToolBarTitle titleText="Detalle de Reserva" showBackButton={true} />
 
-      {/* ✦ Professional + Status */}
-      <View style={styles.contentContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+        }>
+        {/* SECCIÓN 1: Profesional & Estado */}
         <ReservationDetailsCard
           type="professional"
-          name={reservation.name}
-          service={reservation.service}
-          avatar={reservation.avatar}
-          statusText={status.text}
-          statusBg={status.bg}
-          statusColor={status.color}
+          // TODO: Mapear nombre real cuando el backend lo envíe
+          name="Profesional Zolver"
+          service={reservation.title} // Usamos 'title' como nombre del servicio
+          avatar={require("@/appASSETS/RawImages/avatar-0.jpg")} // Placeholder por ahora
+          statusText={statusStyle.text}
+          statusBg={statusStyle.bg}
+          statusColor={statusStyle.color}
         />
 
+        {/* SECCIÓN 2: Fecha y Hora */}
         <ReservationDetailsCard
           type="date"
-          date={reservation.date}
-          time={reservation.time}
+          date={dateStr} // "Lunes, 15 de Diciembre de 2024"
+          time={`${timeStr} hs`}
         />
 
+        {/* SECCIÓN 3: Ubicación */}
         <ReservationDetailsCard
           type="location"
-          location="Juan B Justo 1234, Mendoza"
+          location={reservation.location.street}
         />
 
+        {/* SECCIÓN 4: Descripción (Si existe) - "Yes or no? YES, context is key" */}
+        {reservation.description ? (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.sectionHeader}>Nota del servicio</Text>
+            <Text style={styles.descriptionText}>
+              {reservation.description}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* SECCIÓN 5: Desglose de Pago */}
         <ReservationDetailsCard
           type="payment"
-          priceService="$5000"
-          platformFee="$500"
-          totalAmount="$5500"
+          priceService={`$${priceService.toLocaleString("es-AR")}`}
+          platformFee={`$${platformFee.toLocaleString("es-AR")}`}
+          totalAmount={`$${totalAmount.toLocaleString("es-AR")}`}
         />
-        <View style={styles.buttonContainer}>
+      </ScrollView>
+
+      {/* FOOTER: Acciones (Solo visible si está activa/completada) */}
+      <View style={styles.footer}>
+        {statusUI === "in_progress" || statusUI === "confirmed" ? (
           <LargeButton
-            title="Completado"
-            iconName="checkmark-circle"
-            onPress={() => console.log("Completado")}
+            title="Contactar Profesional"
+            iconName="chatbubble-outline" // Icono de chat
+            onPress={() => console.log("Ir al chat")} // Futura implementación
           />
-        </View>
+        ) : null}
       </View>
     </View>
   );
@@ -160,93 +148,71 @@ export default ReservationDetailScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0F2F5",
+    backgroundColor: "#FAFAFA", // Fondo consistente con la lista
   },
-  contentContainer: {
-    marginTop: 20,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 100, // Espacio para el footer
   },
-
-  loadingContainer: {
+  centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F0F2F5",
+    backgroundColor: "#FAFAFA",
+    padding: 20,
   },
-
-  // Avatar
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#E0E0E0",
-  },
-
-  // Nombre del profesional
-  name: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 4,
-  },
-
-  // Nombre del servicio
-  service: {
-    fontSize: 14,
-    color: "#666",
-  },
-
-  // Badge del estado
-  statusBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-  },
-
-  // Textos generales de filas (día, hora, ubicación)
-  rowText: {
-    fontSize: 15,
-    color: "#333",
-    marginBottom: 4,
-  },
-
-  // Pago – título principal
-  paymentTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 10,
-  },
-
-  // Pago – filas
-  paymentRow: {
-    fontSize: 15,
-    color: "#555",
-    marginBottom: 6,
-  },
-
-  // Pago – Total destacado
-  paymentTotal: {
-    fontSize: 17,
-    color: "#000",
-    fontWeight: "800",
-    marginTop: 10,
-  },
-
-  // General
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333",
-  },
-
-  text: {
+  loadingText: {
+    marginTop: 12,
+    color: "#6B7280",
     fontSize: 16,
-    color: "#666",
-    marginTop: 10,
   },
-  buttonContainer: {
-    paddingHorizontal: 15,
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  // Estilos específicos para la descripción
+  descriptionContainer: {
+    backgroundColor: "white",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    // Sombra suave (Elevation)
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sectionHeader: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  descriptionText: {
+    fontSize: 15,
+    color: "#374151",
+    lineHeight: 22,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
   },
 });

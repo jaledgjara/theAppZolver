@@ -1,123 +1,121 @@
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
-import { EvilIcons } from "@expo/vector-icons";
+import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
+import { COLORS } from "@/appASSETS/theme";
 
-// Types for the reservation card
-export type ReservationStatus = "confirmed" | "on_route" | "finalized";
+export type ReservationStatus =
+  | "pending"
+  | "confirmed"
+  | "on_route"
+  | "in_progress"
+  | "finalized"
+  | "canceled";
 
-export interface ReservationCardProps {
+interface ReservationCardProps {
   id: string;
-  name: string;
+  professionalName: string;
+  serviceName: string;
   date: string;
-  time?: string;
-  service: string;
+  time: string;
   status: ReservationStatus;
-  avatar: any;
+  price?: string;
   onPress?: () => void;
 }
 
-// Maps each status to visual UI styles
-const getStatusStyles = (status: ReservationStatus) => {
+const getStatusConfig = (status: ReservationStatus) => {
   switch (status) {
+    case "pending":
+      return { label: "Pendiente", color: "#F59E0B", bg: "#FEF3C7" };
     case "confirmed":
-      return {
-        text: "Confirmada",
-        backgroundColor: "#D4EDDA",
-        textColor: "#28A745",
-      };
+      return { label: "Confirmada", color: "#3B82F6", bg: "#DBEAFE" };
     case "on_route":
-      return {
-        text: "En Camino",
-        backgroundColor: "#FFF3CD",
-        textColor: "#FFC107",
-      };
+      return { label: "En Camino", color: "#8B5CF6", bg: "#EDE9FE" };
+    case "in_progress":
+      return { label: "En Curso", color: "#10B981", bg: "#D1FAE5" };
     case "finalized":
-      return {
-        text: "Finalizada",
-        backgroundColor: "#D1ECF1",
-        textColor: "#0C5460",
-      };
+      return { label: "Finalizada", color: "#10B981", bg: "transparent" };
+    case "canceled":
+      return { label: "Cancelada", color: "#EF4444", bg: "#FEE2E2" };
     default:
-      return {
-        text: "Desconocido",
-        backgroundColor: "#E2E3E5",
-        textColor: "#721C24",
-      };
+      return { label: status, color: "#6B7280", bg: "#F3F4F6" };
   }
 };
 
-export const ReservationCard: React.FC<ReservationCardProps> = (props) => {
-  const { text, backgroundColor, textColor } = getStatusStyles(props.status);
+export const ReservationCard: React.FC<ReservationCardProps> = ({
+  professionalName,
+  serviceName,
+  date,
+  time,
+  status,
+  price,
+  onPress,
+}) => {
+  const statusInfo = getStatusConfig(status);
 
   return (
-    <BaseCard
-      onPress={props.onPress}
-      left={<Image source={props.avatar} style={styles.avatar} />}
-      middle={
-        <>
-          {/* Name + status badge row */}
-          <View style={styles.row}>
-            <Text style={styles.name} numberOfLines={1}>
-              {props.name}
-            </Text>
-
-            <View style={[styles.badge, { backgroundColor }]}>
-              <Text style={[styles.badgeText, { color: textColor }]}>
-                {text}
-              </Text>
-            </View>
-          </View>
-
-          {/* Date */}
-          <Text style={styles.info}>{props.date}</Text>
-
-          {/* Optional time */}
-          {props.time && <Text style={styles.info}>{props.time}</Text>}
-
-          {/* Service name */}
-          <Text style={styles.info} numberOfLines={1}>
-            {props.service}
+    <BaseCard onPress={onPress}>
+      {/* HEADER: Servicio + Estado */}
+      <View style={styles.header}>
+        <Text style={styles.serviceTitle}>{serviceName}</Text>
+        <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
+          <Text style={[styles.badgeText, { color: statusInfo.color }]}>
+            {statusInfo.label}
           </Text>
-        </>
-      }
-      right={<EvilIcons name="chevron-right" size={32} color="#999" />}
-    />
+        </View>
+      </View>
+
+      <View style={styles.divider} />
+
+      {/* BODY: Info Clave */}
+      <View style={styles.body}>
+        <View style={styles.row}>
+          <Ionicons
+            name="person-circle-outline"
+            size={16}
+            color={COLORS.textSecondary}
+          />
+          <Text style={styles.infoText}>{professionalName}</Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <View style={styles.row}>
+            <Ionicons
+              name="calendar-outline"
+              size={14}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.smallText}>
+              {date} • {time}
+            </Text>
+          </View>
+          {price && <Text style={styles.price}>{price}</Text>}
+        </View>
+      </View>
+    </BaseCard>
   );
 };
 
 const styles = StyleSheet.create({
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 25,
-    backgroundColor: "#E0E0E0",
-  },
-  row: {
+  header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
+    alignItems: "center",
+    marginBottom: 10,
   },
-  name: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    flexShrink: 1,
-    marginRight: 8,
+  serviceTitle: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary },
+  badge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8 },
+  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
+  divider: { height: 1, backgroundColor: "#F0F0F0", marginBottom: 10 },
+  body: { gap: 6 },
+  row: { flexDirection: "row", alignItems: "center", gap: 6 },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
   },
-  badge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 14,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  info: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
-  },
+  infoText: { fontSize: 14, color: "#444" },
+  smallText: { fontSize: 12, color: "#666" },
+  price: { fontSize: 14, fontWeight: "700", color: COLORS.textPrimary },
 });

@@ -1,79 +1,136 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
 import React, { useState } from "react";
-import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { TabbedReservationFilters } from "@/appSRC/reservations/Screens/Client/MenuFilterReservation";
 import {
-  ReservationCard,
-  ReservationCardProps,
-} from "@/appSRC/reservations/Screens/Client/ReservationCard";
+  FlatList,
+  StyleSheet,
+  View,
+  Text,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { useRouter } from "expo-router";
 
-type ReservationFilter = "upcoming" | "completed" | "canceled";
+// Componentes UI
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import {
+  TabbedReservationFilters,
+  ReservationFilterType,
+} from "@/appSRC/reservations/Screens/Client/MenuFilterReservation";
+import { ReservationCard } from "@/appSRC/reservations/Screens/Client/ReservationCard";
 
-const MOCK_RESERVATIONS: ReservationCardProps[] = [
-  {
-    id: "1",
-    name: "Juan Perez",
-    date: "15 Diciembre, 2024",
-    service: "Servicio de Pintura",
-    status: "confirmed",
-    avatar: require("appASSETS/RawImages/avatar-1.jpg"),
-  },
-  {
-    id: "2",
-    name: "María García",
-    date: "15 Diciembre, 2024",
-    time: "10:00 AM",
-    service: "Instalación Eléctrica",
-    status: "on_route",
-    avatar: require("appASSETS/RawImages/avatar-0.jpg"),
-  },
-  {
-    id: "3",
-    name: "Ricardo López",
-    date: "01 Noviembre, 2024",
-    service: "Reparación de Cañerías",
-    status: "finalized",
-    avatar: require("appASSETS/RawImages/avatar-1.jpg"),
-  },
-];
+// Lógica de Negocio y Datos
+
+import { Reservation } from "@/appSRC/reservations/Type/ReservationType";
+import { useClientReservations } from "@/appSRC/reservations/Hooks/useClientFetchingReservations";
+import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 
 const Reservations = () => {
   const router = useRouter();
-
   const [currentFilter, setCurrentFilter] =
-    useState<ReservationFilter>("upcoming");
+    useState<ReservationFilterType>("active");
 
-  const handleFilterChange = (filter: ReservationFilter) => {
+  // 1. Hook de Datos (React Query)
+  const {
+    activeReservations,
+    pendingReservations,
+    historyReservations,
+    isLoadingActive,
+    isLoadingPending,
+    isLoadingHistory,
+    fetchNextHistory,
+    hasNextHistory,
+    isFetchingNextHistory,
+    refreshAll,
+  } = useClientReservations();
+
+  // 2. Selector de Datos según Filtro
+  let currentData: Reservation[] = [];
+  let isLoading = false;
+
+  switch (currentFilter) {
+    case "active":
+      currentData = activeReservations;
+      isLoading = isLoadingActive;
+      break;
+    case "pending":
+      currentData = pendingReservations;
+      isLoading = isLoadingPending;
+      break;
+    case "historical":
+      currentData = historyReservations;
+      isLoading = isLoadingHistory;
+      break;
+  }
+
+  const handleFilterChange = (filter: ReservationFilterType) => {
     setCurrentFilter(filter);
-    console.log(`Filtro cambiado a: ${filter}`);
   };
+
+  const handleEndReached = () => {
+    if (
+      currentFilter === "historical" &&
+      hasNextHistory &&
+      !isFetchingNextHistory
+    ) {
+      fetchNextHistory();
+    }
+  };
+
+  const handleCardPress = (id: string) => {
+    router.push(`/(client)/(tabs)/reservations/ReservationDetailsScreen/${id}`);
+  };
+
+  // Flag para mostrar loader inicial (pantalla vacía + cargando)
+  const showInitialLoader = isLoading && currentData.length === 0;
 
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText="Reservas" />
+      <ToolBarTitle titleText="Mis Reservas" />
 
       <TabbedReservationFilters
         currentFilter={currentFilter}
         onFilterChange={handleFilterChange}
       />
 
-      <FlatList
-        data={MOCK_RESERVATIONS}
-        keyExtractor={(item, index) => item.name + index}
-        renderItem={({ item }) => (
-          <ReservationCard
-            {...item}
-            onPress={() =>
-              router.push(
-                `(client)/(tabs)/reservations/ReservationDetailsScreen/${item.id}`
-              )
-            }
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {showInitialLoader ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      ) : (
+        <FlatList
+          data={currentData}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ReservationCard
+              {...mapReservationToCard(item)}
+              onPress={() => handleCardPress(item.id)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          // Pull to Refresh
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refreshAll} />
+          }
+          // Infinite Scroll (Historial)
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          // Loader al pie de página
+          ListFooterComponent={
+            currentFilter === "historical" && isFetchingNextHistory ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color="#9CA3AF" />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>
+                No hay reservas en esta sección.
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
@@ -83,9 +140,26 @@ export default Reservations;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#FAFAFA",
   },
   listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 40,
+    flexGrow: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 50,
+  },
+  footerLoader: {
     paddingVertical: 20,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#9CA3AF",
+    fontSize: 16,
   },
 });

@@ -1,5 +1,7 @@
 // appSRC/reservations/Type/ReservationDTO.ts
 
+import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
+
 export type ReservationStatusDTO =
   | "draft"
   | "quoting"
@@ -13,42 +15,33 @@ export type ReservationStatusDTO =
   | "disputed";
 
 export type ServiceModalityDTO = "instant" | "quote";
-/**
- * ReservationDTO
- * Representa la fila cruda tal cual existe en la tabla 'reservations' de Supabase.
- * Se mantiene el snake_case y los tipos de datos serializables (string, number).
- */
+
 export interface ReservationDTO {
-  id: string; // uuid
-  client_id: string; // uuid
-  professional_id: string; // uuid
-
+  id: string;
+  client_id: string;
+  professional_id: string;
   service_category: string;
-  service_modality: ServiceModalityDTO;
+  service_modality: "instant" | "quote";
 
-  title?: string;
-  description?: string;
-  photos?: string[]; // array de urls
+  // Nuevos campos estructurados
+  title: string;
+  description: string;
+  service_tags: ServiceTag[]; // ✅ JSONB mapeado
 
-  // Datos de Ubicación
-  address_street: string;
-  address_number?: string;
-  address_coords?: { x: number; y: number }; // Postgres Point se suele mapear a un objeto JSON o string según config
+  address_display: string; // ✅ Texto humano
+  address_coords: { x: number; y: number } | null; // ✅ Point
 
-  // CRÍTICO: Postgres devuelve tstzrange como string.
-  // Ej: "[\"2023-10-25 14:00+00\",\"2023-10-25 15:00+00\")"
   scheduled_range: string;
-
-  currency: string;
   price_estimated?: number;
   price_final?: number;
-
   platform_fee?: number;
-  pro_payout?: number;
+  status: string;
+  created_at: string;
 
-  status: ReservationStatusDTO;
-  created_at: string; // ISO String
-  updated_at?: string; // ISO String
+  professional?: {
+    legal_name: string | null;
+    photo_url: string | null;
+  };
 }
 
 /**
@@ -89,6 +82,11 @@ export interface Reservation {
 
   status: ReservationStatusDTO;
   createdAt: Date;
+
+  professional: {
+    name: string;
+    avatar: string | null;
+  };
 }
 
 export interface ReservationPayload {
@@ -96,34 +94,30 @@ export interface ReservationPayload {
   professionalId: string;
   category: string;
 
-  title: string;
-  description: string;
-  photos: string[];
-  address: string; // Dirección simple (String)
+  // Datos Estructurados
+  tags: ServiceTag[]; // ✅ Array de tags
+  title: string; // Generado (Tag A + Tag B)
+  description: string; // Input opcional
 
-  // Datos de Tiempo Simples (Para compatibilidad básica)
+  // Ubicación Rica
+  location: {
+    addressText: string; // "Av. Siempre Viva 123"
+    coords: {
+      // { lat: -32.9, lng: -68.8 }
+      lat: number;
+      lng: number;
+    };
+  };
+
   startTime: Date;
-  durationHours?: number;
+  durationHours: number;
 
-  // ✅ NUEVOS CAMPOS ESTRUCTURADOS (Necesarios para tu UI y Servicio actual)
+  // Datos Económicos
+  priceEstimated: number;
+  pricePerHour: number; // Para referencia
 
-  // Ubicación detallada (Coordenadas)
-  location?: {
-    street: string;
-    coordinates: { latitude: number; longitude: number };
-  };
-
-  // Cronograma detallado
-  schedule?: {
-    startDate: Date;
-    endDate: Date;
-  };
-
-  // Datos Económicos (CRÍTICO: El servicio RPC lo necesita)
-  financials: {
-    currency: string;
-    priceEstimated: number;
-    platformFee: number;
-    priceFinal?: number;
+  professional: {
+    name: string;
+    avatar: string | null;
   };
 }

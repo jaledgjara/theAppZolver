@@ -45,14 +45,16 @@ const CategoryDetailsView = () => {
         keyExtractor={(item) => item.id || item.user_id}
         renderItem={({ item }) => (
           <ProfessionalCard
-            avatar={item.photo_url || "https://via.placeholder.com/150"}
+            avatar={item.photo_url}
             name={item.legal_name}
             category={item.specialization_title}
             rating={item.rating}
-            // price={0} // Precio a convenir según la lógica nueva
+            reviewsCount={item.reviews_count}
+            price={item.price_per_hour}
+            distance={item.dist_meters}
             onPress={() => {
               router.push({
-                pathname: "(client)/(tabs)/home/ProfessionalDetails/[id]",
+                pathname: "/(client)/(tabs)/home/ProfessionalDetails/[id]",
                 params: {
                   id: item.user_id,
                   mode: mode,

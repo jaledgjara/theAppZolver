@@ -53,12 +53,13 @@ const SearchScreen = () => {
             <ActivityIndicator color={COLORS.primary} size="small" />
           ) : (
             <QuickChips
-              items={
-                categories.length > 0
-                  ? categories.map((cat) => cat.name)
-                  : ["Plomería", "Gasista"]
-              } // Fallback visual
-              onPress={handleChipPress}
+              items={categories.map((c: any) => ({
+                id: c.id,
+                label: c.title || c.name || c.label,
+                ...c,
+              }))}
+              selectedIds={[]}
+              onToggle={(item: any) => handleChipPress(item.label)}
             />
           )}
         </View>
@@ -70,16 +71,18 @@ const SearchScreen = () => {
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
+          // Dentro del renderItem del FlatList:
           <ProfessionalCard
-            avatar={item.photo_url || "https://via.placeholder.com/150"}
+            avatar={item.photo_url}
             name={item.legal_name}
             category={item.specialization_title}
             rating={item.rating}
-            // price={0} // Precio a convenir según la lógica nueva
-            distance={item.dist_meters} // Distancia real desde PostGIS
+            reviewsCount={item.reviews_count}
+            price={item.price_per_hour}
+            distance={item.dist_meters}
             onPress={() => {
               router.push({
-                pathname: "/(client)/professionalDetails/[id]",
+                pathname: "/(client)/(tabs)/home/ProfessionalDetails/[id]",
                 params: {
                   id: item.user_id,
                   mode: mode,

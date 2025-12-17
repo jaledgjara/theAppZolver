@@ -85,15 +85,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req: Request): Promise<Response> => {
   try {
-    const { phone } = await req.json().catch(() => ({} as any));
-    console.log("📞 Incoming phone:", phone);
+    const { phone, code } = await req.json().catch(() => ({} as any));
 
-    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS START (SEND) ---
-    // Esta es la parte que le FALTA. Sin esto, siempre intentará cobrarle/bloquearle en Twilio.
+    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS CONFIG ---
+    // DEBE SER IDENTICA A LA DE SEND-VERIFICATION
     const WHITELIST_NUMBERS = [
       "+542616837340",
       "+542616837341",
       "+542616837342",
+      "+542616837344",
       "+542616837345",
       "+542616837346",
       "+542616837347",
@@ -104,30 +104,31 @@ serve(async (req: Request): Promise<Response> => {
       "+542616837352",
     ];
 
-    // Normalizamos el número
+    const DEV_CODE = "123456";
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
-    // Si es su número, retornamos ÉXITO FALSO inmediatamente
+    // 1. BYPASS LOGIC
     if (WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
-      console.log(
-        `⚠️ DEV MODE: Bypassing Twilio sending for whitelist number: ${phone}`
-      );
+      console.log(`⚠️ DEV MODE: Mocking CHECK for ${phone} with code ${code}`);
 
-      return json(
-        {
-          sid: "dev_bypass_fake_sid",
-          status: "pending",
-          valid: true,
-          message: "Development bypass active. Use code: 123456",
-        },
-        200
-      );
+      if (code === DEV_CODE) {
+        return json(
+          { valid: true, status: "approved", message: "Dev Bypass Success" },
+          200
+        );
+      } else {
+        return json(
+          { valid: false, error: "Wrong Dev Code (Use 123456)" },
+          400
+        );
+      }
     }
-    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS END ---
+    // --- END DEV BYPASS ---
 
-    // ============================================================
-    // LÓGICA ORIGINAL (Solo se ejecuta si NO es su número)
-    // ============================================================
+    // ==========================================
+    // 2. LÓGICA ORIGINAL (Twilio Real)
+    // ==========================================
+
     // @ts-ignore
     const SID = Deno.env.get("TWILIO_SID");
     // @ts-ignore
@@ -135,12 +136,12 @@ serve(async (req: Request): Promise<Response> => {
     // @ts-ignore
     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SID");
 
-    if (!phone) return json({ error: "Phone is required" }, 400);
-    if (!SID || !TOKEN || !VERIFY_SID)
+    if (!SID || !TOKEN || !VERIFY_SID) {
       return json({ error: "Missing Creds" }, 500);
+    }
 
-    const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/Verifications`;
-    const body = new URLSearchParams({ To: phone, Channel: "sms" });
+    const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/VerificationCheck`;
+    const body = new URLSearchParams({ To: phone, Code: code });
 
     const twilioRes = await fetch(url, {
       method: "POST",
@@ -152,14 +153,13 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     const payload = await twilioRes.json().catch(() => ({}));
+
     if (!twilioRes.ok) {
-      return json(
-        { error: "Twilio error", details: payload },
-        twilioRes.status
-      );
+      return json({ error: "Twilio Check Failed", details: payload }, 400);
     }
 
-    return json(payload, 200);
+    // Retornamos el estado real de Twilio
+    return json({ valid: payload.valid, status: payload.status }, 200);
   } catch (err) {
     return json({ error: "Unexpected error", message: String(err) }, 500);
   }

@@ -4,49 +4,57 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { COLORS, FONTS } from "@/appASSETS/theme";
-import ServiceRequestCard from "@/appCOMP/cards/ServiceRequestCard";
-
-// Mock Data (Simulando respuesta de Supabase)
-const MOCK_REQUESTS = [
-  {
-    id: "1",
-    category: "Cerrajero",
-    price: "$15.000",
-    distance: "1.2 km",
-    location: "Av. San Martín 1234, Ciudad",
-  },
-  {
-    id: "2",
-    category: "Plomería",
-    price: "$22.500",
-    distance: "3.5 km",
-    location: "Calle Las Heras 450, Godoy Cruz",
-  },
-];
+import { useIsActive } from "@/appSRC/users/Professional/Hooks/useIsActive";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import { useProIncomingRequests } from "../../Hooks/useProIncomingRequests";
+import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
 
 const IndexInstantScreen = () => {
-  const [isActive, setIsActive] = useState(true);
+  // 1. Estado de Disponibilidad (Existente)
+  const { isActive, toggleStatus, isLoading: switchingStatus } = useIsActive();
 
-  // Componente que contiene la parte superior estática
+  // 2. Fetching de Datos Reales (Nuevo)
+  const {
+    requests,
+    loading: loadingData,
+    refresh,
+  } = useProIncomingRequests(isActive);
+
+  // Helper para manejar acciones (Placeholder por ahora)
+  const handleAccept = (id: string) => console.log("Aceptar:", id);
+  const handleDecline = (id: string) => console.log("Rechazar:", id);
+
   const renderHeader = () => (
     <View style={styles.headerContainer}>
+      {/* Botón de Estado */}
       <View style={styles.statusSection}>
         <LargeButton
-          title={isActive ? "ESTOY ACTIVO" : "DESCONECTADO"}
-          onPress={() => setIsActive(!isActive)}
-          // Nota: Podrías añadir lógica en LargeButton para cambiar color según isActive
+          title={
+            switchingStatus
+              ? "CARGANDO..."
+              : isActive
+              ? "ESTOY ACTIVO"
+              : "DESCONECTADO"
+          }
+          onPress={toggleStatus}
+          // Cambiar color según estado si tu componente lo soporta
         />
       </View>
 
+      {/* Radar Visual */}
       <View style={styles.radarContainer}>
         <View style={[styles.radarCircle, !isActive && styles.radarInactive]}>
-          <FontAwesome5
-            name="satellite-dish"
-            size={80}
-            color={
-              isActive ? COLORS.success || "#4CAF50" : COLORS.textSecondary
-            }
-          />
+          {switchingStatus ? (
+            <MiniLoaderScreen />
+          ) : (
+            <FontAwesome5
+              name="satellite-dish"
+              size={80}
+              color={
+                isActive ? COLORS.success || "#4CAF50" : COLORS.textSecondary
+              }
+            />
+          )}
         </View>
 
         <View style={styles.statusTextContainer}>
@@ -55,15 +63,18 @@ const IndexInstantScreen = () => {
           </Text>
           <Text style={styles.statusSubtitle}>
             {isActive
-              ? "Escaneando servicios cercanos..."
+              ? loadingData
+                ? "Buscando servicios..."
+                : "Escaneando zona..."
               : "Conéctate para recibir trabajos"}
           </Text>
         </View>
       </View>
 
+      {/* Título de lista */}
       {isActive && (
         <Text style={styles.sectionTitle}>
-          Solicitudes Entrantes ({MOCK_REQUESTS.length})
+          Solicitudes Entrantes ({requests.length})
         </Text>
       )}
     </View>
@@ -73,100 +84,89 @@ const IndexInstantScreen = () => {
     <View style={styles.container}>
       {isActive ? (
         <FlatList
-          data={MOCK_REQUESTS}
+          data={requests}
           keyExtractor={(item) => item.id}
+          onRefresh={refresh}
+          refreshing={loadingData}
           renderItem={({ item }) => (
+            // AQUI MAPEAR DATOS REALES A TU COMPONENTE VISUAL
             <ServiceRequestCard
-              category={item.category}
-              price={item.price}
-              distance={item.distance}
-              location={item.location}
-              onAccept={() => console.log("Aceptar", item.id)}
-              onDecline={() => console.log("Rechazar", item.id)}
+              // Datos de UI
+              category={item.serviceCategory}
+              price={`$${
+                item.financials.priceEstimated?.toLocaleString() || "-"
+              }`}
+              // Lógica de distancia (si tienes lat/lng del pro, calcúlala aquí o en el componente)
+              distance="-- km"
+              // Dirección real (protegida o completa según lógica de negocio)
+              location={item.location.street}
+              // Datos extra útiles
+              title={item.title}
+              timeAgo={item.createdAt.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+              onAccept={() => handleAccept(item.id)}
+              onDecline={() => handleDecline(item.id)}
             />
           )}
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              No hay solicitudes por el momento.
-            </Text>
+            !loadingData ? (
+              <Text style={styles.emptyText}>
+                No hay solicitudes nuevas en tu zona.
+              </Text>
+            ) : null
           }
         />
       ) : (
-        /* Si está inactivo, solo mostramos el header sin lista */
+        /* Vista Inactiva: Solo Header */
         <View style={styles.listContent}>{renderHeader()}</View>
       )}
     </View>
   );
 };
 
+export default IndexInstantScreen;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAFA", // Fondo ligeramente gris para resaltar tarjetas blancas
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  headerContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  statusSection: {
-    width: "100%",
-    marginVertical: 20,
-  },
-  radarContainer: {
-    alignItems: "center",
-    marginVertical: 20,
-    padding: 20,
-  },
+  container: { flex: 1, backgroundColor: "#F5F5F5" }, // Ajustar a tu theme
+  headerContainer: { padding: 20, alignItems: "center" },
+  statusSection: { width: "100%", marginBottom: 20 },
+  radarContainer: { alignItems: "center", marginVertical: 20 },
   radarCircle: {
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: (COLORS.success || "#4CAF50") + "15", // Opacidad baja
+    backgroundColor: "#E8F5E9", // Light Green
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: (COLORS.success || "#4CAF50") + "30",
+    marginBottom: 16,
   },
-  radarInactive: {
-    backgroundColor: "#E0E0E0",
-    borderColor: "#BDBDBD",
-  },
-  statusTextContainer: {
-    alignItems: "center",
-  },
+  radarInactive: { backgroundColor: "#ECEFF1" }, // Light Grey
+  statusTextContainer: { alignItems: "center" },
   statusTitle: {
-    ...FONTS.h3,
-    color: COLORS.textPrimary,
+    fontSize: 18,
     fontWeight: "bold",
+    color: "#333",
     marginBottom: 4,
   },
-  statusSubtitle: {
-    ...FONTS.body4,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
+  statusSubtitle: { fontSize: 14, color: "#666" },
   sectionTitle: {
-    ...FONTS.h3,
+    fontSize: 16,
+    fontWeight: "700",
     alignSelf: "flex-start",
-    marginTop: 10,
+    marginTop: 20,
     marginBottom: 10,
-    color: COLORS.primary,
-    fontWeight: "bold",
+    color: "#444",
   },
+  listContent: { paddingBottom: 40 },
   emptyText: {
     textAlign: "center",
-    color: COLORS.textSecondary,
-    marginTop: 20,
+    marginTop: 40,
+    color: "#999",
     fontStyle: "italic",
   },
 });
-
-export default IndexInstantScreen;

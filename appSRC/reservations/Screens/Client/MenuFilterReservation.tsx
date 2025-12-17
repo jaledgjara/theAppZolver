@@ -1,76 +1,89 @@
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// ENUM: 3 Tipos de filtros
-type ReservationFilter = "upcoming" | "completed" | "canceled";
+// TYPE DEFINITION: Exportamos el tipo para usarlo en la pantalla padre (Clean Architecture)
+export type ReservationFilterType = "active" | "pending" | "historical";
 
 // INTERFACE: Props del componente
 interface TabbedReservationFiltersProps {
-  currentFilter: ReservationFilter;
-  onFilterChange: (filter: ReservationFilter) => void;
+  currentFilter: ReservationFilterType;
+  onFilterChange: (filter: ReservationFilterType) => void;
 }
 
 export const TabbedReservationFilters: React.FC<
   TabbedReservationFiltersProps
 > = ({ currentFilter, onFilterChange }) => {
-  // FILTERS: Definimos los filtros con sus etiquetas
-  const filters: { id: ReservationFilter; label: string }[] = [
-    { id: "upcoming", label: "Próximas" },
-    { id: "completed", label: "Completadas" },
-    { id: "canceled", label: "Canceladas" },
+  const filters: { id: ReservationFilterType; label: string }[] = [
+    { id: "active", label: "Activas" },
+    { id: "pending", label: "Pendientes" },
+    { id: "historical", label: "Historial" },
   ];
 
   return (
     <View style={styles.container}>
-      {filters.map((filter) => (
-        <TouchableOpacity
-          key={filter.id}
-          style={[
-            styles.tabButton,
-            currentFilter === filter.id && styles.tabButtonActive,
-          ]}
-          onPress={() => onFilterChange(filter.id)}>
-          <Text
-            style={[
-              styles.tabText,
-              currentFilter === filter.id && styles.tabTextActive,
-            ]}>
-            {filter.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      <View style={styles.tabContainer}>
+        {filters.map((filter) => {
+          const isActive = currentFilter === filter.id;
+
+          return (
+            <TouchableOpacity
+              key={filter.id}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              onPress={() => onFilterChange(filter.id)}
+              activeOpacity={0.7}>
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: "#FAFAFA",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  tabContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    padding: 3,
+    borderRadius: 30,
+    padding: 4,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 15,
+    paddingVertical: 10,
     alignItems: "center",
-    position: "relative",
+    justifyContent: "center",
+    borderRadius: 25,
   },
   tabButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 30,
+    backgroundColor: COLORS.primary || "#3B82F6",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: SIZES.body3,
     fontWeight: "500",
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
   },
   tabTextActive: {
-    color: COLORS.textPrimary,
-    fontWeight: "bold",
+    fontSize: SIZES.body3,
+    fontWeight: "500",
+    color: "white",
   },
 });

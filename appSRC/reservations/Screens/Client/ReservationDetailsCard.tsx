@@ -4,34 +4,22 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 
-
 export interface ReservationDetailCardProps {
-  type: 'professional' | 'date' | 'location' | 'payment';
-
-  // Professional card
+  type: "professional" | "date" | "location" | "payment";
   name?: string;
   service?: string;
   avatar?: any;
   statusText?: string;
   statusBg?: string;
   statusColor?: string;
-
-  // Date card
   date?: string;
   time?: string;
-
-  // Location
   location?: string;
-
-  // Payment
   priceService?: string;
   platformFee?: string;
   totalAmount?: string;
-
-  // Actions
   onPress?: () => void;
 }
-
 
 export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
   type,
@@ -49,22 +37,27 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
   statusColor,
   onPress,
 }) => {
-
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
-      
-      {/* PROFESSIONAL */}
+      {/* PROFESSIONAL: Layout Row [Avatar | Textos (Flex) | Badge] */}
       {type === "professional" && (
         <View style={styles.row}>
           <Image source={avatar} style={styles.avatar} />
-          <View>
-            <Text style={styles.name}>{name}</Text>
-            <Text style={styles.service}>{service}</Text>
+
+          {/* Contenedor de texto con flex: 1 para ocupar espacio central */}
+          <View style={styles.textContainer}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            <Text style={styles.service} numberOfLines={1}>
+              {service}
+            </Text>
           </View>
 
+          {/* Badge fuera del contenedor de texto, alineado a la derecha */}
           {statusText && (
             <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-              <Text style={{ color: statusColor, fontWeight: "600" }}>
+              <Text style={[styles.statusText, { color: statusColor }]}>
                 {statusText}
               </Text>
             </View>
@@ -79,7 +72,6 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
             <FontAwesome name="calendar" size={20} color="#333" />
             <Text style={styles.rowText}>{date}</Text>
           </View>
-          
           {time && (
             <View style={styles.iconRow}>
               <FontAwesome5 name="clock" size={20} color="#333" />
@@ -101,14 +93,20 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
       {type === "payment" && (
         <View>
           <Text style={styles.paymentTitle}>Detalle del Pago</Text>
-
-          <Text style={styles.paymentRow}>Costo del servicio: {priceService}</Text>
-          <Text style={styles.paymentRow}>Comisión: {platformFee}</Text>
-
-          <Text style={styles.paymentTotal}>Total: {totalAmount}</Text>
+          <View style={styles.paymentRowContainer}>
+            <Text style={styles.paymentLabel}>Costo del servicio</Text>
+            <Text style={styles.paymentValue}>{priceService}</Text>
+          </View>
+          <View style={styles.paymentRowContainer}>
+            <Text style={styles.paymentLabel}>Comisión</Text>
+            <Text style={styles.paymentValue}>{platformFee}</Text>
+          </View>
+          <View style={[styles.paymentRowContainer, styles.totalRow]}>
+            <Text style={styles.paymentTotalLabel}>Total</Text>
+            <Text style={styles.paymentTotalValue}>{totalAmount}</Text>
+          </View>
         </View>
       )}
-
     </TouchableOpacity>
   );
 };
@@ -119,66 +117,96 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFF",
     borderRadius: 14,
-    marginHorizontal: 18,
     marginTop: 12,
     padding: 18,
+    // Sombras suaves
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   row: {
     flexDirection: "row",
+    alignItems: "center", // Alineación vertical centrada
+  },
+  textContainer: {
+    flex: 1, // CLAVE: Ocupa todo el espacio disponible entre Avatar y Badge
+    marginRight: 8,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    backgroundColor: "#F3F4F6",
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 2,
+  },
+  service: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  statusBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    minWidth: 80,
     alignItems: "center",
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   iconRow: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 6,
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 16,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
-  },
-  service: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
-  },
   rowText: {
     marginLeft: 12,
     fontSize: 15,
-    color: "#333",
+    color: "#374151",
   },
-  statusBadge: {
-    marginLeft: "auto",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
+  // Estilos de Pago Mejorados
   paymentTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
-    marginBottom: 10,
+    marginBottom: 12,
+    color: "#111",
+  },
+  paymentRowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  paymentLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  paymentValue: {
+    fontSize: 14,
     color: "#333",
+    fontWeight: "500",
   },
-  paymentRow: {
-    fontSize: 15,
-    color: "#555",
-    marginBottom: 4,
+  totalRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
   },
-  paymentTotal: {
-    fontSize: 17,
+  paymentTotalLabel: {
+    fontSize: 16,
     fontWeight: "800",
-    color: "#000",
-    marginTop: 12,
+    color: "#111",
+  },
+  paymentTotalValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#111",
   },
 });

@@ -38,24 +38,29 @@ const ProfessionalDetailsView = () => {
   const { profile, loading, error } = useProfessionalDetails(id);
 
   // --- Lógica de Acciones del Footer ---
+
+  // --- Lógica de Acciones del Footer ---
   const handlePrimaryAction = () => {
     if (!profile) return;
 
     if (isInstant) {
       // ⚡️ FLUJO ZOLVER YA: Confirmar y agendar
-      // Dentro de handlePrimaryAction
+      console.log("🚀 Iniciando reserva con Category ID:", profile.category_id);
+
       router.push({
         pathname: "/(client)/(tabs)/home/ReservationRequestScreen",
         params: {
           id: profile.user_id,
           name: profile.legal_name,
-          category: profile.specialization_title,
+          categoryId: profile.category_id,
+          // Respaldo visual
+          category: profile.category_name || "General",
           mode: isInstant ? "instant" : "quote",
-          price: 5000,
+          price: profile.price_per_hour || 5000,
         },
       });
     } else {
-      // 📄 FLUJO PRESUPUESTO: Ir al chat directo
+      // 📄 FLUJO PRESUPUESTO
       router.push({
         pathname: "/(client)/messages/MessagesDetailsScreen/[id]",
         params: {

@@ -1,162 +1,115 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS, SIZES } from "@/appASSETS/theme"; // Asumiendo imports del theme
-import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { BaseCard } from "@/appCOMP/cards/BaseCard";
+import { COLORS } from "@/appASSETS/theme";
 
-interface ServiceRequestCardProps {
+export interface ServiceRequestCardProps {
   category: string;
+  title: string;
   price: string;
   distance: string;
   location: string;
-  timeEstimate?: string;
+  timeAgo: string;
   onAccept: () => void;
-  onDecline?: () => void;
+  onDecline: () => void;
 }
 
-const ServiceRequestCard = ({
+export const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
   category,
+  title,
   price,
   distance,
   location,
-  timeEstimate = "Lo antes posible",
+  timeAgo,
   onAccept,
   onDecline,
-}: ServiceRequestCardProps) => {
+}) => {
   return (
-    <View style={styles.cardContainer}>
-      {/* HEADER DE LA TARJETA */}
-      <View style={styles.header}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{category}</Text>
-        </View>
-        <Text style={styles.priceText}>{price}</Text>
+    <BaseCard>
+      {/* Top: Categoría y Tiempo */}
+      <View style={styles.topRow}>
+        <Text style={styles.category}>{category}</Text>
+        <Text style={styles.time}>{timeAgo}</Text>
       </View>
 
-      {/* DETALLES */}
-      <View style={styles.detailsContainer}>
-        <View style={styles.row}>
-          <Ionicons name="navigate-circle" size={20} color={COLORS.primary} />
-          <Text style={styles.detailText}>A {distance}</Text>
-        </View>
+      {/* Main: Título y Precio */}
+      <View style={styles.mainInfo}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.price}>{price}</Text>
+      </View>
 
-        <View style={styles.row}>
-          <Ionicons
-            name="location-sharp"
-            size={20}
-            color={COLORS.textSecondary}
-          />
-          <Text style={styles.locationText} numberOfLines={1}>
+      {/* Location */}
+      <View style={styles.locationRow}>
+        <Ionicons
+          name="navigate-circle-outline"
+          size={18}
+          color={COLORS.tertiary}
+        />
+        <View>
+          <Text style={styles.address} numberOfLines={1}>
             {location}
           </Text>
-        </View>
-
-        <View style={styles.row}>
-          <Ionicons
-            name="time-outline"
-            size={20}
-            color={COLORS.textSecondary}
-          />
-          <Text style={styles.detailText}>{timeEstimate}</Text>
+          <Text style={styles.distance}>{distance} de tu ubicación</Text>
         </View>
       </View>
 
-      {/* ACCIONES */}
-      <View style={styles.actionContainer}>
-        {/* Usamos tu LargeButton para la acción principal */}
-        <LargeButton
-          title="Aceptar Solicitud"
-          onPress={onAccept}
-          backgroundColor={COLORS.tertiary}
-        />
-
-        {/* Opción secundaria discreta */}
-        {onDecline && (
-          <TouchableOpacity onPress={onDecline} style={styles.declineButton}>
-            <Text style={styles.declineText}>Rechazar</Text>
-          </TouchableOpacity>
-        )}
+      {/* Botones de Acción */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.declineButton} onPress={onDecline}>
+          <Text style={styles.declineText}>Rechazar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
+          <Text style={styles.acceptText}>Aceptar Trabajo</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </BaseCard>
   );
 };
 
-export default ServiceRequestCard;
-
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    // Sombras sutiles para elevación
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#F0F0F0",
-  },
-  header: {
+  topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
-    paddingBottom: 12,
+    marginBottom: 8,
   },
-  categoryBadge: {
-    backgroundColor: COLORS.textSecondary
-      ? COLORS.textSecondary + "20"
-      : "#E3F2FD", // Fallback light blue
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  categoryText: {
-    ...FONTS.h3,
+  category: {
+    fontSize: 10,
     color: COLORS.primary,
     fontWeight: "700",
     textTransform: "uppercase",
-    fontSize: 12,
+    backgroundColor: "#E3F2FD",
+    padding: 4,
+    borderRadius: 4,
   },
-  priceText: {
-    ...FONTS.h2,
-    color: COLORS.textPrimary,
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  detailsContainer: {
-    marginBottom: 16,
-    gap: 8,
-  },
-  row: {
+  time: { fontSize: 11, color: "#888" },
+  mainInfo: { marginBottom: 12 },
+  title: { fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 2 },
+  price: { fontSize: 18, fontWeight: "800", color: COLORS.textPrimary },
+  locationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginBottom: 16,
   },
-  detailText: {
-    ...FONTS.body3,
-    color: COLORS.textPrimary,
-    fontWeight: "500",
-  },
-  locationText: {
-    ...FONTS.body4,
-    color: COLORS.textSecondary || "#666",
-    flex: 1,
-  },
-  actionContainer: {
-    marginTop: 8,
-    gap: 12,
-  },
+  address: { fontSize: 13, color: "#444", flex: 1 },
+  distance: { fontSize: 11, color: "#888" },
+  actionRow: { flexDirection: "row", gap: 10 },
   declineButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
     alignItems: "center",
-    paddingVertical: 8,
   },
-  declineText: {
-    color: COLORS.textSecondary || "#999",
-    fontWeight: "600",
+  declineText: { color: "#666", fontWeight: "600" },
+  acceptButton: {
+    flex: 2,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
   },
+  acceptText: { color: "white", fontWeight: "700" },
 });
