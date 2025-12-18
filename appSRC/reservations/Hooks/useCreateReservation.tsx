@@ -47,7 +47,7 @@ export const useCreateReservation = () => {
               router.replace({
                 pathname: "/(client)/(tabs)/messages",
                 params: {
-                  id: payload.professionalId,
+                  id: payload.professional_id,
                   reservationId: reservation.id,
                   name: "Nueva Consulta",
                 },

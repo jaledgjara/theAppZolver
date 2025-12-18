@@ -1,20 +1,20 @@
 import React, { useRef, useEffect } from "react";
 import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 // UI Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS } from "@/appASSETS/theme";
 import { MessageInput } from "@/appSRC/messages/Screens/InputTextMessage";
 import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
-import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
-
 // Logic
 import { useMessages } from "@/appSRC/messages/Hooks/useMessage";
-import { ChatMessage } from "@/appSRC/messages/Type/MessageType";
+import { ChatMessage, BudgetPayload } from "@/appSRC/messages/Type/MessageType";
+import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
 
 const MessagesDetailsClientScreen = () => {
   const { id, name, conversationId } = useLocalSearchParams();
+  const router = useRouter(); // ✅ Necesario para navegar al checkout
 
   // Hook Maestro
   const { messages, loading, sendMessage } = useMessages(
@@ -33,49 +33,78 @@ const MessagesDetailsClientScreen = () => {
     }
   }, [messages]);
 
+  // --- NAVEGACIÓN AL CHECKOUT ---
+  const handleBudgetPress = (payload: BudgetPayload, messageId: string) => {
+    // Solo permitimos click si está pendiente
+    if (payload.status !== "pending") return;
+
+    console.log("Navegando a ConfirmBudgetScreen...");
+
+    // Navegamos fuera del Stack de Mensajes -> Hacia el Tab de Reservas
+    router.push({
+      pathname: "/(client)/messages/ConfirmBudgetScreen", // Ruta corregida
+      params: {
+        professionalId: id,
+        budgetPrice: payload.price.toString(),
+        budgetTitle: payload.serviceName,
+        budgetNotes: payload.notes || "",
+        messageId: messageId,
+        conversationId: conversationId,
+      },
+    });
+    console.log("Llegamos!...");
+  };
+
   // 6. Factory: Decide qué componente pintar según el tipo
   const renderMessageItem = ({ item }: { item: ChatMessage }) => {
     switch (item.type) {
-      case "budget_proposal":
+      // CASO 1: PRESUPUESTO
+      case "budget":
         return (
           <ChatBudgetCard
             message={item}
-            onPress={() => console.log("Detalle:", item.data)}
+            onPress={() => handleBudgetPress(item.data, item.id)}
           />
         );
 
+      // CASO 2: IMAGEN (Usamos ChatBubble como fallback visual)
       case "image":
         return (
           <ChatBubble
-            // Construimos un objeto TextMessage limpio
+            // 🛠️ FIX: Estructura correcta con 'data'
             message={{
               id: item.id,
               conversationId: item.conversationId,
               createdAt: item.createdAt,
               isMine: item.isMine,
               isRead: item.isRead,
-              type: "text",
-              text: item.caption || "📷 Imagen enviada",
+              type: "text", // Lo disfrazamos de texto
+              data: {
+                text: "📷 Imagen enviada", // ✅ AHORA SÍ: Dentro de data
+              },
             }}
           />
         );
 
+      // CASO 3: TEXTO REAL
       case "text":
-        return <ChatBubble message={item} />;
+        return <ChatBubble message={item} isMine={item.isMine} />;
 
+      // CASO 4: DEFAULT / ERROR
       default:
-        const unknownItem = item as any;
-
         return (
           <ChatBubble
+            // 🛠️ FIX: Estructura correcta con 'data'
             message={{
-              id: unknownItem.id || "unknown-id",
-              conversationId: unknownItem.conversationId || "unknown-conv",
-              createdAt: unknownItem.createdAt || new Date(),
-              isMine: unknownItem.isMine ?? false,
-              isRead: unknownItem.isRead ?? true,
+              id: "fallback",
+              conversationId: "unknown",
+              createdAt: new Date(),
+              isMine: false,
+              isRead: true,
               type: "text",
-              text: "Formato de mensaje no soportado",
+              data: {
+                text: "Formato de mensaje no soportado", // ✅ AHORA SÍ: Dentro de data
+              },
             }}
           />
         );
@@ -110,10 +139,7 @@ const MessagesDetailsClientScreen = () => {
         )}
       </View>
 
-      {/* DIFERENCIA CLAVE:
-         El Input del cliente NO recibe onQuotePress.
-         Solo sirve para escribir texto.
-      */}
+      {/* Input solo texto para el cliente */}
       <MessageInput onSendText={sendMessage} />
     </View>
   );

@@ -1,29 +1,56 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { COLORS } from "@/appASSETS/theme"; // Asumiendo tu archivo de tema
-import { TextMessage } from "../Type/MessageType";
-import { format } from "date-fns"; // O tu utilidad de fecha preferida
+import { COLORS } from "@/appASSETS/theme";
+import { ChatMessage } from "../Type/MessageType";
 
-interface Props {
-  message: TextMessage;
+interface ChatBubbleProps {
+  message: ChatMessage;
+  isMine?: boolean;
 }
 
-export const ChatBubble = ({ message }: Props) => {
-  const { isMine, text, createdAt } = message;
+export const ChatBubble = ({ message, isMine }: ChatBubbleProps) => {
+  // 1. Determinar si es mío
+  const isMsgMine = isMine !== undefined ? isMine : message.isMine;
+
+  const { data, type } = message;
+
+  // 2. Lógica Defensiva (AQUÍ ESTABA EL ERROR)
+  // Usamos data?.text para evitar crash si data es null/undefined
+  let content = "Mensaje vacío";
+
+  if (type === "text") {
+    content = data?.text || "Texto no disponible";
+  } else if (type === "image") {
+    content = "📷 Imagen";
+  } else {
+    content = "Formato no soportado";
+  }
 
   return (
     <View
       style={[
         styles.container,
-        isMine ? styles.containerMine : styles.containerOther,
+        isMsgMine ? styles.rightContainer : styles.leftContainer,
       ]}>
-      <Text style={[styles.text, isMine ? styles.textMine : styles.textOther]}>
-        {text}
-      </Text>
+      <View
+        style={[
+          styles.bubble,
+          isMsgMine ? styles.rightBubble : styles.leftBubble,
+        ]}>
+        <Text
+          style={[styles.text, isMsgMine ? styles.rightText : styles.leftText]}>
+          {content}
+        </Text>
+      </View>
 
-      <Text style={[styles.time, isMine ? styles.textMine : styles.textOther]}>
-        {/* Formato simple de hora: 14:30 */}
-        {format(createdAt, "HH:mm")}
+      {/* Validación de fecha para evitar otro crash si createdAt viene mal */}
+      <Text style={styles.time}>
+        {message.createdAt
+          ? new Date(message.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : ""}
       </Text>
     </View>
   );
@@ -31,36 +58,43 @@ export const ChatBubble = ({ message }: Props) => {
 
 const styles = StyleSheet.create({
   container: {
+    marginVertical: 4,
     maxWidth: "80%",
+  },
+  leftContainer: {
+    alignSelf: "flex-start",
+  },
+  rightContainer: {
+    alignSelf: "flex-end",
+  },
+  bubble: {
     padding: 12,
     borderRadius: 16,
-    marginVertical: 4,
   },
-  // Estilos "MÍOS" (Derecha - Color Primario)
-  containerMine: {
-    alignSelf: "flex-end",
-    backgroundColor: COLORS.primary, // Tu azul Zolver
-    borderBottomRightRadius: 4, // Efecto burbuja de chat
-  },
-  // Estilos "DEL OTRO" (Izquierda - Gris)
-  containerOther: {
-    alignSelf: "flex-start",
-    backgroundColor: "#F0F0F0",
+  leftBubble: {
+    backgroundColor: "white",
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  rightBubble: {
+    backgroundColor: COLORS.primary,
+    borderBottomRightRadius: 4,
   },
   text: {
-    fontSize: 16,
-    marginBottom: 4,
+    fontSize: 15,
   },
-  textMine: {
-    color: "#FFFFFF",
+  leftText: {
+    color: "#1F2937",
   },
-  textOther: {
-    color: "#333333",
+  rightText: {
+    color: "white",
   },
   time: {
     fontSize: 10,
+    color: "#9CA3AF",
+    marginTop: 2,
     alignSelf: "flex-end",
-    opacity: 0.8,
+    marginHorizontal: 4,
   },
 });

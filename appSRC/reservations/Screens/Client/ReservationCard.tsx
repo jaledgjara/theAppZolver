@@ -12,7 +12,7 @@ export type ReservationStatus =
   | "finalized"
   | "canceled";
 
-interface ReservationCardProps {
+export interface ReservationCardProps {
   id: string;
   professionalName: string;
   serviceName: string;
@@ -20,6 +20,7 @@ interface ReservationCardProps {
   time: string;
   status: ReservationStatus;
   price?: string;
+  avatar: any;
   onPress?: () => void;
 }
 

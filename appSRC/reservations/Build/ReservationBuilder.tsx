@@ -25,66 +25,103 @@ export interface BuilderInput {
 export const buildReservationPayload = (
   input: BuilderInput
 ): ReservationPayload => {
-  // 1. TITLE LOGIC
+  // =================================================================
+  // 1. LOGICA DE TÍTULO (Restaurada)
+  // =================================================================
   let finalTitle = input.title || "Servicio General";
   if (!input.title && input.selectedTags && input.selectedTags.length > 0) {
+    // Si no hay título manual, usamos los tags (ej: "Plomería, Destape")
     finalTitle = input.selectedTags.map((t) => t.label).join(", ");
   }
 
-  // 2. ADDRESS & COORDS LOGIC
+  // =================================================================
+  // 2. LOGICA DE DIRECCIÓN Y COORDENADAS (Restaurada)
+  // =================================================================
   let finalAddress = "Ubicación a coordinar";
-  let finalCoordsStr = undefined;
+  let finalCoordsStr: string | undefined = undefined;
 
   if (input.activeAddress) {
     const { address_street, address_number, floor, apartment, coords } =
       input.activeAddress;
 
-    // Readable String
+    // String legible para la UI
     finalAddress = `${address_street} ${address_number}`;
     if (floor || apartment) {
       finalAddress += ` (Piso ${floor || "-"} ${apartment || ""})`;
     }
 
-    // Coordinates Formatting for Postgres Point
-    // ⚠️ CRITICAL: Postgres Point is (x, y) -> (Longitude, Latitude)
+    // Formato Point para Postgres (Longitude, Latitude)
+    // Importante: Postgres usa (x, y) = (lng, lat)
     if (coords && coords.lng !== undefined && coords.lat !== undefined) {
       finalCoordsStr = `(${coords.lng},${coords.lat})`;
     }
   }
 
-  // 3. PRICING LOGIC
-  const finalPrice = input.isInstant
-    ? input.pricePerHour
-    : input.proposedPrice || 0;
-
-  // 4. TIME LOGIC (Default 2 hours)
+  // =================================================================
+  // 3. LOGICA DE TIEMPO (Restaurada)
+  // =================================================================
+  // MVP: Bloques de 2 horas por defecto
   const endTime = new Date(input.startTime);
   endTime.setHours(endTime.getHours() + 2);
 
-  // 5. RETURN PAYLOAD (snake_case)
-  return {
+  // =================================================================
+  // 4. LOGICA DE ESTADO (CRÍTICO: Fix de Visibilidad)
+  // =================================================================
+  // Instant -> pending_approval (visible en inbox)
+  // Quote -> quoting (visible en inbox o chat)
+  const initialStatus = input.isInstant ? "pending_approval" : "quoting";
+
+  // =================================================================
+  // 5. LOGICA DE PRECIOS
+  // =================================================================
+  const calculatedPrice = input.isInstant
+    ? input.pricePerHour * 2 // Instant: 2 horas fijas
+    : input.proposedPrice || 0; // Quote: Propuesta del cliente o 0
+
+  // =================================================================
+  // 6. CONSTRUCCIÓN DEL PAYLOAD (RETURN)
+  // =================================================================
+  const payload: ReservationPayload = {
     client_id: input.clientId,
     professional_id: input.professionalId,
 
     service_category: input.category,
     service_modality: input.isInstant ? "instant" : "quote",
 
+    // Fix Error 1: Falta currency
+    currency: "ARS",
+
+    // Fix Error de Status
+    status: initialStatus,
+
     service_tags: input.selectedTags || [],
 
+    // Fix Error 2: Variables restauradas
     title: finalTitle,
     description: input.description || "",
 
+    // Fix Error 3: Variables restauradas
     address_street: finalAddress,
     address_number: input.activeAddress?.address_number || "",
-    address_coords: finalCoordsStr, // ✅ Ready for RPC
 
+    // Fix Error 4: Variables restauradas
+    address_coords: finalCoordsStr,
+
+    // Fix Error 5: endTime restaurado
     scheduled_range: `[${input.startTime.toISOString()},${endTime.toISOString()})`,
 
-    currency: "ARS",
-    price_estimated: finalPrice,
-    price_final: finalPrice,
-    platform_fee: finalPrice * 0.15, // Example 15% fee
-
-    status: "draft", // Initial status
+    // Financials
+    price_estimated: calculatedPrice,
+    price_final: calculatedPrice,
+    platform_fee: 0,
   };
+
+  // [ZOLVER-DEBUG] Logs para trazabilidad
+  console.log("\n--- [ZOLVER-DEBUG] 01: BUILDER PAYLOAD ---");
+  console.log("Modality:", payload.service_modality);
+  console.log("Status Asignado:", payload.status);
+  console.log("Coords:", payload.address_coords);
+  console.log("------------------------------------------\n");
+
+  return payload;
 };

@@ -19,17 +19,34 @@ import {
   getStatusConfig,
   mapStatusToUI,
 } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { BudgetPayload } from "@/appSRC/messages/Type/MessageType";
 
 // Helper de colores para status (Consistente con la Card)
 
 const ReservationDetailScreen = () => {
-  const { id } = useLocalSearchParams();
+  const { id, conversationId } = useLocalSearchParams();
   const reservationId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
 
   // 1. Data Fetching
   const { reservation, isLoading, isError, refetch } =
     useReservationDetail(reservationId);
+
+  const handleBudgetPress = (payload: BudgetPayload, messageId: string) => {
+    if (payload.status !== "pending") return;
+
+    router.push({
+      pathname: "/(client)/(tabs)/reservations/ConfirmBudgetScreen",
+      params: {
+        professionalId: id,
+        budgetPrice: payload.price.toString(),
+        budgetTitle: payload.serviceName,
+        budgetNotes: payload.notes || "",
+        messageId: messageId,
+        conversationId: conversationId,
+      },
+    });
+  };
 
   // 2. Loading State
   if (isLoading) {

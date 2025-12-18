@@ -13,41 +13,44 @@ import { getTodayRangeString } from "../Helper/GetTodayRangeString";
 
 //A
 export const createReservationService = async (payload: ReservationPayload) => {
-  // 1. RPC CALL
-  // We map the snake_case Payload to the p_ arguments of the RPC
+  // [ZOLVER-DEBUG] 02: Entrada al Servicio
+  console.log("[ZOLVER-DEBUG] 02: Service - Sending RPC...", payload.status);
+
   const { data, error } = await supabase.rpc("create_reservation_bypass", {
-    // Keys
     p_client_id: payload.client_id,
     p_professional_id: payload.professional_id,
     p_category: payload.service_category,
     p_modality: payload.service_modality,
-
-    // Content
     p_title: payload.title,
     p_description: payload.description,
     p_service_tags: payload.service_tags,
-
-    // Location (Already formatted by Builder)
-    p_address_display: payload.address_street, // passing the full string here
+    p_address_display: payload.address_street,
     p_address_coords: payload.address_coords || null,
-
-    // Time (Already formatted by Builder)
     p_range: payload.scheduled_range,
-    p_status: payload.status,
-
-    // Money
+    p_status: payload.status, // <--- Verifica que esto coincida con los argumentos de tu RPC
     p_price_estimated: payload.price_estimated,
     p_price_final: payload.price_final,
     p_platform_fee: payload.platform_fee || 0,
   });
 
   if (error) {
-    console.error("RPC Error:", error);
+    console.error("[ZOLVER-DEBUG] ❌ RPC ERROR:", error.message);
     throw new Error(error.message);
   }
 
-  // 2. Map response to Domain Entity
-  return mapReservationFromDTO(data as ReservationDTO);
+  console.log("[ZOLVER-DEBUG] ✅ RPC SUCCESS. ID:", data); // Asumiendo que devuelve el ID
+
+  // Opcional: Hacer un fetch inmediato de lo que acabamos de crear para confirmar persistencia
+  if (data) {
+    const check = await supabase
+      .from("reservations")
+      .select("status")
+      .eq("id", data)
+      .single();
+    console.log("[ZOLVER-DEBUG] VERIFY DB STATUS:", check.data?.status);
+  }
+
+  return { id: data, ...payload }; // Retorno mockeado o real según tu RPC
 };
 
 // Aliases for compatibility with your existing Hooks
@@ -59,24 +62,35 @@ export const createQuoteReservation = createReservationService;
 // ============================================================================
 
 //A)
-export const fetchProIncomingRequests = async (
-  professionalId: string
-): Promise<Reservation[]> => {
+// B) LECTURA (PROFESIONAL)
+export const fetchProIncomingRequests = async (professionalId: string) => {
+  console.log(
+    "[ZOLVER-DEBUG] 03: Service - Fetching Requests for Pro:",
+    professionalId
+  );
+
+  // NOTA DE ARQUITECTURA:
+  // Revisa que .in() incluya el status que definimos en el Builder ('pending_approval')
   const { data, error } = await supabase
     .from("reservations")
-    .select("*")
-    .eq("professional_id", professionalId) // Solo mis solicitudes
-    .eq("service_modality", "instant") // Solo modalidad Instantánea
-    .eq("status", "pending_approval") // Que estén esperando confirmación
-    .order("created_at", { ascending: false }); // Las más recientes primero
+    .select(`*, professional:professional_id(legal_name)`)
+    .eq("professional_id", professionalId)
+    .in("status", ["pending_approval", "quoting", "draft"]) // <--- AÑADIR TODOS PARA DEBUG
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("❌ Error fetching incoming requests:", error);
-    throw new Error("No se pudieron cargar las solicitudes.");
+    console.error("[ZOLVER-DEBUG] ❌ FETCH ERROR:", error.message);
+    throw new Error(error.message);
   }
 
-  // Mapear de DTO crudo a Entidad limpia
-  return (data as ReservationDTO[]).map(mapReservationFromDTO);
+  console.log(`[ZOLVER-DEBUG] ✅ FETCH FOUND: ${data?.length} records`);
+  if (data && data.length > 0) {
+    console.log("[ZOLVER-DEBUG] Sample Record Status:", data[0].status);
+  } else {
+    console.log("[ZOLVER-DEBUG] ⚠️ No records found via Query.");
+  }
+
+  return (data as any[]).map(mapReservationFromDTO);
 };
 
 const HISTORY_PAGE_SIZE = 10;
@@ -188,4 +202,42 @@ export const fetchReservationById = async (
   }
 
   return mapReservationFromDTO(data as any);
+};
+
+// ... imports existentes
+
+/**
+ * CONVERSIÓN DE PRESUPUESTO A RESERVA
+ * 1. Crea la reserva en base a los datos del mensaje.
+ * 2. (Opcional) El trigger de base de datos o el cliente debe actualizar el mensaje a 'accepted'.
+ */
+export const confirmBudgetService = async (
+  clientId: string,
+  professionalId: string,
+  budgetData: any // El payload que venía en el mensaje
+) => {
+  console.log("[ZOLVER-DEBUG] Converting Budget to Reservation...");
+
+  // 1. Construimos el Payload de Reserva compatible con tu RPC o Insert
+  // NOTA: Asumimos 'quote' porque viene de un presupuesto
+  const { data, error } = await supabase.rpc("create_reservation_bypass", {
+    p_client_id: clientId,
+    p_professional_id: professionalId,
+    p_category: "personalized_quote", // O la categoría real si la guardaste en el payload
+    p_modality: "quote",
+    p_title: budgetData.serviceName,
+    p_description: budgetData.notes,
+    p_service_tags: [],
+    p_address_display: "Ubicación del Cliente", // Deberías sacar esto del Store de Ubicación
+    p_address_coords: null,
+    p_range: `[${budgetData.proposedDate},${budgetData.proposedDate})`, // Rango simple
+    p_status: "confirmed", // <--- NACE CONFIRMADA
+    p_price_estimated: budgetData.price,
+    p_price_final: budgetData.price,
+    p_platform_fee: 0,
+  });
+
+  if (error) throw new Error(error.message);
+
+  return data; // Retorna el ID de la nueva reserva
 };

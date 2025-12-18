@@ -1,70 +1,62 @@
-// appSRC/messages/Type/MessageDTO.ts
+// appSRC/messages/Type/MessageType.ts
 
-// 1. Tipos de Mensaje (Enum SQL)
-export type MessageTypeDTO = "text" | "image" | "budget_proposal";
+// 1. Tipos de Mensaje (Alineado con DB enum)
+export type MessageTypeDTO = "text" | "image" | "budget"; // ✅ CAMBIADO DE budget_proposal
 
-// 2. Definición del Payload de Presupuesto
-// Reutilizamos o extendemos ReservationPayload para mantener consistencia
+// 2. Payload de Presupuesto
 export interface BudgetPayload {
   serviceName: string;
   price: number;
-  currency: string; // 'ARS', 'USD'
-  proposedDate: string; // ISO String
-  notes?: string;
-
-  // Estado del presupuesto dentro del chat
+  currency: "ARS" | "USD";
+  proposedDate: string;
+  notes: string;
   status: "pending" | "accepted" | "rejected" | "expired";
-
-  // Vinculación opcional con la reserva real si ya se creó
-  reservationId?: string;
 }
 
-// 3. MessageDTO (Data Transfer Object)
-// Representación exacta de la tabla SQL 'messages'
+// 3. MessageDTO (Lo que viene de Supabase)
 export interface MessageDTO {
   id: string;
   created_at: string;
-
   conversation_id: string;
   sender_id: string;
   receiver_id: string;
-
   type: MessageTypeDTO;
-  content: string | null; // Texto visible o fallback
-
-  // El campo JSONB mágico
-  payload: BudgetPayload | { imageUrl?: string } | null;
-
+  content: string | null;
+  payload: BudgetPayload | any | null; // JSONB
   is_read: boolean;
 }
 
-// 4. Message (Domain Entity - Union Type)
-// Esto permite al FlatList saber qué componente renderizar (Burbuja o Card)
+// 4. DOMAIN ENTITIES (UI)
+// ✅ Estandarización: TODOS tienen una propiedad 'data'
 
 interface BaseMessage {
   id: string;
-  createdAt: Date;
+  createdAt: Date; // Date object real
   conversationId: string;
-  isMine: boolean; // Helper calculado (sender_id === user.id)
+  isMine: boolean;
   isRead: boolean;
 }
 
 export interface TextMessage extends BaseMessage {
   type: "text";
-  text: string;
+  // Envolvemos el texto en data para consistencia
+  data: {
+    text: string;
+  };
 }
 
 export interface ImageMessage extends BaseMessage {
   type: "image";
-  imageUrl: string;
-  caption?: string;
+  data: {
+    imageUrl: string;
+    caption?: string;
+  };
 }
 
 export interface BudgetMessage extends BaseMessage {
-  type: "budget_proposal";
-  text: string; // Resumen: "Presupuesto enviado: $5000"
-  data: BudgetPayload; // Datos completos para la Card
+  type: "budget"; // ✅ CAMBIADO
+  data: BudgetPayload;
 }
 
-// Tipo Polimórfico exportado para la UI
+// Unión Exportada
 export type ChatMessage = TextMessage | ImageMessage | BudgetMessage;

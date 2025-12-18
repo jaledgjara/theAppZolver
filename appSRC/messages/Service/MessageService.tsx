@@ -81,29 +81,31 @@ export const MessageService = {
     conversationId: string,
     senderId: string,
     receiverId: string,
-    budgetPayload: BudgetPayload
+    budgetData: BudgetPayload
   ): Promise<void> => {
-    const summaryText = `Presupuesto: ${budgetPayload.currency} ${budgetPayload.price}`;
+    // Validamos que el payload sea serializable
+    const safePayload = JSON.parse(JSON.stringify(budgetData));
 
-    // A. Insertar mensaje con tipo 'budget_proposal' y payload JSONB
-    const { error: msgError } = await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: senderId,
       receiver_id: receiverId,
-      type: "budget_proposal",
-      content: summaryText, // Fallback visual para el Inbox
-      payload: budgetPayload, // 👈 Aquí van los datos ricos
+      type: "budget", // Requiere el FIX SQL de arriba
+      content: "Propuesta de Presupuesto", // Texto fallback para notificaciones push
+      payload: safePayload,
       is_read: false,
     });
 
-    if (msgError) throw msgError;
+    if (error) {
+      console.error("Supabase Error sending budget:", error.message);
+      throw new Error(error.message);
+    }
 
-    // B. Actualizar Inbox
+    // Opcional: Actualizar la conversación para mostrar "Te ha enviado un presupuesto..."
     await supabase
       .from("conversations")
       .update({
-        updated_at: new Date().toISOString(),
-        last_message_content: "📄 Te ha enviado un presupuesto",
+        last_message_content: "💰 Nueva propuesta de presupuesto",
         last_message_at: new Date().toISOString(),
       })
       .eq("id", conversationId);

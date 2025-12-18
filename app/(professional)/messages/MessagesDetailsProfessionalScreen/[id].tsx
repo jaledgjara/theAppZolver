@@ -6,10 +6,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS } from "@/appASSETS/theme";
 import { MessageInput } from "@/appSRC/messages/Screens/InputTextMessage";
-import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
-import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
 import { ChatMessage } from "@/appSRC/messages/Type/MessageType";
 import { useMessages } from "@/appSRC/messages/Hooks/useMessage";
+import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
+import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
 
 // 2. Lógica de Negocio y Tipos
 
@@ -51,9 +51,10 @@ const MessagesDetailsProfessionalScreen = () => {
   };
 
   // 6. Factory: Decide qué componente pintar según el tipo
+  // 6. Factory: Decide qué componente pintar según el tipo
   const renderMessageItem = ({ item }: { item: ChatMessage }) => {
     switch (item.type) {
-      case "budget_proposal":
+      case "budget":
         return (
           <ChatBudgetCard
             message={item}
@@ -62,17 +63,45 @@ const MessagesDetailsProfessionalScreen = () => {
         );
 
       case "image":
-        // Si implementaste burbuja de imagen, iría aquí.
-        // Por ahora usamos fallback de texto si no existe componente
         return (
           <ChatBubble
-            message={{ ...item, type: "text", text: "📷 Imagen enviada" }}
+            // ✅ FIX: Estructura correcta (text va dentro de data)
+            message={{
+              id: item.id,
+              conversationId: item.conversationId,
+              createdAt: item.createdAt,
+              isMine: item.isMine,
+              isRead: item.isRead,
+              type: "text",
+              data: {
+                text: "📷 Imagen enviada",
+              },
+            }}
           />
         );
 
       case "text":
-      default:
+        // El item ya es correcto, lo pasamos directo
         return <ChatBubble message={item} />;
+
+      default:
+        // Fallback para tipos desconocidos
+        return (
+          <ChatBubble
+            // 🛠️ FIX: Estructura correcta con 'data'
+            message={{
+              id: "fallback",
+              conversationId: "unknown",
+              createdAt: new Date(),
+              isMine: false,
+              isRead: true,
+              type: "text",
+              data: {
+                text: "Formato de mensaje no soportado", // ✅ AHORA SÍ: Dentro de data
+              },
+            }}
+          />
+        );
     }
   };
 

@@ -10,21 +10,26 @@ export const useProIncomingRequests = (isActive: boolean) => {
   const [loading, setLoading] = useState(false);
 
   const loadRequests = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.uid) {
+      console.log("[ZOLVER-DEBUG] Hook: No user UID");
+      return;
+    }
 
-    // Si el pro está "invisible", no gastamos recursos buscando
     if (!isActive) {
+      console.log("[ZOLVER-DEBUG] Hook: Pro is NOT active (Invisible)");
       setRequests([]);
       return;
     }
 
     setLoading(true);
     try {
+      console.log("[ZOLVER-DEBUG] 04: Hook calling fetch...");
       const data = await fetchProIncomingRequests(user.uid);
+
+      console.log("[ZOLVER-DEBUG] 05: Hook received data:", data.length);
       setRequests(data);
     } catch (error) {
       console.error(error);
-      // Opcional: No mostrar alerta intrusiva en cada refresco, solo log
     } finally {
       setLoading(false);
     }

@@ -59,8 +59,7 @@ const Messages = () => {
           <Pressable
             onPress={() =>
               router.push({
-                pathname:
-                  "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
+                pathname: "(client)/messages/MessagesDetailsScreen/[id]",
                 // Pasamos datos clave para que la siguiente pantalla cargue rápido
                 params: {
                   id: item.partner.id, // ID del Cliente

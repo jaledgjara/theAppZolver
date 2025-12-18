@@ -47,7 +47,41 @@ export interface Reservation {
   id: string;
   clientId: string;
   professionalId: string;
-  // ... (Keep your existing Domain interface here) ...
+
+  // ✅ Propiedades Directas
+  status: ReservationStatusDTO; // Faltaba esto
+  title: string;
+  description: string;
+  serviceCategory: string;
+  serviceModality: "instant" | "quote";
+
+  // ✅ Objetos de Valor (Nested Objects)
+  // Esto soluciona el error "Property 'location' does not exist"
+  location: {
+    street: string;
+    number: string;
+    coordinates?: { latitude: number; longitude: number };
+  };
+
+  // Esto soluciona el error "Property 'schedule' does not exist"
+  schedule: {
+    startDate: Date;
+    endDate: Date;
+  };
+
+  // Esto soluciona el error "Property 'financials' does not exist"
+  financials: {
+    currency: string;
+    priceEstimated: number;
+    priceFinal: number;
+    platformFee: number;
+  };
+
+  // Datos del Profesional (Join)
+  professional?: {
+    name: string;
+    photoUrl?: string;
+  };
 }
 
 /**

@@ -11,51 +11,42 @@ export const mapMessageDTOToDomain = (
   dto: MessageDTO,
   currentUserId: string
 ): ChatMessage => {
-  // 1. Construcción de propiedades base (comunes a todos)
-  const baseMessage = {
+  const isMine = dto.sender_id === currentUserId;
+  const base = {
     id: dto.id,
-    createdAt: new Date(dto.created_at), // String ISO -> Objeto Date
     conversationId: dto.conversation_id,
-    isMine: dto.sender_id === currentUserId, // Lógica crítica de UI (Derecha/Izquierda)
+    createdAt: new Date(dto.created_at),
+    isMine,
     isRead: dto.is_read,
   };
 
-  // 2. Discriminación por Tipo (Factory Pattern implícito)
+  // Mapeo según el tipo (ahora todos usan 'budget' y 'data')
   switch (dto.type) {
-    // --- CASO A: PRESUPUESTO ---
-    case "budget_proposal": {
-      // Forzamos el tipado del payload porque confiamos en la estructura guardada
-      const budgetData = dto.payload as BudgetPayload;
-
+    case "budget":
       return {
-        ...baseMessage,
-        type: "budget_proposal",
-        // El contenido textual suele ser un resumen fallback: "Te envié una cotización"
-        text: dto.content || "Presupuesto enviado",
-        data: budgetData || null, // Seguridad contra payloads vacíos
+        ...base,
+        type: "budget",
+        data: dto.payload as any, // TypeScript confía en que el payload es BudgetPayload
       };
-    }
 
-    // --- CASO B: IMAGEN ---
-    case "image": {
-      const imagePayload = dto.payload as { imageUrl?: string };
-
+    case "image":
       return {
-        ...baseMessage,
+        ...base,
         type: "image",
-        imageUrl: imagePayload?.imageUrl || "", // Fallback si falla la URL
-        caption: dto.content || undefined, // El texto opcional actúa como caption
+        data: {
+          imageUrl: dto.content || "", // Asumiendo URL en content o payload
+          caption: "",
+        },
       };
-    }
 
-    // --- CASO C: TEXTO (Default) ---
     case "text":
-    default: {
+    default:
       return {
-        ...baseMessage,
+        ...base,
         type: "text",
-        text: dto.content || "", // Evitamos null en UI de texto
+        data: {
+          text: dto.content || "", // ✅ Mapeamos content a data.text
+        },
       };
-    }
   }
 };
