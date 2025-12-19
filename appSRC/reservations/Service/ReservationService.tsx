@@ -93,6 +93,55 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
   return (data as any[]).map(mapReservationFromDTO);
 };
 
+// ... imports y funciones existentes ...
+
+/**
+ * FETCH: Trabajos Confirmados del Profesional (Agenda Activa)
+ * Trae todas las reservas en estado 'confirmed' (y opcionalmente 'on_route' o 'in_progress').
+ */
+export const fetchProConfirmedWorks = async (professionalId: string) => {
+  console.log("---------------------------------------------------------");
+  console.log(
+    "[ZOLVER-DEBUG] 01: Service - Fetching Confirmed Works for Pro:",
+    professionalId
+  );
+
+  try {
+    const { data, error } = await supabase
+      .from("reservations")
+      .select(`*, professional:professional_id(legal_name)`)
+      .eq("professional_id", professionalId)
+      // FILTRO CRÍTICO: Solo trabajos confirmados listos para ejecutar
+      .in("status", ["confirmed", "on_route", "in_progress"])
+      .order("scheduled_range", { ascending: true }); // Ordenar por fecha de inicio (lo más próximo primero)
+
+    if (error) {
+      console.error("[ZOLVER-DEBUG] ❌ FETCH ERROR:", error.message);
+      throw new Error(error.message);
+    }
+
+    console.log(
+      `[ZOLVER-DEBUG] ✅ FETCH FOUND: ${data?.length} confirmed records`
+    );
+
+    if (data && data.length > 0) {
+      console.log("[ZOLVER-DEBUG] Sample Record ID:", data[0].id);
+      console.log("[ZOLVER-DEBUG] Sample Status:", data[0].status);
+    } else {
+      console.log("[ZOLVER-DEBUG] ⚠️ No confirmed works found.");
+    }
+
+    // Mapeamos al modelo de dominio seguro para la UI
+    return (data as any[]).map(mapReservationFromDTO);
+  } catch (err: any) {
+    console.error(
+      "[ZOLVER-DEBUG] ❌ EXCEPTION in fetchProConfirmedWorks:",
+      err
+    );
+    throw err;
+  }
+};
+
 const HISTORY_PAGE_SIZE = 10;
 /**
  * Trae reservas que requieren atención inmediata o futura.
@@ -240,4 +289,74 @@ export const confirmBudgetService = async (
   if (error) throw new Error(error.message);
 
   return data; // Retorna el ID de la nueva reserva
+};
+
+/**
+ * CONFIRMACIÓN DE SERVICIO INSTANTÁNEO (Zolver Ya)
+ * * Flujo Crítico:
+ * 1. El Profesional acepta la solicitud -> Reserva pasa a 'confirmed'.
+ * 2. El Profesional se bloquea -> is_active pasa a false (Busy).
+ */
+export const confirmInstantReservationService = async (
+  reservationId: string,
+  professionalId: string
+) => {
+  console.log("---------------------------------------------------------");
+  console.log("[ZOLVER-DEBUG] 01: Service - Confirming Instant Reservation");
+  console.log(
+    `[ZOLVER-DEBUG] Reservation: ${reservationId} | Pro: ${professionalId}`
+  );
+
+  try {
+    // PASO 1: Confirmar la Reserva y Asignar al Profesional
+    // Es vital asegurar que el professional_id se grabe por si era una solicitud broadcast (sin dueño previo)
+    const { data: reservationData, error: resError } = await supabase
+      .from("reservations")
+      .update({
+        status: "confirmed", // Estado objetivo
+        professional_id: professionalId, // Reclamo del trabajo (Claim)
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reservationId)
+      .select()
+      .single();
+
+    if (resError) {
+      console.error(
+        "[ZOLVER-DEBUG] ❌ Error confirmando reserva:",
+        resError.message
+      );
+      throw resError;
+    }
+    console.log("[ZOLVER-DEBUG] ✅ Reserva confirmada exitosamente.");
+
+    // PASO 2: Bloquear Disponibilidad del Profesional (Side Effect)
+    // El profesional ya no está disponible para "Zolver Ya" porque está "En Camino"
+    // NOTA: Asumimos tabla 'professional_profiles'. Ajustar si usas 'users' o 'profiles'.
+    const { error: statusError } = await supabase
+      .from("professional_profiles")
+      .update({ is_active: false })
+      .eq("user_id", professionalId);
+
+    if (statusError) {
+      // Logueamos pero NO fallamos la transacción principal (la reserva ya es suya)
+      console.warn(
+        "[ZOLVER-DEBUG] ⚠️ Warning: No se pudo actualizar is_active:",
+        statusError.message
+      );
+    } else {
+      console.log(
+        "[ZOLVER-DEBUG] 🔒 Profesional marcado como OCUPADO (is_active = false)"
+      );
+    }
+
+    // Retornamos la reserva mapeada para actualizar la UI inmediatamente
+    return mapReservationFromDTO(reservationData as any);
+  } catch (err: any) {
+    console.error(
+      "[ZOLVER-DEBUG] ❌ EXCEPTION in confirmInstantReservationService:",
+      err
+    );
+    throw err;
+  }
 };

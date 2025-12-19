@@ -22,6 +22,7 @@ import { ReservationCard } from "@/appSRC/reservations/Screens/Client/Reservatio
 import { Reservation } from "@/appSRC/reservations/Type/ReservationType";
 import { useClientReservations } from "@/appSRC/reservations/Hooks/useClientFetchingReservations";
 import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
 const Reservations = () => {
   const router = useRouter();
@@ -123,11 +124,11 @@ const Reservations = () => {
             ) : null
           }
           ListEmptyComponent={
-            <View style={styles.centerContainer}>
-              <Text style={styles.emptyText}>
-                No hay reservas en esta sección.
-              </Text>
-            </View>
+            <StatusPlaceholder
+              icon="calendar-blank-outline"
+              title="Sin reservas aún"
+              subtitle="Aquí aparecerán tus citas programadas y el historial de tus servicios."
+            />
           }
         />
       )}

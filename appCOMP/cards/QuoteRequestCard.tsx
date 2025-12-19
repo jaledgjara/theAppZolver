@@ -4,12 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme"; // Asumiendo imports del theme
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 
-interface QuoteRequestCardProps {
+export interface QuoteRequestCardProps {
   clientName: string;
   category: string;
   description: string; // Ej: "Instalación eléctrica"
   date: string;
-  status: "Pendiente" | "Enviado" | "Rechazado";
+  status: "Pendiente" | "Enviado" | "Rechazado" | "Confirmado";
   onViewDetails: () => void;
 }
 
@@ -21,6 +21,29 @@ const QuoteRequestCard = ({
   status,
   onViewDetails,
 }: QuoteRequestCardProps) => {
+  // 1. Lógica de Colores de Estado (Helper)
+  const getStatusColor = () => {
+    switch (status) {
+      case "Pendiente":
+        return "#FFC107"; // Amarillo (Atención requerida)
+      case "Confirmado":
+        return "#4CAF50"; // Verde (Éxito/Trabajo Activo)
+      case "Rechazado":
+        return "#EF4444"; // Rojo (Descartado)
+      case "Enviado":
+        return COLORS.primary; // Azul/Primary (Esperando respuesta)
+      default:
+        return COLORS.primary;
+    }
+  };
+
+  // 2. Lógica de Texto del Botón (UX)
+  const getButtonTitle = () => {
+    if (status === "Confirmado") return "VER DETALLES DEL TRABAJO";
+    if (status === "Enviado") return "VER PRESUPUESTO";
+    return "VER DETALLE";
+  };
+
   return (
     <View style={styles.cardContainer}>
       {/* HEADER: Categoría y Fecha */}
@@ -33,7 +56,9 @@ const QuoteRequestCard = ({
 
       {/* BODY: Información Principal */}
       <View style={styles.body}>
-        <Text style={styles.descriptionText}>{description}</Text>
+        <Text style={styles.descriptionText} numberOfLines={2}>
+          {description}
+        </Text>
 
         <View style={styles.clientRow}>
           <Ionicons
@@ -47,25 +72,17 @@ const QuoteRequestCard = ({
         {/* Estado Badge */}
         <View style={styles.statusContainer}>
           <View
-            style={[
-              styles.statusDot,
-              {
-                backgroundColor:
-                  status === "Pendiente" ? "#FFC107" : COLORS.primary,
-              }, // Amarillo si pendiente
-            ]}
+            style={[styles.statusDot, { backgroundColor: getStatusColor() }]}
           />
-          <Text style={styles.statusText}>{status}</Text>
+          <Text style={[styles.statusText, { color: getStatusColor() }]}>
+            {status.toUpperCase()}
+          </Text>
         </View>
       </View>
 
       {/* FOOTER: Acciones */}
       <View style={styles.footer}>
-        <LargeButton
-          title="Ver Detalle"
-          onPress={onViewDetails}
-          // Podrías pasar un prop 'variant' a LargeButton si quisieras cambiar el color
-        />
+        <LargeButton title={getButtonTitle()} onPress={onViewDetails} />
       </View>
     </View>
   );

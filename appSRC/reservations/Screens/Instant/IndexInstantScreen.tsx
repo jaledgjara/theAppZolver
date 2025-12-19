@@ -8,11 +8,12 @@ import { useIsActive } from "@/appSRC/users/Professional/Hooks/useIsActive";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { useProIncomingRequests } from "../../Hooks/useProIncomingRequests";
 import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
+import { useConfirmInstantReservation } from "../../Hooks/useConfirmInstantReservation";
 
 const IndexInstantScreen = () => {
   // 1. Estado de Disponibilidad (Existente)
   const { isActive, toggleStatus, isLoading: switchingStatus } = useIsActive();
-
+  const { confirmRequest, processingId } = useConfirmInstantReservation();
   // 2. Fetching de Datos Reales (Nuevo)
   const {
     requests,
@@ -102,11 +103,11 @@ const IndexInstantScreen = () => {
               location={item.location.street}
               // Datos extra útiles
               title={item.title}
-              timeAgo={item.createdAt.toLocaleTimeString([], {
+              timeAgo={item.schedule.startDate.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
-              onAccept={() => handleAccept(item.id)}
+              onAccept={() => confirmRequest(item.id)}
               onDecline={() => handleDecline(item.id)}
             />
           )}

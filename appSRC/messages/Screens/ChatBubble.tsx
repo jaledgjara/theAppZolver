@@ -19,7 +19,7 @@ export const ChatBubble = ({ message, isMine }: ChatBubbleProps) => {
   let content = "Mensaje vacío";
 
   if (type === "text") {
-    content = data?.text || "Texto no disponible";
+    content = data?.text || "Voy";
   } else if (type === "image") {
     content = "📷 Imagen";
   } else {
