@@ -43,6 +43,7 @@ const CategoryDetailsView = () => {
       <FlatList
         data={professionals}
         keyExtractor={(item) => item.id || item.user_id}
+        contentContainerStyle={styles.contentContainer}
         renderItem={({ item }) => (
           <ProfessionalCard
             avatar={item.photo_url}
@@ -85,7 +86,6 @@ const CategoryDetailsView = () => {
             </View>
           ) : null
         }
-        contentContainerStyle={{ paddingBottom: 40 }}
       />
     </View>
   );
@@ -99,9 +99,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   contentContainer: {
-    paddingHorizontal: 20,
+    marginHorizontal: 20,
     marginTop: 20,
-    alignItems: "center",
     paddingVertical: 10,
   },
 });

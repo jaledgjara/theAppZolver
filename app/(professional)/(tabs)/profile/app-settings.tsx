@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar';
-import { LargeButton } from '@/appCOMP/button/LargeButton';
-import { useSignOut } from '@/appSRC/auth/Hooks/useSignOut';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { useSignOut } from "@/appSRC/auth/Hooks/useSignOut";
 
-export default function AppSettingsScreen() {
+export default function ProfessionalAppSettingsScreen() {
   const { handleSignOut } = useSignOut();
 
   return (
@@ -16,7 +16,7 @@ export default function AppSettingsScreen() {
     </View>
   );
 }
-const styles = StyleSheet.create({ 
-  container: { flex: 1, backgroundColor: 'white' }, 
-  content: { padding: 20, alignItems: 'center' } 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "white" },
+  content: { padding: 20, alignItems: "center" },
 });

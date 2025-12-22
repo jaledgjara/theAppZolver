@@ -8,21 +8,25 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+
+// 1. Assets & Theme
 import { COLORS, FONTS } from "@/appASSETS/theme";
+
+// 2. Componentes UI Reutilizables (Architecture Consistency)
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import LocationCard from "@/appCOMP/cards/LocationCard";
-import MyLocation from "@/appSRC/location/Screens/MyLocation";
-
-// Un solo import de lógica
-import { useLocation } from "@/appSRC/location/Hooks/useLocation";
+import LocationCard from "@/appCOMP/cards/LocationCard"; // Usamos la Card estandarizada
+import MyLocation from "@/appSRC/location/Screens/MyLocation"; // Usamos el componente GPS
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
+
+// 3. Lógica de Negocio (Core Location)
+import { useLocation } from "@/appSRC/location/Hooks/useLocation";
 import { Address } from "@/appSRC/location/Type/LocationType";
 
-const LocationScreen = () => {
+export default function AddressesScreen() {
   const router = useRouter();
 
-  // 🟢 HOOK
+  // Hook Global
   const {
     addresses,
     activeAddress,
@@ -33,6 +37,14 @@ const LocationScreen = () => {
     removeAddress,
   } = useLocation();
 
+  // Recargar datos cada vez que la pantalla gana foco (ej: al volver de "Agregar")
+  useFocusEffect(
+    useCallback(() => {
+      refreshAddresses();
+    }, [refreshAddresses])
+  );
+
+  // Lógica: Eliminar
   const handleDelete = (item: Address) => {
     Alert.alert(
       "Eliminar dirección",
@@ -42,35 +54,34 @@ const LocationScreen = () => {
         {
           text: "Eliminar",
           style: "destructive",
-          onPress: () => removeAddress(item.id),
+          onPress: async () => {
+            // removeAddress ya maneja el estado de carga internamente si el hook está bien hecho,
+            // pero aquí confiamos en el refresh automático o actualización optimista.
+            await removeAddress(item.id);
+          },
         },
       ]
     );
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      refreshAddresses();
-    }, [refreshAddresses])
-  );
-
-  // 🟢 Handler para el botón GPS
+  // Lógica: Usar GPS
   const handleGPSPress = async () => {
-    // 1. Llamamos a la lógica del hook
     const success = await useCurrentLocation();
 
-    // 2. Si tuvo éxito (consiguió coords y actualizó el store), volvemos
     if (success) {
-      router.back();
+      Alert.alert(
+        "Ubicación Actualizada",
+        "Se ha establecido tu ubicación actual."
+      );
     }
   };
 
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText="Ubicación" showBackButton={true} />
+      <ToolBarTitle titleText="Mis Direcciones" showBackButton={true} />
 
       <View style={styles.contentContainer}>
-        {/* Botón GPS */}
+        {/* 1. Opción de GPS / Ubicación Actual */}
         <MyLocation
           isSelected={activeAddress?.id === "gps_current"}
           onPress={handleGPSPress}
@@ -78,7 +89,7 @@ const LocationScreen = () => {
 
         <Text style={styles.sectionHeader}>Mis Direcciones</Text>
 
-        {/* Lista de Direcciones */}
+        {/* 2. Lista de Direcciones */}
         {loading && addresses.length === 0 ? (
           <ActivityIndicator
             size="large"
@@ -94,11 +105,9 @@ const LocationScreen = () => {
               <LocationCard
                 item={item}
                 isSelected={activeAddress?.id === item.id}
-                onPress={() => {
-                  selectAddress(item);
-                  router.back();
-                }}
-                // 🔥 Pass the delete handler
+                // En Perfil: Click = Seleccionar como activa (sin salir)
+                onPress={() => selectAddress(item)}
+                // Habilitamos la eliminación
                 onDelete={() => handleDelete(item)}
               />
             )}
@@ -107,7 +116,7 @@ const LocationScreen = () => {
                 <StatusPlaceholder
                   icon="map-marker-off-outline"
                   title="Sin direcciones"
-                  subtitle="Aún no has guardado ninguna ubicación. Agrega una para comenzar."
+                  subtitle="No tienes lugares guardados. Agrega Casa o Trabajo para agilizar."
                 />
               </View>
             }
@@ -115,19 +124,20 @@ const LocationScreen = () => {
           />
         )}
 
-        <View style={styles.floatingButton}>
+        {/* 3. Botón de Acción Principal */}
+        <View style={styles.footerContainer}>
           <LargeButton
-            title={"Agregar Nueva"}
-            onPress={() => router.push("/(client)/home/AddLocationScreen")}
+            title="Agregar Nueva"
+            onPress={() =>
+              router.push("/(client)/(tabs)/profile/AddLocationScreen")
+            }
             iconName="add-circle-outline"
           />
         </View>
       </View>
     </View>
   );
-};
-
-export default LocationScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -139,55 +149,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 20,
   },
-  // Estilos para el bloque de GPS
-  gpsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-    backgroundColor: "#F9F9F9",
-    borderRadius: 12,
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: "#EEEEEE",
-  },
-  gpsSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: "#FFFBF0",
-  },
-  gpsIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  gpsTitle: {
-    ...FONTS.h3,
-    color: COLORS.textPrimary,
-    fontWeight: "700",
-  },
-  gpsSubtitle: {
-    ...FONTS.body4,
-    color: COLORS.textSecondary,
-  },
-
   sectionHeader: {
-    ...FONTS.h3,
+    ...FONTS.h3, // Usar tipografía de tema
     fontWeight: "bold",
     color: COLORS.textSecondary,
-    marginBottom: 15,
+    marginBottom: 10,
+    marginTop: 10,
   },
-  emptyText: {
-    textAlign: "center",
-    color: "#999",
-    marginTop: 20,
-    fontSize: 16,
+  footerContainer: {
+    paddingVertical: 10,
   },
-  floatingButton: {},
 });

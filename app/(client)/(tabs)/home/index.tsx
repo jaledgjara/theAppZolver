@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContentContainer: {
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 5,
     paddingBottom: 40,
   },

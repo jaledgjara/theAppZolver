@@ -36,8 +36,6 @@ export function mapFirebaseUserToAuthUser(
     identityStatus?: string | null;
   }
 ): AuthUser {
-  // 🔥 Lógica de Prioridad: Si Supabase tiene nombre, lo usamos.
-  // Si no, fallback a Firebase displayName.
   const finalName = opts?.legalName || fbUser.displayName || null;
 
   return {
@@ -53,10 +51,6 @@ export function mapFirebaseUserToAuthUser(
   };
 }
 
-/**
- * Lógica centralizada para determinar el estado de la App
- * basándose en los datos del usuario.
- */
 function decideAuthStatus(params: {
   hasPhone: boolean;
   role: "client" | "professional" | "admin" | null;
@@ -65,32 +59,17 @@ function decideAuthStatus(params: {
 }): AuthStatus {
   const { hasPhone, role, profileComplete, identityStatus } = params;
 
-  // 1. Si no hay teléfono, flujo básico incompleto
   if (!hasPhone) return "preAuth";
-
-  // 2. Si hay teléfono pero no rol seleccionado
   if (hasPhone && !role) return "phoneVerified";
-
-  // 3. Cliente: Si tiene rol, pasa directo
   if (role === "client") return "authenticated";
-
-  // 4. Profesional: Lógica de aprobación y formulario
   if (role === "professional") {
     if (!profileComplete) return "preProfessionalForm";
-
-    // Verificar estados de identidad (ajusta los strings según tu DB)
     if (identityStatus === "approved" || identityStatus === "verified") {
       return "authenticatedProfessional";
     }
-    if (identityStatus === "rejected") {
-      return "rejected";
-    }
-
-    // Si completó perfil pero no está aprobado ni rechazado
+    if (identityStatus === "rejected") return "rejected";
     return "pendingReview";
   }
-
-  // Fallback por seguridad
   return "preAuth";
 }
 
@@ -98,37 +77,59 @@ function decideAuthStatus(params: {
 // 2. Listener Principal (Auth Guard Logic)
 // =========================================================
 
-// ... imports existentes
-
 export function initializeAuthListener() {
   const { setUser, setStatus, setBootLoading } = useAuthStore.getState();
-
-  console.log("👂 [AuthListener] Subscribing to Firebase Auth state...");
+  console.log("🎧 [AuthSystem] Inicializando Listener de Seguridad...");
 
   return onAuthStateChanged(auth, async (firebaseUser) => {
-    // 1. Caso: Usuario Deslogueado
+    // ----------------------------------------------------
+    // ESCENARIO 1: USUARIO DESCONECTADO (O CERRÓ SESIÓN)
+    // ----------------------------------------------------
     if (!firebaseUser) {
-      console.log("⚪ [AuthListener] No User -> Welcome Screen (unknown)");
+      // 🕵️‍♂️ INTELLIGENT ROUTING
+      // Antes de borrar nada, miramos si el store tenía un usuario.
+      // - Si tenía usuario (wasLoggedIn), significa que el usuario pulsó "Salir" -> Vamos a SignIn.
+      // - Si NO tenía usuario (null), significa que es un Cold Boot -> Vamos a Welcome.
+      const wasLoggedIn = !!useAuthStore.getState().user;
+
+      const targetStatus: AuthStatus = wasLoggedIn ? "anonymous" : "unknown";
+
+      console.log("\n🔻 [AuthListener] Detectado: NO HAY USUARIO (Null)");
+      console.log(
+        `   ↳ Contexto: ${wasLoggedIn ? "Cierre de Sesión" : "Inicio en Frío"}`
+      );
+      console.log(`   ↳ Acción: Redirigiendo a '${targetStatus}'`);
+
       setUser(null);
-      setStatus("unknown");
+      setStatus(targetStatus); // 👈 AQUÍ ESTÁ LA MAGIA
+
       setBootLoading(false);
       return;
     }
 
-    // 2. Caso: Usuario Detectado -> Sincronización
+    // ----------------------------------------------------
+    // ESCENARIO 2: USUARIO DETECTADO -> SINCRONIZACIÓN
+    // ----------------------------------------------------
     try {
-      console.log("🔄 [AuthListener] Syncing with Supabase...");
+      console.log("\n🔄 [AuthListener] Detectado: USUARIO FIREBASE ACTIVO");
+      console.log(`   ↳ UID: ${firebaseUser.uid.slice(0, 10)}...`);
+      console.log("   ↳ Paso 1: Sincronizando sesión con Supabase DB...");
 
       const backendSession = await syncUserSession();
 
-      // Validación Zombie (Firebase Ok, pero BD falló o no existe)
+      // Validación Zombie
       if (!backendSession || !backendSession.ok) {
-        console.warn("🧟 [AuthListener] Zombie User detected!");
+        console.warn(
+          "   ⚠️ [AuthListener] ALERTA: Usuario Zombie (Firebase OK, DB Falló)"
+        );
+        console.log("   ↳ Acción: Forzando cierre de sesión para limpiar.");
         await signOut(auth);
         return;
       }
 
-      console.log("✅ [AuthListener] Session Valid synced");
+      console.log(
+        "   ✅ [AuthListener] Paso 2: Sesión Sincronizada Correctamente"
+      );
 
       // Mapeo
       const appUser = mapFirebaseUserToAuthUser(firebaseUser, {
@@ -149,90 +150,70 @@ export function initializeAuthListener() {
         identityStatus: backendSession.identityStatus,
       });
 
-      // =================================================================
-      // 🕵️‍♂️ ZOLVER DEBUGGER: "THE HUGE CONSOLE LOG"
-      // =================================================================
+      // ---------------- LOG DIDÁCTICO ZOLVER ----------------
       console.log("\n");
+      console.log("╔════════════════════════════════════════════════════╗");
+      console.log("║ 🧠 ZOLVER BRAIN: DECISIÓN DE ESTADO                ║");
+      console.log("╠════════════════════════════════════════════════════╣");
+      console.log(`║ 👤 Usuario:      ${appUser.displayName || "Sin Nombre"}`);
       console.log(
-        "╔════════════════════════════════════════════════════════════╗"
+        `║ 📱 Teléfono:     ${
+          backendSession.phone ? "✅ Verificado" : "❌ Faltante"
+        }`
       );
-      console.log(
-        "║               🚀 ZOLVER SESSION DEBUGGER                   ║"
-      );
-      console.log(
-        "╠════════════════════════════════════════════════════════════╣"
-      );
-      console.log(`║ 👤 User Name:    ${appUser.displayName || "Sin Nombre"} `);
-      console.log(`║ 📧 Email:        ${appUser.email} `);
-      console.log(`║ 🆔 UID:          ${appUser.uid.substring(0, 8)}... `);
-      console.log(`║ 🎭 Role:         ${backendSession.role || "N/A"} `);
-      console.log(
-        "╠────────────────────────────────────────────────────────────╣"
-      );
+      console.log(`║ 🎭 Rol:          ${backendSession.role || "❌ Sin Rol"}`);
 
-      // --- LÓGICA ESPECÍFICA PARA PROFESIONALES ---
       if (backendSession.role === "professional") {
-        // Leemos el dato que viene de SessionService (inyectado desde la Edge Function)
         const profType = (backendSession as any).type_work;
-
         console.log(
-          `║ 🛠  TYPE WORK:    [ ${
-            profType ? profType.toUpperCase() : "UNDEFINED"
-          } ]  <-- LOOK HERE!`
+          `║ 🛠  Modo Trabajo: ${profType ? profType.toUpperCase() : "N/A"}`
         );
-        console.log(`║ 📡 Identity:     ${backendSession.identityStatus} `);
-        console.log(
-          `║ ✅ Completed:    ${
-            backendSession.profile_complete ? "YES" : "NO"
-          } `
-        );
+        console.log(`║ 📡 Estado ID:    ${backendSession.identityStatus}`);
 
-        // 🔥🔥🔥 CORRECCIÓN CRÍTICA 🔥🔥🔥
-        // Si detectamos un modo de trabajo, lo guardamos en el Store Global
-        // para que la UI sepa qué pantalla mostrar.
+        // Guardado en Store del Profesional
         if (profType) {
-          console.log(`💾 [AuthService] Saving TypeWork to Store: ${profType}`);
           useProfessionalOnboardingStore.getState().setData({
             typeWork: profType as ProfessionalTypeWork,
           });
         }
-        // 🔥🔥🔥 FIN CORRECCIÓN 🔥🔥🔥
-      } else {
-        console.log(`║ 👤 Client Mode:  Active`);
       }
 
-      console.log(`║ 🔀 Next Status:  ${nextStatus}`);
-      console.log(
-        "╚════════════════════════════════════════════════════════════╝"
-      );
+      console.log("╠────────────────────────────────────────────────────╣");
+      console.log(`║ 🏁 ESTADO FINAL: [ ${nextStatus.toUpperCase()} ]`);
+      console.log("╚════════════════════════════════════════════════════╝");
       console.log("\n");
-      // =================================================================
+      // -------------------------------------------------------
 
       setStatus(nextStatus);
     } catch (error) {
-      console.error("🔴 [AuthListener] Error syncing:", error);
+      console.error(
+        "🔴 [AuthListener] Error crítico durante la sincronización:",
+        error
+      );
       setUser(null);
       setStatus("unknown");
     } finally {
+      // 🔓 DESBLOQUEO FINAL:
+      // Sea cual sea el resultado, dejamos de mostrar el "Cargando..."
+      console.log("🔓 [AuthListener] Proceso terminado. Desbloqueando UI.\n");
       setBootLoading(false);
     }
   });
 }
+
 // =========================================================
-// 3. User Actions & Updates
+// 3. User Actions & Updates (CON LOADING LOGIC)
 // =========================================================
 
-/**
- * Actualiza el nombre completo (legal_name) en el backend y store.
- */
 export async function updateUserIdentity(fullName: string): Promise<boolean> {
+  // Nota: Aquí NO bloqueamos toda la pantalla (bootLoading) porque suele ser
+  // una acción dentro de un formulario, preferible usar un 'isLoading' local.
   try {
     const user = auth.currentUser;
     if (!user) throw new Error("No authenticated user");
 
     const token = await user.getIdToken();
 
-    // 1. Backend: Enviamos el nombre a la Edge Function
     const res = await fetch(
       `${process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS}/update-user-identity`,
       {
@@ -250,13 +231,12 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
       return false;
     }
 
-    // 2. Store: Actualización Optimista
     const store = useAuthStore.getState();
     if (store.user) {
       store.setUser({
         ...store.user,
-        legalName: fullName, // Guardamos el dato
-        displayName: fullName, // Actualizamos lo que ve la UI
+        legalName: fullName,
+        displayName: fullName,
       });
     }
 
@@ -266,13 +246,16 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
     return false;
   }
 }
+
 // -----------------
-// SIGN IN FUNC´S
+// SIGN IN FUNC´S (LOADING FIRST)
 // -----------------
 
 export async function signInWithAppleFirebase(): Promise<SignInResult> {
+  const { setBootLoading } = useAuthStore.getState();
+
   try {
-    // 1) Abrimos la hoja nativa de Apple (UI del sistema)
+    // 1. Apple UI no se puede tapar con loader, así que esperamos al token.
     const appleCredential = await AppleAuthentication.signInAsync({
       requestedScopes: [
         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -280,132 +263,79 @@ export async function signInWithAppleFirebase(): Promise<SignInResult> {
       ],
     });
 
-    // 2) Validamos que Apple nos devolvió un identityToken (JWT)
     if (!appleCredential.identityToken) {
       return { ok: false, message: "Missing identity token from Apple" };
     }
 
-    // 3) Creamos proveedor 'apple.com' y su credencial para Firebase
+    // 🔒 BLOQUEO AHORA: Ya tenemos el OK del usuario, empieza el proceso interno
+    console.log("🔒 [AuthService] Apple Login iniciado. Bloqueando UI...");
+    setBootLoading(true);
+
     const provider = new OAuthProvider("apple.com");
     const credential = provider.credential({
       idToken: appleCredential.identityToken,
     });
 
-    // 4) Autenticamos en Firebase con esa credencial
     await signInWithCredential(auth, credential);
 
-    // 5) Le pedimos a Firebase el usuario ya autenticado (sanity check)
-    const current = auth.currentUser;
-    if (!current) {
-      return { ok: false, message: "No current user after Apple sign-in" };
-    }
+    // NOTA: No hacemos setBootLoading(false) aquí.
+    // El AuthListener se disparará, hará la sync y ÉL desbloqueará.
 
-    // 6) Devolvemos tu AuthUser tipado y compacto
-    return { ok: true, user: mapFirebaseUserToAuthUser(current) };
+    return { ok: true, user: mapFirebaseUserToAuthUser(auth.currentUser!) };
   } catch (e: any) {
-    // Cancelación del usuario desde la hoja nativa de Apple
+    // Si falló o canceló, debemos desbloquear
+    setBootLoading(false);
+
     if (e?.code === "ERR_CANCELED") {
       return { ok: false, message: "Canceled by user" };
     }
-    // Otros errores (red, configuración, etc.)
     return { ok: false, code: e?.code, message: e?.message ?? String(e) };
   }
 }
 
-WebBrowser.maybeCompleteAuthSession(); // limpia sesiones previas
+WebBrowser.maybeCompleteAuthSession();
 export async function signInWithGoogleCredential(
   idToken: string
 ): Promise<SignInResult> {
+  const { setBootLoading } = useAuthStore.getState();
+
   try {
+    // 🔒 BLOQUEO: El usuario ya volvió de Google, empieza el handshake con Firebase
+    console.log(
+      "🔒 [AuthService] Google Credential recibida. Bloqueando UI..."
+    );
+    setBootLoading(true);
+
     const credential = GoogleAuthProvider.credential(idToken);
     await signInWithCredential(auth, credential);
 
-    const current = auth.currentUser;
-    if (!current) {
-      return { ok: false, message: "No user after Google sign-in" };
-    }
+    console.log(
+      "✅ [AuthService] Google Sign-In exitoso. Esperando AuthListener..."
+    );
+    // Dejamos que el Listener desbloquee la UI
 
-    return { ok: true, user: mapFirebaseUserToAuthUser(current) };
-    console.log("RESPUESTA CORRECTA DE GOOGLE:");
+    return { ok: true, user: mapFirebaseUserToAuthUser(auth.currentUser!) };
   } catch (e: any) {
+    console.error("❌ [AuthService] Error Google Sign-In:", e);
+    // Error -> Desbloqueamos
+    setBootLoading(false);
     return { ok: false, code: e?.code, message: e?.message ?? String(e) };
   }
 }
 
-/**
- * Cierra sesión en Firebase y limpia el store global.
- * Lleva al usuario al estado "anonymous" (SignInScreen).
- */
 export async function signOutFirebase(): Promise<void> {
-  const { reset, setStatus } = useAuthStore.getState();
+  const { setBootLoading } = useAuthStore.getState();
 
   try {
-    console.log("[AuthService] signOut → closing Firebase session");
+    // 🔒 BLOQUEO: Feedback inmediato al pulsar "Salir"
+    console.log("🔒 [AuthService] Cerrando sesión... Bloqueando UI.");
+    setBootLoading(true);
+
     await signOut(auth);
 
-    console.log("[AuthService] store reset to ANONYMOUS");
+    // El Listener detectará 'null', pondrá status 'anonymous' y desbloqueará.
   } catch (e: any) {
     console.warn("[AuthService] signOut error:", e);
-  }
-}
-
-export async function sendSignInLinkToEmailFirebase(
-  email: string
-): Promise<SignInResult> {
-  try {
-    const actionCodeSettings = {
-      url: "https://thezolverapp.web.app/auth/complete",
-      handleCodeInApp: true,
-      iOS: { bundleId: "com.the.zolver.app" },
-      android: { packageName: "com.the.zolver.app", installApp: true },
-    };
-
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    await AsyncStorage.setItem("lastEmail", email);
-
-    console.log(`[Passwordless] Link sent to ${email}`);
-    return { ok: true, user: null as any };
-  } catch (e: any) {
-    console.error("[Passwordless] Error sending link:", e);
-    return { ok: false, message: e?.message ?? "Error sending link" };
-  }
-}
-
-/**
- * Maneja el link cuando el usuario vuelve desde el correo.
- */
-export async function handleSignInWithEmailLinkFirebase(
-  url?: string | null
-): Promise<SignInResult> {
-  try {
-    if (!url) {
-      console.log(
-        "[Passwordless] No URL provided to handleSignInWithEmailLinkFirebase"
-      );
-      return { ok: false, message: "No URL provided" };
-    }
-
-    if (!isSignInWithEmailLink(auth, url)) {
-      console.log("[Passwordless] Not a valid Firebase email link");
-      return { ok: false, message: "Invalid sign-in link" };
-    }
-
-    const savedEmail = await AsyncStorage.getItem("lastEmail");
-    if (!savedEmail) {
-      return { ok: false, message: "Missing saved email" };
-    }
-
-    const cred = await signInWithEmailLink(auth, savedEmail, url);
-    const fbUser = cred.user;
-
-    const appUser = mapFirebaseUserToAuthUser(fbUser, {
-      profileComplete: true,
-    });
-    console.log("[Passwordless] Successful sign-in via link", appUser.email);
-
-    return { ok: true, user: appUser };
-  } catch (e: any) {
-    console.error("[Passwordless] Error completing sign-in:", e);
-    return { ok: false, message: e?.message ?? "Error completing sign-in" };
+    setBootLoading(false);
   }
 }

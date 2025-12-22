@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 
-export default function ServicesScreen() {
+export default function ProfessionalServicesScreen() {
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Servicios" showBackButton={true} />
@@ -12,4 +12,7 @@ export default function ServicesScreen() {
     </View>
   );
 }
-const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: 'white' }, content: { padding: 20 } });
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "white" },
+  content: { padding: 20 },
+});

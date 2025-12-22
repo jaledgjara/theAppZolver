@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // --------------------------------------------
-// 1. Configuración
+// 1. Configuración & Cache
 // --------------------------------------------
 const GOOGLE_JWKS_URL =
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
@@ -12,24 +12,15 @@ const PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "thezolverapp";
 let cachedJwks: any = null;
 
 // --------------------------------------------
-// 2. Helpers (JWT & Crypto)
+// 2. Helpers Criptográficos (JWT)
 // --------------------------------------------
 async function getGoogleJWKS() {
-  if (cachedJwks) {
-    console.log("💾 [JWKS] Usando claves en caché");
-    return cachedJwks;
-  }
-  console.log("🌐 [JWKS] Fetching nuevas claves de Google...");
-  try {
-    const res = await fetch(GOOGLE_JWKS_URL);
-    if (!res.ok) throw new Error(`Google JWKS status: ${res.status}`);
-    cachedJwks = await res.json();
-    console.log("✅ [JWKS] Claves obtenidas correctamente");
-    return cachedJwks;
-  } catch (e) {
-    console.error("❌ [JWKS] Fallo al obtener claves:", e);
-    throw e;
-  }
+  if (cachedJwks) return cachedJwks;
+  console.log("🌐 [JWKS] Fetching Google Keys...");
+  const res = await fetch(GOOGLE_JWKS_URL);
+  if (!res.ok) throw new Error(`Google JWKS status: ${res.status}`);
+  cachedJwks = await res.json();
+  return cachedJwks;
 }
 
 function base64urlToBuffer(base64url: string): ArrayBuffer {
@@ -49,38 +40,25 @@ async function importRsaKey(jwk: any): Promise<CryptoKey> {
 }
 
 // --------------------------------------------
-// 3. Lógica de Verificación JWT
+// 3. Verificación del Token (The Gatekeeper)
 // --------------------------------------------
 async function verifyFirebaseJWT(token: string) {
-  console.log("🔍 [Verify] Iniciando validación del token...");
   const parts = token.split(".");
-  if (parts.length !== 3) {
-    console.error("❌ [Verify] Token malformado");
-    throw new Error("Malformed JWT");
-  }
-  const [hB64, pB64, sigB64] = parts;
+  if (parts.length !== 3) throw new Error("Malformed JWT");
 
-  let header;
-  try {
-    header = JSON.parse(atob(hB64.replace(/-/g, "+").replace(/_/g, "/")));
-  } catch (e) {
-    console.error("❌ [Verify] Error parseando header:", e);
-    throw new Error("Invalid Header");
-  }
+  const [hB64, pB64, sigB64] = parts;
+  const header = JSON.parse(atob(hB64.replace(/-/g, "+").replace(/_/g, "/")));
 
   let jwks = await getGoogleJWKS();
   let jwk = jwks.keys.find((k: any) => k.kid === header.kid);
 
   if (!jwk) {
-    console.warn("⚠️ [Verify] KID no encontrado. Intentando refrescar...");
+    console.warn("⚠️ KID mismatch, refreshing keys...");
     cachedJwks = null;
     jwks = await getGoogleJWKS();
     jwk = jwks.keys.find((k: any) => k.kid === header.kid);
   }
-
-  if (!jwk) {
-    throw new Error(`No matching JWK for kid=${header.kid}`);
-  }
+  if (!jwk) throw new Error(`No matching JWK for kid=${header.kid}`);
 
   const key = await importRsaKey(jwk);
   const data = new TextEncoder().encode(`${hB64}.${pB64}`);
@@ -92,10 +70,7 @@ async function verifyFirebaseJWT(token: string) {
     signature,
     data
   );
-
-  if (!isValid) {
-    throw new Error("Invalid JWT signature");
-  }
+  if (!isValid) throw new Error("Invalid JWT signature");
 
   const payload = JSON.parse(atob(pB64.replace(/-/g, "+").replace(/_/g, "/")));
   const issuer = `https://securetoken.google.com/${PROJECT_ID}`;
@@ -103,12 +78,11 @@ async function verifyFirebaseJWT(token: string) {
   if (payload.iss !== issuer) throw new Error("Invalid issuer");
   if (payload.aud !== PROJECT_ID) throw new Error("Invalid audience");
 
-  console.log("✅ [Verify] Token válido para UID:", payload.sub);
   return payload;
 }
 
 // --------------------------------------------
-// 4. Handler Principal (Supabase Logic)
+// 4. Handler Principal (The Bridge Logic)
 // --------------------------------------------
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -116,78 +90,90 @@ const supabase = createClient(
 );
 
 serve(async (req: Request) => {
-  console.log("==========================================");
-  console.log(`📥 [Request] ${req.method} ${req.url}`);
+  console.log(`\n📥 [Sync-Bridge] Request received: ${req.method}`);
 
   try {
+    // A) Extraer Token
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return Response.json({ error: "Missing Authorization" }, { status: 401 });
-    }
-
+    if (!authHeader) throw new Error("Missing Authorization Header");
     const token = authHeader.replace("Bearer ", "").trim();
 
-    // 1. Verificar Token
+    // B) Verificar Token (Firebase)
     const payload = await verifyFirebaseJWT(token);
+    const firebaseUid = payload.sub;
+    const email = payload.email || null;
+    const provider = payload.firebase?.sign_in_provider || "unknown";
 
-    // 2. Consultar Base de Datos (User Account)
-    console.log(`🗄️ [DB] Buscando usuario: ${payload.sub}`);
+    console.log(`✅ [Sync-Bridge] Token Verified. UID: ${firebaseUid}`);
 
-    const { data: account, error } = await supabase
+    // C) UPSERT en Supabase (LA CLAVE DEL PUENTE SÓLIDO)
+    // "Si no existe, créalo. Si existe, actualiza email/provider por si cambiaron."
+    // NO tocamos rol ni teléfono aquí para no sobrescribir datos manuales.
+
+    const upsertData = {
+      auth_uid: firebaseUid,
+      auth_provider: provider,
+      email: email,
+      // updated_at: new Date().toISOString(), // Si tienes columna updated_at
+    };
+
+    // Usamos 'onConflict' en 'auth_uid' para hacer el merge
+    const { error: upsertError } = await supabase
+      .from("user_accounts")
+      .upsert(upsertData, { onConflict: "auth_uid" });
+
+    if (upsertError) {
+      console.error("❌ [Sync-Bridge] DB Upsert Failed:", upsertError);
+      throw upsertError;
+    }
+    console.log("💾 [Sync-Bridge] User synced to DB (Upsert OK)");
+
+    // D) Lectura Final (Para devolver el estado completo, incluyendo roles)
+    const { data: account, error: selectError } = await supabase
       .from("user_accounts")
       .select("auth_uid, email, phone, role, profile_complete, legal_name")
-      .eq("auth_uid", payload.sub)
-      .maybeSingle();
+      .eq("auth_uid", firebaseUid)
+      .single();
 
-    if (error) {
-      console.error("❌ [DB] Error SQL:", error);
-      throw error;
-    }
+    if (selectError) throw selectError;
 
-    // 3. Consultar estado profesional (si aplica)
+    // E) Datos Profesionales (Si aplica)
     let identityStatus = "pending";
-    let typeWork = null; // 👈 Variable para type_work
+    let typeWork = null;
 
-    if (account?.role === "professional") {
-      // 🚀 Agregamos type_work a la consulta
-      const { data: profile } = await supabase
+    if (account.role === "professional") {
+      const { data: prof } = await supabase
         .from("professional_profiles")
         .select("identity_status, type_work")
-        .eq("user_id", payload.sub)
+        .eq("user_id", firebaseUid)
         .maybeSingle();
 
-      if (profile) {
-        identityStatus = profile.identity_status ?? "pending";
-        typeWork = profile.type_work ?? "instant"; // Default seguro si es null
+      if (prof) {
+        identityStatus = prof.identity_status ?? "pending";
+        typeWork = prof.type_work ?? "instant";
       }
     }
 
-    // 4. Armar Respuesta Final
+    // F) Respuesta
     const responseData = {
       ok: true,
-      uid: payload.sub,
-      email: payload.email ?? null,
-      email_verified: payload.email_verified ?? false,
-      phone: account?.phone ?? payload.phone_number ?? null,
-      role: account?.role ?? null,
-      profile_complete: account?.profile_complete ?? false,
-      legal_name: account?.legal_name ?? null,
-      displayName: account?.legal_name ?? null,
-
-      // ✅ Datos del Perfil Profesional
-      identityStatus: identityStatus,
-      type_work: typeWork, // 👈 Se envía al cliente
+      uid: account.auth_uid,
+      email: account.email,
+      phone: account.phone,
+      role: account.role,
+      profile_complete: account.profile_complete,
+      legal_name: account.legal_name,
+      identityStatus,
+      type_work: typeWork,
     };
 
     console.log(
-      "🚀 [Response] 200 OK para:",
-      account?.legal_name,
-      "| Type:",
-      typeWork
+      `🚀 [Sync-Bridge] Response sent. Role: ${account.role || "NONE"}`
     );
+
     return Response.json(responseData, { status: 200 });
   } catch (err: any) {
-    console.error("💥 Error General:", err.message);
-    return Response.json({ code: 401, message: err.message }, { status: 401 });
+    console.error("💥 [Sync-Bridge] Error:", err.message);
+    return Response.json({ ok: false, error: err.message }, { status: 401 });
   }
 });

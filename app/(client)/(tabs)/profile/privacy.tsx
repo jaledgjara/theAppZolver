@@ -7,7 +7,7 @@ import { COLORS } from "@/appASSETS/theme";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 
-export default function ProfessionalPrivacyScreen() {
+export default function PrivacyScreen() {
   const router = useRouter();
   const { user } = useAuthStore(); // Obtenemos los datos reales del usuario
 

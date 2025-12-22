@@ -1,13 +1,18 @@
 import { useEffect, useRef } from "react";
-import { useRouter, usePathname, useRootNavigationState } from "expo-router";
+import {
+  useRouter,
+  usePathname,
+  useRootNavigationState,
+  useSegments,
+} from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
 import { AUTH_PATHS } from "@/appSRC/auth/Path/AuthPaths";
 import type { AuthStatus } from "@/appSRC/auth/Store/AuthStore";
 
 export function useAuthGuard() {
   const router = useRouter();
   const pathname = usePathname();
+  const segments = useSegments(); // 👈 CLAVE: Nos dice en qué grupo estamos ('(professional)', '(auth)', etc.)
   const navState = useRootNavigationState();
 
   const { status, user, isBootLoading, setTransitionDirection } =
@@ -16,133 +21,138 @@ export function useAuthGuard() {
   const isNavReady = navState?.key != null;
   const prevStatus = useRef<AuthStatus | null>(null);
 
-  // 1) Inicializar listener de Firebase una sola vez
   useEffect(() => {
-    console.log("[AuthGuard] mount → initializeAuthListener()");
-    const unsub = initializeAuthListener();
-    console.log("[AuthGuard] Firebase listener initialized");
-    return () => {
-      console.log("[AuthGuard] unmount → unsubscribe Firebase listener");
-      unsub?.();
-    };
-  }, []);
+    // 1. ANÁLISIS PRELIMINAR
+    if (!isNavReady) return;
 
-  // 2) Lógica principal de navegación
-  useEffect(() => {
+    // Si está cargando, silencio total (Loading First)
+    if (isBootLoading) return;
+
+    // 2. LOGICA DE ZONA SEGURA (Safe Zone Logic)
+    // En lugar de comparar rutas exactas, verificamos si estamos en el "Barrio" correcto.
+    const inAuthGroup = segments[0] === "(auth)";
+    const inClientGroup = segments[0] === "(client)";
+    const inProfessionalGroup = segments[0] === "(professional)";
+
     console.log(
-      `[AuthGuard] tick → navReady=${isNavReady} boot=${isBootLoading} ` +
-        `status=${status} profileComplete=${user?.profileComplete ?? "n/a"} ` +
-        `pathname=${pathname}`
+      `\n👮‍♂️ [AuthGuard] Check: ${status.toUpperCase()} | Segment: ${
+        segments[0] || "root"
+      } | Path: ${pathname}`
     );
 
-    if (!isNavReady) {
-      console.log("[AuthGuard] nav not ready → wait");
-      return;
-    }
-
-    if (isBootLoading) {
-      console.log("[AuthGuard] boot loading → wait");
-      return;
-    }
-
-    if (status === prevStatus.current) {
-      console.log("[AuthGuard] same status as last → no-op");
-      return;
-    }
-
-    let target: string;
+    let target: string | null = null;
     let direction: "forward" | "back" = "forward";
 
     switch (status) {
+      // -----------------------------------------------------------------
+      // CASO A: USUARIO DESCONECTADO O EN PROCESO
+      // -----------------------------------------------------------------
       case "unknown":
-        direction = "back";
-        target = AUTH_PATHS.unknown;
-        break;
-
       case "anonymous":
-        if (prevStatus.current === "unknown" || prevStatus.current === null) {
-          direction = "forward";
-        } else {
-          direction = "back";
-        }
-        target = AUTH_PATHS.anonymous;
-        break;
-
-      case "preAuth":
-        // Entro al funnel de onboarding (formulario básico)
-        direction = "forward";
-        target = AUTH_PATHS.preAuth;
-        break;
-
+      case "preAuth": // 👈 AQUÍ ESTÁ EL CAMBIO
       case "phoneVerified":
-        // Ya tengo teléfono pero falta rol
-        direction = "forward";
-        target = AUTH_PATHS.phoneVerified;
-        break;
-
       case "preProfessionalForm":
-        // Profesional con form pendiente
-        direction = "forward";
-        target = AUTH_PATHS.preProfessionalForm;
-        break;
-
-      case "authenticated":
-        // Home final Cliente
-        direction = "forward";
-        target = AUTH_PATHS.authenticated;
-        break;
-
-      case "authenticatedProfessional":
-        // Home final Profesional
-        direction = "forward";
-        target = AUTH_PATHS.authenticatedProfessional;
-        break;
-
-      // 🔥 CASOS NUEVOS
       case "pendingReview":
       case "rejected":
+        if (!inAuthGroup) {
+          // Si te saliste del stack (auth), vuelve.
+          target = getTargetForAuthStatus(status);
+          direction = "back";
+        } else {
+          // Estás en (auth), pero verifiquemos si es la pantalla correcta.
+          const expectedPath = getTargetForAuthStatus(status);
+          const currentSimple = normalize(pathname);
+          const expectedSimple = normalize(expectedPath);
+
+          // 🔥 EXCEPCIÓN CRÍTICA: PERMITIR PANTALLA DE VERIFICACIÓN
+          // Si estoy en 'preAuth' Y en 'PhoneVerificationScreen', ES VÁLIDO.
+          if (
+            status === "preAuth" &&
+            currentSimple === "/PhoneVerificationScreen"
+          ) {
+            console.log(
+              "   ✅ [AuthGuard] 'preAuth' en verificación de teléfono. Permitido."
+            );
+            return;
+          }
+
+          // 🔥 EXCEPCIÓN 2: PERMITIR PANTALLA DE EMAIL LINK (Si aplica)
+          if (
+            status === "anonymous" &&
+            currentSimple === "/SignInEmailScreen"
+          ) {
+            return;
+          }
+
+          // Si no es ninguna excepción y no es el path esperado -> REDIRECT
+          if (currentSimple !== expectedSimple) {
+            target = expectedPath;
+            direction =
+              status === "anonymous" || status === "unknown"
+                ? "back"
+                : "forward";
+          }
+        }
+        break;
+
+      // -----------------------------------------------------------------
+      // CASO B: CLIENTE AUTENTICADO
+      // -----------------------------------------------------------------
+      case "authenticated":
+        // Si YA estamos en territorio Cliente, ¡déjalo navegar en paz!
+        if (inClientGroup) {
+          // ✅ SAFE ZONE: No hacemos nada, el usuario es libre.
+          return;
+        }
+        // Si NO estamos en cliente (ej: está en Login), mándalo a Home.
+        target = AUTH_PATHS.authenticated;
         direction = "forward";
-        target = AUTH_PATHS.pendingReview; // Mapeado a AccountStatusScreen en AuthPaths
         break;
 
-      default:
-        direction = "back";
-        target = AUTH_PATHS.unknown;
+      // -----------------------------------------------------------------
+      // CASO C: PROFESIONAL AUTENTICADO
+      // -----------------------------------------------------------------
+      case "authenticatedProfessional":
+        // Si YA estamos en territorio Profesional, ¡libertad!
+        if (inProfessionalGroup) {
+          // ✅ SAFE ZONE: No hacemos nada.
+          console.log("   ✅ [AuthGuard] Professional in Safe Zone. Allowed.");
+          return;
+        }
+        // Si está perdido, mándalo a su Home.
+        target = AUTH_PATHS.authenticatedProfessional;
+        direction = "forward";
         break;
     }
 
-    const normalize = (p?: string) =>
-      (p ?? "")
-        .replace("/(auth)", "")
-        .replace("/(tabs)", "")
-        .replace(/\?.*$/, "");
+    // 3. EJECUCIÓN DE REDIRECCIÓN (Si target != null)
+    if (target) {
+      console.log(`🚀 [AuthGuard] REDIRECT -> ${target} (${direction})`);
+      setTransitionDirection(direction);
 
-    const current = normalize(pathname);
-    const next = normalize(target);
-
-    console.log(`[AuthGuard] route check → current=${current} next=${next}`);
-
-    if (current === next) {
-      console.log("[AuthGuard] already there → no-op");
-      prevStatus.current = status;
-      return;
+      // Pequeño delay para estabilidad
+      requestAnimationFrame(() => {
+        router.replace(target as any);
+      });
     }
+  }, [isNavReady, isBootLoading, status, pathname, segments]); // Agregamos segments a dep
+}
 
-    console.log(`[AuthGuard] replace (delayed) → ${target} dir=${direction}`);
+// Helpers locales
+function normalize(p: string) {
+  return p
+    .replace("/(auth)", "")
+    .replace("/(tabs)", "")
+    .replace("/(client)", "")
+    .replace("/(professional)", "")
+    .replace(/\?.*$/, "");
+}
 
-    // Seteamos la dirección ANTES de navegar
-    setTransitionDirection(direction);
-
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (!isNavReady) return;
-        router.replace(target);
-        prevStatus.current = status;
-      }, 100);
-    });
-  }, [isNavReady, isBootLoading, status, pathname, user?.profileComplete]);
-
-  return null;
+function getTargetForAuthStatus(status: string): string {
+  // Usamos tu mapa AUTH_PATHS existente, pero manejamos la lógica aquí para claridad
+  // Nota: Asegúrate de que AUTH_PATHS tenga todas las claves o usa un switch/map aquí.
+  // Usaremos AUTH_PATHS directo como en tu código original:
+  return AUTH_PATHS[status] ?? AUTH_PATHS.unknown;
 }
 
 export default useAuthGuard;

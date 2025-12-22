@@ -2,12 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 
-export default function ProfessionalPaymentMethodsScreen() {
+export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText="Métodos de Pago" showBackButton={true} />
+      <ToolBarTitle titleText="Notificaciones" showBackButton={true} />
       <View style={styles.content}>
-        <Text>Aquí irán las tarjetas y cuentas bancarias.</Text>
+        <Text>Configuración de alertas.</Text>
       </View>
     </View>
   );

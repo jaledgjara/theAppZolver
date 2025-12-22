@@ -3,7 +3,7 @@ import React from "react";
 // Asegúrese de que la ruta de importación coincida con donde guardó su componente compartido
 import { AddLocationScreen as AddLocationForm } from "@/appSRC/location/Screens/AddLocationScreen";
 
-export default function AddLocationHomeRoute() {
+export default function AddLocationProfileRoute() {
   // Inyectamos la dependencia de origen: HOME
-  return <AddLocationForm origin="home" />;
+  return <AddLocationForm origin="profile" />;
 }

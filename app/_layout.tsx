@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useAuthGuard } from "@/appSRC/auth/Hooks/useAuthGuard";
+import LoadingScreen from "@/appCOMP/contentStates/LoadingScreen";
 
 const queryClient = new QueryClient();
 
@@ -19,7 +20,7 @@ export default function RootLayout() {
   useAuthGuard();
 
   if (isBootLoading) {
-    return null;
+    return <LoadingScreen />;
   }
 
   return (

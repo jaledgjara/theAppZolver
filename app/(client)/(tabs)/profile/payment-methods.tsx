@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 
-export default function ProfessionalPaymentMethodsScreen() {
+export default function PaymentMethodsScreen() {
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Métodos de Pago" showBackButton={true} />

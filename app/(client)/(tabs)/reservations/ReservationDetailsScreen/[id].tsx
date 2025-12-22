@@ -144,10 +144,7 @@ const ReservationDetailScreen = () => {
           platformFee={`$${platformFee.toLocaleString("es-AR")}`}
           totalAmount={`$${totalAmount.toLocaleString("es-AR")}`}
         />
-      </ScrollView>
 
-      {/* FOOTER: Acciones (Solo visible si está activa/completada) */}
-      <View style={styles.footer}>
         {statusUI === "in_progress" || statusUI === "confirmed" ? (
           <LargeButton
             title="Contactar Profesional"
@@ -155,7 +152,7 @@ const ReservationDetailScreen = () => {
             onPress={() => console.log("Ir al chat")} // Futura implementación
           />
         ) : null}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -169,7 +166,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100, // Espacio para el footer
+    paddingBottom: 50,
   },
   centerContainer: {
     flex: 1,
@@ -223,13 +220,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    marginHorizontal: 20,
+    paddingBottom: 10,
   },
 });

@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { BaseCard } from "@/appCOMP/cards/BaseCard";
 import { COLORS } from "@/appASSETS/theme";
+import { BaseCard } from "@/appCOMP/cards/BaseCard";
 
 export type ReservationStatus =
   | "pending"
@@ -56,9 +56,13 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 
   return (
     <BaseCard onPress={onPress}>
-      {/* HEADER: Servicio + Estado */}
+      {/* HEADER: Refactorizado a Columna (Vertical) */}
       <View style={styles.header}>
-        <Text style={styles.serviceTitle}>{serviceName}</Text>
+        <Text style={styles.serviceTitle} numberOfLines={2}>
+          {serviceName}
+        </Text>
+
+        {/* Badge debajo del título */}
         <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
           <Text style={[styles.badgeText, { color: statusInfo.color }]}>
             {statusInfo.label}
@@ -99,15 +103,33 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    // CAMBIO: Eliminado flexDirection row para layout vertical
+    alignItems: "flex-start", // Alinea contenido a la izquierda
+    justifyContent: "center",
+    marginBottom: 10,
+    gap: 8, // Espacio entre Título y Badge
+  },
+  serviceTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    lineHeight: 22, // Mejor legibilidad si el texto ocupa 2 líneas
+  },
+  badge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
     marginBottom: 10,
   },
-  serviceTitle: { fontSize: 16, fontWeight: "700", color: COLORS.textPrimary },
-  badge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8 },
-  badgeText: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
-  divider: { height: 1, backgroundColor: "#F0F0F0", marginBottom: 10 },
   body: { gap: 6 },
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
   metaRow: {

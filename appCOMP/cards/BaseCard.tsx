@@ -32,10 +32,9 @@ export const BaseCard: React.FC<BaseCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "white",
-    borderRadius: 12, // Radio consistente en toda la app
-    padding: 12, // Padding interno estándar
-    marginVertical: 6,
-    marginHorizontal: 16, // Márgenes laterales estándar
+    borderRadius: 15, // Radio consistente en toda la app
+    padding: 16, // AUMENTADO: Padding interno para dar más altura y aire
+    marginVertical: 7,
 
     // Sombra "Nativa" Robusta
     shadowColor: "#000",

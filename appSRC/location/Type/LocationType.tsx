@@ -37,3 +37,9 @@ export interface CreateAddressDTO {
 
   is_default?: boolean;
 }
+
+export const LOCATION_TYPES = [
+  { id: "home", label: "Casa", icon: "home-outline" },
+  { id: "work", label: "Trabajo", icon: "briefcase-outline" },
+  { id: "other", label: "Otro", icon: "location-outline" },
+];

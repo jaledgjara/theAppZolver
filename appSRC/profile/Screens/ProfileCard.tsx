@@ -16,7 +16,6 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-
       {/* Left icon */}
       <View style={styles.iconContainer}>{icon}</View>
 
@@ -30,7 +29,6 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
       <View style={styles.arrowContainer}>
         <EvilIcons name="chevron-right" size={32} color="#999" />
       </View>
-
     </View>
   );
 };

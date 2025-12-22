@@ -1,8 +1,9 @@
 import React from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Image, StyleSheet } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import { BaseCard } from "@/appCOMP/cards/BaseCard";
 
 export interface ReservationDetailCardProps {
   type: "professional" | "date" | "location" | "payment";
@@ -38,30 +39,35 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
   onPress,
 }) => {
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
-      {/* PROFESSIONAL: Layout Row [Avatar | Textos (Flex) | Badge] */}
+    <BaseCard onPress={onPress}>
+      {/* PROFESSIONAL: Layout Refactorizado -> Avatar | Columna(Info + Badge) */}
       {type === "professional" && (
-        <View style={styles.row}>
+        <View style={styles.professionalRow}>
           <Image source={avatar} style={styles.avatar} />
 
-          {/* Contenedor de texto con flex: 1 para ocupar espacio central */}
-          <View style={styles.textContainer}>
+          <View style={styles.infoColumn}>
+            {/* Bloque de Texto */}
             <Text style={styles.name} numberOfLines={1}>
               {name}
             </Text>
             <Text style={styles.service} numberOfLines={1}>
               {service}
             </Text>
-          </View>
 
-          {/* Badge fuera del contenedor de texto, alineado a la derecha */}
-          {statusText && (
-            <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-              <Text style={[styles.statusText, { color: statusColor }]}>
-                {statusText}
-              </Text>
-            </View>
-          )}
+            {/* Status Badge: Ahora debajo del texto, alineado al inicio */}
+            {statusText && (
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: statusBg || "#F3F4F6" },
+                ]}>
+                <Text
+                  style={[styles.statusText, { color: statusColor || "#333" }]}>
+                  {statusText}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       )}
 
@@ -85,7 +91,9 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
       {type === "location" && (
         <View style={styles.iconRow}>
           <Entypo name="location" size={22} color="#333" />
-          <Text style={styles.rowText}>{location}</Text>
+          <Text style={[styles.rowText, { flex: 1 }]} numberOfLines={2}>
+            {location}
+          </Text>
         </View>
       )}
 
@@ -107,61 +115,56 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
           </View>
         </View>
       )}
-    </TouchableOpacity>
+    </BaseCard>
   );
 };
 
 export default ReservationDetailsCard;
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 14,
-    marginTop: 12,
-    padding: 18,
-    // Sombras suaves
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  row: {
+  // --- Professional Layout ---
+  professionalRow: {
     flexDirection: "row",
-    alignItems: "center", // Alineación vertical centrada
-  },
-  textContainer: {
-    flex: 1, // CLAVE: Ocupa todo el espacio disponible entre Avatar y Badge
-    marginRight: 8,
+    alignItems: "flex-start",
+    width: "100%",
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    marginRight: 12,
+    marginRight: 14,
     backgroundColor: "#F3F4F6",
+  },
+  infoColumn: {
+    flex: 1, // Toma todo el ancho restante
+    justifyContent: "center",
+    paddingTop: 2, // Ajuste fino visual para alinear con el top del avatar
   },
   name: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1F2937",
     marginBottom: 2,
+    marginRight: 4,
   },
   service: {
     fontSize: 14,
     color: "#6B7280",
+    marginBottom: 8, // Espacio entre el servicio y el badge
   },
   statusBadge: {
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 8,
-    minWidth: 80,
-    alignItems: "center",
+    borderRadius: 6,
+    alignSelf: "flex-start", // CLAVE: Se ajusta al contenido a la izquierda
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
+    textTransform: "uppercase",
   },
+
+  // --- Common & Other Types ---
   iconRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -172,7 +175,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#374151",
   },
-  // Estilos de Pago Mejorados
   paymentTitle: {
     fontSize: 16,
     fontWeight: "700",

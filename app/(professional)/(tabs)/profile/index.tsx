@@ -1,70 +1,43 @@
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import React from "react";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 
 // mockProfileProfessional.ts
 import { Ionicons } from "@expo/vector-icons";
-import ProfileCard from '@/appSRC/profile/Screens/ProfileCard';
-import { useRouter } from 'expo-router';
-
-export const MOCK_PROFILE_PRO_OPTIONS = [
-  {
-    id: "1",
-    icon: <Ionicons name="card-outline" size={20} color="black" />,
-    title: "Métodos de Pago",
-    subtitle: "Agrega o administra tus tarjetas y cuentas.",
-    route: "(professional)/profile/payment-methods",
-  },
-  {
-    id: "2",
-    icon: <Ionicons name="construct-outline" size={20} color="black" />,
-    title: "Servicios",
-    subtitle: "Define tus tipos de servicios, extras y precios.",
-    route: "(professional)/profile/services",
-  },
-  {
-    id: "3",
-    icon: <Ionicons name="notifications-outline" size={20} color="black" />,
-    title: "Notificaciones",
-    subtitle: "Configura tus alertas y avisos.",
-    route: "(professional)/profile/notifications",
-  },
-  {
-    id: "4",
-    icon: <Ionicons name="lock-closed-outline" size={20} color="black" />,
-    title: "Datos y Privacidad",
-    subtitle: "Administra tus datos personales.",
-    route: "(professional)/profile/privacy",
-  },
-  {
-    id: "5",
-    icon: <Ionicons name="settings-outline" size={20} color="black" />,
-    title: "Configuración de la App",
-    subtitle: "Ajustes generales, idioma y más.",
-    route: "(professional)/profile/app-settings",
-  },
-];
-
-
+import ProfileCard from "@/appSRC/profile/Screens/ProfileCard";
+import { useRouter } from "expo-router";
+import { PROFESSIONAL_MENU_ITEMS } from "@/appSRC/profile/Type/ProfileData";
+import { COLORS } from "@/appASSETS/theme";
 
 const ProfileProfessional = () => {
   const router = useRouter();
 
-return (
+  return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Perfil" />
 
       <FlatList
-        data={MOCK_PROFILE_PRO_OPTIONS}
-        keyExtractor={item => item.id}
+        data={PROFESSIONAL_MENU_ITEMS}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           // 2. ENVOLVER EN TOUCHABLE PARA HABILITAR LA NAVEGACIÓN
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push(item.route as any)}
-            activeOpacity={0.7}
-          >
+            activeOpacity={0.7}>
             <ProfileCard
-              icon={item.icon}
+              icon={
+                <Ionicons
+                  name={item.icon as keyof typeof Ionicons.glyphMap}
+                  size={25}
+                  color={"black"}
+                />
+              }
               title={item.title}
               subtitle={item.subtitle}
             />
@@ -75,13 +48,11 @@ return (
     </View>
   );
 };
-
-
-export default ProfileProfessional
+export default ProfileProfessional;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
-    flex: 1
+    backgroundColor: "white",
+    flex: 1,
   },
-})
+});

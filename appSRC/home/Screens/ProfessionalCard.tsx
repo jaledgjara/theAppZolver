@@ -62,6 +62,7 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
 
           <View style={styles.ratingRow}>
             <FontAwesome name="star" size={14} color="#FFD700" />
+            {/* CAMBIO: Color actualizado a gris */}
             <Text style={styles.ratingNumber}>
               {rating > 0 ? rating.toFixed(1) : "Nuevo"}
             </Text>
@@ -73,21 +74,20 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
 
         {/* 3. Datos Derecha (Precio y Distancia) */}
         <View style={styles.rightContainer}>
+          {/* CAMBIO: Eliminada la condición "else" para "A convenir" */}
           {price && price > 0 ? (
             <View style={styles.priceTag}>
               <Text style={styles.currency}>$</Text>
               <Text style={styles.priceValue}>{price.toLocaleString()}</Text>
             </View>
-          ) : (
-            <Text style={styles.quoteText}>A convenir</Text>
-          )}
+          ) : null}
 
           {formattedDistance && (
             <View style={styles.distanceBadge}>
               <Ionicons
                 name="location-sharp"
                 size={10}
-                color={COLORS.textSecondary}
+                color={COLORS.textSecondary || "#888"}
               />
               <Text style={styles.distanceText}>{formattedDistance}</Text>
             </View>
@@ -110,17 +110,18 @@ const styles = StyleSheet.create({
   infoContainer: { flex: 1, justifyContent: "center", gap: 2 },
   headerRow: { flexDirection: "row", justifyContent: "space-between" },
   category: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.primary,
     fontWeight: "700",
     textTransform: "uppercase",
+    paddingBottom: 5,
   },
   name: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
   ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
   ratingNumber: {
     fontSize: 13,
     fontWeight: "bold",
-    color: "#333",
+    color: COLORS.textSecondary || "#888", // CAMBIO: Gris (Hardcoded o desde theme)
     marginLeft: 4,
   },
   reviewCount: { fontSize: 12, color: "#888", marginLeft: 2 },
@@ -142,12 +143,10 @@ const styles = StyleSheet.create({
     marginRight: 1,
   },
   priceValue: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary },
-  quoteText: {
-    fontSize: 11,
-    color: "#666",
-    fontStyle: "italic",
-    marginBottom: 4,
-  },
   distanceBadge: { flexDirection: "row", alignItems: "center" },
-  distanceText: { fontSize: 11, color: COLORS.textSecondary, marginLeft: 2 },
+  distanceText: {
+    fontSize: 11,
+    color: COLORS.textSecondary || "#888",
+    marginLeft: 2,
+  },
 });

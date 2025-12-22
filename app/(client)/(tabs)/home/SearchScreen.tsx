@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   headerContainer: {
-    paddingHorizontal: 20,
+    marginHorizontal: 20,
     marginTop: 20,
     alignItems: "center",
   },
@@ -140,5 +140,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 50,
     paddingTop: 10,
+    marginHorizontal: 20,
   },
 });

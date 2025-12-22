@@ -160,7 +160,7 @@ export function useLocation() {
         id: "gps_current",
         user_id: user?.uid || "guest",
         label: "Ubicación actual",
-        address_street: street || "Coordenadas GPS",
+        address_street: street || "Ubicación actual",
         address_number: "",
         coords: {
           lat: location.coords.latitude,

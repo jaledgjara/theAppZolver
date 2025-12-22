@@ -24,6 +24,7 @@ import PortfolioCard from "@/appSRC/searchable/Screen/PortfolioCard";
 import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useStartConversation } from "@/appSRC/conversation/Hooks/useStartConversation";
+import { LargeButton } from "@/appCOMP/button/LargeButton";
 
 const ProfessionalDetailsView = () => {
   const router = useRouter();
@@ -134,7 +135,7 @@ const ProfessionalDetailsView = () => {
       </ScrollView>
 
       {/* FOOTER DINÁMICO */}
-      <View style={mainStyles.footer}>
+      <View>
         <View>
           {/* En Zolver Ya mostramos precio hora, en Presupuesto mostramos radio o texto */}
           <Text style={mainStyles.priceLabel}>{"Radio de cobertura"}</Text>
@@ -143,16 +144,10 @@ const ProfessionalDetailsView = () => {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            mainStyles.bookButton,
-            { backgroundColor: isInstant ? COLORS.primary : COLORS.tertiary },
-          ]}
-          onPress={handlePrimaryAction}>
-          <Text style={mainStyles.bookButtonText}>
-            {isInstant ? "RESERVAR" : "CONTACTAR"}
-          </Text>
-        </TouchableOpacity>
+        <LargeButton
+          title={isInstant ? "RESERVAR" : "CONTACTAR"}
+          onPress={handlePrimaryAction}
+        />
       </View>
     </View>
   );
@@ -163,33 +158,8 @@ export default ProfessionalDetailsView;
 const mainStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9F9F9" },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "white",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderColor: "#EEE",
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    marginBottom: 5,
-  },
   priceLabel: { fontSize: 12, color: COLORS.textSecondary },
   priceValue: { fontSize: 20, fontWeight: "bold", color: COLORS.textPrimary },
-  bookButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    elevation: 2,
-  },
   bookButtonText: {
     color: "white",
     fontWeight: "bold",
