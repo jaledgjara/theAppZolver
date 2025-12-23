@@ -23,7 +23,7 @@ import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useCreateReservation } from "@/appSRC/reservations/Hooks/useCreateReservation";
 import { buildReservationPayload } from "@/appSRC/reservations/Build/ReservationBuilder";
 import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 import { useReservationPricing } from "@/appSRC/reservations/Hooks/useReservationPricing";
 import { useServiceMetadata } from "@/appSRC/searchable/Hooks/useServiceMetadata";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";

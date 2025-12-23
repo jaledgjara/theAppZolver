@@ -21,6 +21,7 @@ import {
   ProfessionalTypeWork,
   useProfessionalOnboardingStore,
 } from "../Type/ProfessionalAuthUser";
+import { setSupabaseAuthToken } from "@/appSRC/services/supabaseClient";
 
 // =========================================================
 // 1. Mappers & Helpers
@@ -130,7 +131,16 @@ export function initializeAuthListener() {
       console.log(
         "   ✅ [AuthListener] Paso 2: Sesión Sincronizada Correctamente"
       );
-
+      // 👇👇👇 AQUÍ ESTÁ LA SOLUCIÓN 👇👇👇
+      // Inyectamos el token que nos dio la Edge Function en el cliente de Supabase
+      if (backendSession.token) {
+        setSupabaseAuthToken(backendSession.token);
+      } else {
+        console.warn(
+          "   ⚠️ [AuthListener] El backend no devolvió un token JWT."
+        );
+      }
+      // 👆👆👆 FIN DEL CAMBIO 👆👆👆
       // Mapeo
       const appUser = mapFirebaseUserToAuthUser(firebaseUser, {
         role: backendSession.role,

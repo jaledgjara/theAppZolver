@@ -1,5 +1,5 @@
 // appSRC/searchable/Type/LocationType.ts
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 
 export interface ProfessionalResult {
   id: string; // UUID de la tabla

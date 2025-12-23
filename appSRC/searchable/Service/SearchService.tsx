@@ -1,6 +1,6 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
 import { ProfessionalResult } from "../Type/LocationType";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 
 export const SearchService = {
   /**

@@ -21,7 +21,7 @@ import {
 } from "@/appSRC/searchable/Screen/ProfileHeaderCard";
 import { useProfessionalDetails } from "@/appSRC/searchable/Hooks/useProfessionalDetails";
 import PortfolioCard from "@/appSRC/searchable/Screen/PortfolioCard";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useStartConversation } from "@/appSRC/conversation/Hooks/useStartConversation";
 import { LargeButton } from "@/appCOMP/button/LargeButton";

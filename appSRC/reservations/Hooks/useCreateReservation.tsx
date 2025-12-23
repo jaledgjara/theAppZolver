@@ -5,7 +5,7 @@ import {
   createInstantReservation,
   createQuoteReservation,
 } from "../Service/ReservationService";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 import { ReservationPayload } from "../Type/ReservationType";
 
 export const useCreateReservation = () => {

@@ -3,6 +3,7 @@ import { auth } from "@/APIconfig/firebaseAPIConfig";
 export type BackendSession = {
   ok: boolean;
   uid: string;
+  token?: string;
   email: string | null;
   phone: string | null;
   role: "client" | "professional" | null;

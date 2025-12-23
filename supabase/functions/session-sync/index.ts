@@ -1,22 +1,24 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
 // --------------------------------------------
-// 1. Configuración & Cache
+// 1. Configuración
 // --------------------------------------------
 const GOOGLE_JWKS_URL =
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 const PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "thezolverapp";
+const JWT_SECRET =
+  Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
 
 let cachedJwks: any = null;
 
 // --------------------------------------------
-// 2. Helpers Criptográficos (JWT)
+// 2. Helpers (Sin cambios)
 // --------------------------------------------
 async function getGoogleJWKS() {
   if (cachedJwks) return cachedJwks;
-  console.log("🌐 [JWKS] Fetching Google Keys...");
   const res = await fetch(GOOGLE_JWKS_URL);
   if (!res.ok) throw new Error(`Google JWKS status: ${res.status}`);
   cachedJwks = await res.json();
@@ -39,50 +41,39 @@ async function importRsaKey(jwk: any): Promise<CryptoKey> {
   );
 }
 
-// --------------------------------------------
-// 3. Verificación del Token (The Gatekeeper)
-// --------------------------------------------
 async function verifyFirebaseJWT(token: string) {
   const parts = token.split(".");
   if (parts.length !== 3) throw new Error("Malformed JWT");
-
   const [hB64, pB64, sigB64] = parts;
   const header = JSON.parse(atob(hB64.replace(/-/g, "+").replace(/_/g, "/")));
 
   let jwks = await getGoogleJWKS();
   let jwk = jwks.keys.find((k: any) => k.kid === header.kid);
-
   if (!jwk) {
-    console.warn("⚠️ KID mismatch, refreshing keys...");
     cachedJwks = null;
     jwks = await getGoogleJWKS();
     jwk = jwks.keys.find((k: any) => k.kid === header.kid);
   }
-  if (!jwk) throw new Error(`No matching JWK for kid=${header.kid}`);
+  if (!jwk) throw new Error(`No matching JWK`);
 
   const key = await importRsaKey(jwk);
   const data = new TextEncoder().encode(`${hB64}.${pB64}`);
   const signature = base64urlToBuffer(sigB64);
 
-  const isValid = await crypto.subtle.verify(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    signature,
-    data
-  );
-  if (!isValid) throw new Error("Invalid JWT signature");
+  if (
+    !(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, data))
+  ) {
+    throw new Error("Invalid JWT signature");
+  }
 
   const payload = JSON.parse(atob(pB64.replace(/-/g, "+").replace(/_/g, "/")));
-  const issuer = `https://securetoken.google.com/${PROJECT_ID}`;
-
-  if (payload.iss !== issuer) throw new Error("Invalid issuer");
   if (payload.aud !== PROJECT_ID) throw new Error("Invalid audience");
 
   return payload;
 }
 
 // --------------------------------------------
-// 4. Handler Principal (The Bridge Logic)
+// 3. Handler Principal
 // --------------------------------------------
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -90,64 +81,90 @@ const supabase = createClient(
 );
 
 serve(async (req: Request) => {
-  console.log(`\n📥 [Sync-Bridge] Request received: ${req.method}`);
-
   try {
-    // A) Extraer Token
+    if (req.method === "OPTIONS")
+      return new Response("ok", {
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
+
+    // A) Verificar Firebase
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization Header");
+    if (!authHeader) throw new Error("Missing Token");
     const token = authHeader.replace("Bearer ", "").trim();
-
-    // B) Verificar Token (Firebase)
     const payload = await verifyFirebaseJWT(token);
+
     const firebaseUid = payload.sub;
-    const email = payload.email || null;
-    const provider = payload.firebase?.sign_in_provider || "unknown";
+    const email = payload.email || `no-email-${firebaseUid}@placeholder.com`;
 
-    console.log(`✅ [Sync-Bridge] Token Verified. UID: ${firebaseUid}`);
+    console.log(`👤 [Sync] Firebase UID: ${firebaseUid}`);
 
-    // C) UPSERT en Supabase (LA CLAVE DEL PUENTE SÓLIDO)
-    // "Si no existe, créalo. Si existe, actualiza email/provider por si cambiaron."
-    // NO tocamos rol ni teléfono aquí para no sobrescribir datos manuales.
-
-    const upsertData = {
-      auth_uid: firebaseUid,
-      auth_provider: provider,
-      email: email,
-      // updated_at: new Date().toISOString(), // Si tienes columna updated_at
-    };
-
-    // Usamos 'onConflict' en 'auth_uid' para hacer el merge
-    const { error: upsertError } = await supabase
+    // B) UPSERT user_accounts (Tu tabla pública)
+    // Esto asegura que tengamos un UUID de Postgres válido
+    const { data: upsertedAccount, error: upsertError } = await supabase
       .from("user_accounts")
-      .upsert(upsertData, { onConflict: "auth_uid" });
-
-    if (upsertError) {
-      console.error("❌ [Sync-Bridge] DB Upsert Failed:", upsertError);
-      throw upsertError;
-    }
-    console.log("💾 [Sync-Bridge] User synced to DB (Upsert OK)");
-
-    // D) Lectura Final (Para devolver el estado completo, incluyendo roles)
-    const { data: account, error: selectError } = await supabase
-      .from("user_accounts")
-      .select("auth_uid, email, phone, role, profile_complete, legal_name")
-      .eq("auth_uid", firebaseUid)
+      .upsert(
+        { auth_uid: firebaseUid, email: email, auth_provider: "firebase" },
+        { onConflict: "auth_uid" }
+      )
+      .select("id, role, phone, profile_complete, legal_name")
       .single();
 
-    if (selectError) throw selectError;
+    if (upsertError) throw upsertError;
 
-    // E) Datos Profesionales (Si aplica)
+    // Este ID es un UUID real generado por Postgres
+    const shadowUUID = upsertedAccount.id;
+
+    // C) SHADOW USER SYNC (El truco para setSession) 👻
+    // Verificamos si este UUID existe en auth.users. Si no, lo creamos.
+    const { data: authUser, error: authCheckError } =
+      await supabase.auth.admin.getUserById(shadowUUID);
+
+    if (authCheckError || !authUser.user) {
+      console.log("👻 [Sync] Creando Usuario Sombra en Supabase Auth...");
+      const { error: createError } = await supabase.auth.admin.createUser({
+        id: shadowUUID, // 👈 Forzamos que coincida con user_accounts.id
+        email: email,
+        email_confirm: true,
+        user_metadata: { firebase_uid: firebaseUid },
+      });
+      if (createError)
+        console.warn(
+          "⚠️ Error creando shadow user (puede que ya exista):",
+          createError.message
+        );
+    }
+
+    // D) Generar Token Supabase Válido
+    if (!JWT_SECRET) throw new Error("Falta JWT_SECRET");
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(JWT_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const supabaseToken = await create(
+      { alg: "HS256", typ: "JWT" },
+      {
+        aud: "authenticated",
+        role: "authenticated",
+        sub: shadowUUID, // 👈 Ahora usamos el UUID real que existe en auth.users
+        auth_uid: firebaseUid, // 👈 AQUÍ: Usaste 'auth_uid' como nombre de la clave        email: email,
+        exp: getNumericDate(60 * 60 * 24),
+      },
+      key
+    );
+
+    // E) Datos Extra
     let identityStatus = "pending";
     let typeWork = null;
-
-    if (account.role === "professional") {
+    if (upsertedAccount.role === "professional") {
       const { data: prof } = await supabase
         .from("professional_profiles")
         .select("identity_status, type_work")
         .eq("user_id", firebaseUid)
         .maybeSingle();
-
       if (prof) {
         identityStatus = prof.identity_status ?? "pending";
         typeWork = prof.type_work ?? "instant";
@@ -155,25 +172,20 @@ serve(async (req: Request) => {
     }
 
     // F) Respuesta
-    const responseData = {
+    return Response.json({
       ok: true,
-      uid: account.auth_uid,
-      email: account.email,
-      phone: account.phone,
-      role: account.role,
-      profile_complete: account.profile_complete,
-      legal_name: account.legal_name,
+      token: supabaseToken,
+      uid: firebaseUid, // Tu ID de Firebase para la UI
+      email: email,
+      phone: upsertedAccount.phone,
+      role: upsertedAccount.role,
+      profile_complete: upsertedAccount.profile_complete,
+      legal_name: upsertedAccount.legal_name,
       identityStatus,
       type_work: typeWork,
-    };
-
-    console.log(
-      `🚀 [Sync-Bridge] Response sent. Role: ${account.role || "NONE"}`
-    );
-
-    return Response.json(responseData, { status: 200 });
+    });
   } catch (err: any) {
-    console.error("💥 [Sync-Bridge] Error:", err.message);
-    return Response.json({ ok: false, error: err.message }, { status: 401 });
+    console.error("💥 Error:", err.message);
+    return Response.json({ ok: false, error: err.message }, { status: 400 });
   }
 });

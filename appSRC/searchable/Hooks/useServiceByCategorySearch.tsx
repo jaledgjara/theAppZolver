@@ -1,7 +1,7 @@
 // appSRC/searchable/Hooks/useServiceByCategorySearch.tsx
 
 import { useState, useEffect, useCallback } from "react";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 import { SearchService } from "../Service/SearchService";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore"; // 👈 Import Store
 

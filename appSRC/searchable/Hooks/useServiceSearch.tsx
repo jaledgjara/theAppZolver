@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 // import * as Location from "expo-location";
 import { SearchService } from "@/appSRC/searchable/Service/SearchService";
 import { ProfessionalResult } from "@/appSRC/searchable/Type/LocationType";
-import { ProfessionalTypeWork } from "@/appSRC/userProf/Type/ProfessionalTypeWork";
+import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore"; // Import Store
 
 export function useServiceSearch() {
