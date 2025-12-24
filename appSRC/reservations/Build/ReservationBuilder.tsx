@@ -33,7 +33,8 @@ export const buildReservationPayload = (
     // Si no hay título manual, usamos los tags (ej: "Plomería, Destape")
     finalTitle = input.selectedTags.map((t) => t.label).join(", ");
   }
-
+  console.log("🏗️ [BUILDER] Input PricePerHour:", input.pricePerHour);
+  console.log("🏗️ [BUILDER] Is Instant?:", input.isInstant);
   // =================================================================
   // 2. LOGICA DE DIRECCIÓN Y COORDENADAS (Restaurada)
   // =================================================================
@@ -55,6 +56,8 @@ export const buildReservationPayload = (
     if (coords && coords.lng !== undefined && coords.lat !== undefined) {
       finalCoordsStr = `(${coords.lng},${coords.lat})`;
     }
+    console.log("🏗️ [BUILDER] Input PricePerHour:", input.pricePerHour);
+    console.log("🏗️ [BUILDER] Is Instant?:", input.isInstant);
   }
 
   // =================================================================
@@ -75,7 +78,7 @@ export const buildReservationPayload = (
   // 5. LOGICA DE PRECIOS
   // =================================================================
   const calculatedPrice = input.isInstant
-    ? input.pricePerHour * 2 // Instant: 2 horas fijas
+    ? input.pricePerHour // Instant: 2 horas fijas
     : input.proposedPrice || 0; // Quote: Propuesta del cliente o 0
 
   // =================================================================
@@ -115,7 +118,8 @@ export const buildReservationPayload = (
     price_final: calculatedPrice,
     platform_fee: 0,
   };
-
+  console.log("🏗️ [BUILDER] Input PricePerHour:", input.pricePerHour);
+  console.log("🏗️ [BUILDER] Is Instant?:", input.isInstant);
   // [ZOLVER-DEBUG] Logs para trazabilidad
   console.log("\n--- [ZOLVER-DEBUG] 01: BUILDER PAYLOAD ---");
   console.log("Modality:", payload.service_modality);

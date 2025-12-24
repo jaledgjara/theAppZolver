@@ -5,7 +5,7 @@ export default function ReservationLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
 
-      <Stack.Screen name="ReservationsDetailsScreen" />
+      <Stack.Screen name="ReservationsDetails/[id]" />
     </Stack>
   );
 }

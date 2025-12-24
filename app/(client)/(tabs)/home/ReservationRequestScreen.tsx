@@ -74,7 +74,9 @@ const ReservationRequestScreen = () => {
 
   const handleSend = () => {
     if (!user?.uid) return Alert.alert("Error", "Sesión inválida.");
-
+    console.log("🔍 [UI] Mode:", mode);
+    console.log("🔍 [UI] Is Instant?:", isInstant);
+    console.log("🔍 [UI] Price Per Hour (Params):", pricePerHour);
     // 1. Validación de Integridad
     if (!activeAddress)
       return Alert.alert(
@@ -94,10 +96,17 @@ const ReservationRequestScreen = () => {
       description: description,
       startTime,
       isInstant,
-      pricePerHour,
+      pricePerHour: estimates.finalPrice,
     });
+    console.log("🔍 [UI] Mode:", mode);
+    console.log("🔍 [UI] Is Instant?:", isInstant);
+    console.log("🔍 [UI] Price Per Hour (Params):", pricePerHour);
 
     createReservation(mode, payload);
+
+    console.log("🔍 [UI] Mode:", mode);
+    console.log("🔍 [UI] Is Instant?:", isInstant);
+    console.log("🔍 [UI] Price Per Hour (Params):", pricePerHour);
   };
 
   const handleChangeLocation = () => {

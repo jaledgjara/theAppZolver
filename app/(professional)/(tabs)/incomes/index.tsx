@@ -31,7 +31,7 @@ const incomes = () => {
               title="Ganancias del día"
               value={stats?.incomeToday || 0}
               valueType="money"
-              titleVariant="h2"
+              titleVariant="h3"
               boldTitle
               width="full"
             />
@@ -41,7 +41,7 @@ const incomes = () => {
               title="Ganancias del mes"
               value={stats?.totalMonth || 0}
               valueType="money"
-              titleVariant="h2"
+              titleVariant="h3"
               width="full"
             />
 

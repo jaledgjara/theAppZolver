@@ -106,6 +106,10 @@ const Reservations = () => {
               onPress={() => handleCardPress(item.id)}
             />
           )}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           // Pull to Refresh

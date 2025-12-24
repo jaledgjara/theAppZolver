@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -134,20 +135,23 @@ const ProfessionalDetailsView = () => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* FOOTER DINÁMICO */}
-      <View>
-        <View>
-          {/* En Zolver Ya mostramos precio hora, en Presupuesto mostramos radio o texto */}
-          <Text style={mainStyles.priceLabel}>{"Radio de cobertura"}</Text>
-          <Text style={mainStyles.priceValue}>
-            {`${profile.coverage_radius_km || 5} km`}
-          </Text>
+      {/* === HUGE FOOTER === */}
+      <View style={mainStyles.footerContainer}>
+        <View style={mainStyles.footerInfoContainer}>
+          <Text style={mainStyles.priceLabel}>Radio: </Text>
+          <Text style={mainStyles.priceValue}>{`${
+            profile.coverage_radius_km || 5
+          } km`}</Text>
         </View>
 
-        <LargeButton
-          title={isInstant ? "RESERVAR" : "CONTACTAR"}
-          onPress={handlePrimaryAction}
-        />
+        <View style={mainStyles.footerButtonWrapper}>
+          <LargeButton
+            title={isInstant ? "RESERVAR" : "CONTACTAR"}
+            onPress={handlePrimaryAction}
+            loading={isCreatingChat}
+            style={{ marginVertical: 0 }}
+          />
+        </View>
       </View>
     </View>
   );
@@ -156,14 +160,63 @@ const ProfessionalDetailsView = () => {
 export default ProfessionalDetailsView;
 
 const mainStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F9F9" },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
-  priceLabel: { fontSize: 12, color: COLORS.textSecondary },
-  priceValue: { fontSize: 20, fontWeight: "bold", color: COLORS.textPrimary },
-  bookButtonText: {
-    color: "white",
+  container: {
+    flex: 1,
+    backgroundColor: "#F9F9F9",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+
+  // === FOOTER STYLES ===
+  footerContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+
+    // Layout
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    // Spacing (Huge)
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === "ios" ? 40 : 24, // Extra padding para iPhone X+
+
+    // Shadows (Floating Effect)
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 }, // Sombra hacia arriba
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20, // Android shadow fuerte
+  },
+  footerInfoContainer: {
+    flex: 0.4, // Ocupa el 40% del espacio
+    justifyContent: "center",
+  },
+  footerButtonWrapper: {
+    flex: 0.6, // El botón ocupa el 60% restante
+    alignItems: "flex-end",
+  },
+  priceLabel: {
+    fontSize: SIZES.body4,
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  priceValue: {
+    fontSize: SIZES.h2, // H2 para que se vea grande
     fontWeight: "bold",
-    fontSize: 16,
-    textTransform: "uppercase",
+    color: COLORS.primary,
   },
 });

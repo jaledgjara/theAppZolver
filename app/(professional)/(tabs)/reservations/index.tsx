@@ -1,7 +1,6 @@
 import React from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, StyleSheet, View, Text } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { COLORS, SIZES } from "@/appASSETS/theme";
 import { router } from "expo-router";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { useProHistoryReservations } from "@/appSRC/reservations/Hooks/useProHistoryReservations";
@@ -9,7 +8,7 @@ import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUI
 import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
-const HistoryScreen = () => {
+const ReservationsProfessional = () => {
   const { history, isLoading, isFetchingMore, refresh, loadMore } =
     useProHistoryReservations();
 
@@ -24,27 +23,40 @@ const HistoryScreen = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ReservationCard
-              // Pasamos 'professional' para que el helper sepa extraer los datos del Cliente
               {...mapReservationToCard(item, "professional")}
               onPress={() =>
                 router.push(
-                  `/(professional)/(tabs)/history/HistoryDetails/${item.id}`
+                  `/(professional)/(tabs)/reservations/ReservationsDetails/${item.id}`
                 )
               }
             />
           )}
+          // --- OPTIMIZACIÓN DE MEMORIA (100k READY) ---
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
+          // --------------------------------------------
           contentContainerStyle={styles.listContent}
           onRefresh={refresh}
-          refreshing={false} // Managed by MiniLoader for initial, pull-to-refresh internal logic
+          refreshing={isLoading}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={isFetchingMore ? <MiniLoaderScreen /> : null}
+          ListFooterComponent={
+            isFetchingMore ? (
+              <View style={{ paddingVertical: 20 }}>
+                <MiniLoaderScreen />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
-            <StatusPlaceholder
-              title="Sin actividad"
-              subtitle="Aún no tienes reservas en tu historial."
-              icon="calendar"
-            />
+            !isLoading ? (
+              <StatusPlaceholder
+                title="Sin actividad"
+                subtitle="Aún no tienes reservas en tu historial."
+                icon="calendar"
+              />
+            ) : null
           }
         />
       </View>
@@ -52,7 +64,7 @@ const HistoryScreen = () => {
   );
 };
 
-export default HistoryScreen;
+export default ReservationsProfessional;
 
 const styles = StyleSheet.create({
   container: {

@@ -434,10 +434,9 @@ export const fetchProHistoryReservations = async (
       `
     )
     .eq("professional_id", professionalId)
-    .order("created_at", { ascending: false })
+    .order("scheduled_range", { ascending: false }) // CRÍTICO: Debe coincidir con el cursor
     .limit(HISTORY_PAGE_SIZE);
 
-  // Si hay cursor, traemos solo las que tienen fecha MENOR (más antigua) al cursor
   if (cursor) {
     query = query.lt("scheduled_range", cursor);
   }
@@ -448,10 +447,9 @@ export const fetchProHistoryReservations = async (
 
   const mappedData = (data as any[]).map(mapReservationFromDTO);
 
-  // Calcular el siguiente cursor
   const nextCursor =
     data && data.length === HISTORY_PAGE_SIZE
-      ? data[data.length - 1].scheduled_range // Usamos el string raw del rango como cursor
+      ? data[data.length - 1].scheduled_range
       : null;
 
   return {
@@ -459,6 +457,7 @@ export const fetchProHistoryReservations = async (
     nextCursor,
   };
 };
+
 // --- 3. ACTIONS (INSTANT / ZOLVER YA FLOW) ---
 
 /**
@@ -593,30 +592,32 @@ export const fetchActiveProfessionalReservation = async (
  * Obtiene el detalle de una orden específica.
  * CORRECCIÓN: Ahora trae los datos del CLIENTE también.
  */
-export const fetchReservationDetailsForPro = async (
-  reservationId: string,
-  professionalId: string
-): Promise<Reservation> => {
+export const fetchReservationByIdForProfessional = async (
+  reservationId: string
+) => {
   const { data, error } = await supabase
     .from("reservations")
     .select(
       `
-        *, 
-        professional:professional_id(legal_name),
+        *,
         client:user_accounts!reservations_client_id_fkey (
-            legal_name,
-            display_name,
-            phone,
-            avatar_url
+          legal_name,
+          phone,
+          email,
+          auth_uid
+        ),
+        professional:professional_profiles!reservations_to_pro_profile_fkey (
+          legal_name,
+          photo_url
         )
-    `
+      `
     )
     .eq("id", reservationId)
-    .eq("professional_id", professionalId) // Security check
     .single();
 
   if (error) {
-    throw new Error("No se pudo cargar la orden o no te pertenece.");
+    console.error("❌ Error fetching details for PRO:", error);
+    throw new Error(error.message);
   }
 
   return mapReservationFromDTO(data as any);
