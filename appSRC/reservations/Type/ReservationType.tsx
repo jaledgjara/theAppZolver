@@ -14,7 +14,7 @@ export type ReservationStatusDTO =
 
 export type ServiceModalityDTO = "instant" | "quote";
 
-// 1. DTO (What comes from DB)
+// 1. DTO (Lo que viene de Supabase/DB)
 export interface ReservationDTO {
   id: string;
   client_id: string;
@@ -36,40 +36,40 @@ export interface ReservationDTO {
   status: string;
   created_at: string;
 
+  // Datos del Profesional (Join para el Cliente)
+  client?: {
+    legal_name: string;
+    avatar_url?: string;
+  };
   professional?: {
-    legal_name: string | null;
-    photo_url?: string | null;
+    legal_name: string;
+    avatar_url?: string;
   };
 }
 
-// 2. DOMAIN ENTITY (UI)
+// 2. DOMAIN ENTITY (Lo que usa la UI)
 export interface Reservation {
   id: string;
   clientId: string;
   professionalId: string;
 
-  // ✅ Propiedades Directas
-  status: ReservationStatusDTO; // Faltaba esto
+  status: ReservationStatusDTO;
   title: string;
   description: string;
   serviceCategory: string;
   serviceModality: "instant" | "quote";
 
-  // ✅ Objetos de Valor (Nested Objects)
-  // Esto soluciona el error "Property 'location' does not exist"
   location: {
     street: string;
     number: string;
     coordinates?: { latitude: number; longitude: number };
   };
 
-  // Esto soluciona el error "Property 'schedule' does not exist"
   schedule: {
     startDate: Date;
     endDate: Date;
   };
 
-  // Esto soluciona el error "Property 'financials' does not exist"
   financials: {
     currency: string;
     priceEstimated: number;
@@ -77,39 +77,34 @@ export interface Reservation {
     platformFee: number;
   };
 
-  // Datos del Profesional (Join)
-  professional?: {
+  client?: {
+    id: string;
     name: string;
-    photoUrl?: string;
+    avatar?: string;
+  };
+  professional?: {
+    id: string;
+    name: string;
+    avatar?: string;
   };
 }
 
-/**
- * 3. PAYLOAD (What goes to DB)
- * ✅ Corrected to snake_case to match SQL columns
- */
+// 3. PAYLOAD (Lo que se envía a la DB)
 export interface ReservationPayload {
   client_id: string;
   professional_id: string;
-
   service_category: string;
   service_modality: "instant" | "quote";
-
-  service_tags: any[]; // JSONB array
-
+  service_tags: any[];
   title: string;
   description: string;
-
   address_street: string;
   address_number: string;
-  address_coords?: string; // String formatted as "(lng,lat)" or undefined
-
-  scheduled_range: string; // Tstzrange "[start, end)"
-
+  address_coords?: string;
+  scheduled_range: string;
   currency: string;
   price_estimated: number;
   price_final: number;
   platform_fee?: number;
-
   status: string;
 }

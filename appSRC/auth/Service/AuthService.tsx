@@ -21,7 +21,10 @@ import {
   ProfessionalTypeWork,
   useProfessionalOnboardingStore,
 } from "../Type/ProfessionalAuthUser";
-import { setSupabaseAuthToken } from "@/appSRC/services/supabaseClient";
+import {
+  setSupabaseAuthToken,
+  supabase,
+} from "@/appSRC/services/supabaseClient";
 
 // =========================================================
 // 1. Mappers & Helpers
@@ -347,5 +350,72 @@ export async function signOutFirebase(): Promise<void> {
   } catch (e: any) {
     console.warn("[AuthService] signOut error:", e);
     setBootLoading(false);
+  }
+}
+// ... imports anteriores
+
+export async function deleteUserAccount(): Promise<{
+  ok: boolean;
+  message?: string;
+}> {
+  const { setBootLoading, reset } = useAuthStore.getState();
+
+  try {
+    console.log(
+      "🔒 [AuthService] Iniciando protocolo de eliminación segura..."
+    );
+    setBootLoading(true);
+
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error("No hay sesión activa para eliminar.");
+    }
+
+    // 1. Llamada a RPC de Supabase (Lógica de Negocio)
+    const { error: dbError } = await supabase.rpc("delete_user_account_safe");
+
+    if (dbError) {
+      console.error("❌ [AuthService] Rechazo de DB:", dbError.message);
+
+      // Manejo del error de bloqueo definido en SQL
+      if (dbError.message.includes("BLOCK_ACTIVE_RESERVATIONS")) {
+        return {
+          ok: false,
+          message:
+            "No puedes eliminar tu cuenta mientras tengas servicios activos o pendientes. Finalízalos o cancélalos primero.",
+        };
+      }
+
+      throw new Error(
+        "Error técnico al procesar la solicitud. Contacte a soporte."
+      );
+    }
+
+    // 2. Eliminación en Firebase Auth (Identidad)
+    // Si llegamos aquí, Supabase ya validó y limpió los datos.
+    await user.delete();
+
+    // 3. Limpieza Local
+    await AsyncStorage.removeItem("user_session");
+    reset();
+
+    return { ok: true };
+  } catch (e: any) {
+    console.error("❌ [AuthService] Excepción en Delete Account:", e);
+    setBootLoading(false);
+
+    // Manejo de Re-autenticación obligatoria de Firebase
+    if (e.code === "auth/requires-recent-login") {
+      return {
+        ok: false,
+        message:
+          "Por seguridad, esta acción requiere que inicies sesión nuevamente. Sal de la app y vuelve a entrar.",
+      };
+    }
+
+    return {
+      ok: false,
+      message: e.message || "No se pudo eliminar la cuenta.",
+    };
   }
 }

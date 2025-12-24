@@ -1,74 +1,58 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
 import React from "react";
+import { FlatList, StyleSheet, View } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
-import { CalendarReservationCard } from "@/appCOMP/cards/CalendarReservationCard";
+import { COLORS, SIZES } from "@/appASSETS/theme";
 import { router } from "expo-router";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import { useProHistoryReservations } from "@/appSRC/reservations/Hooks/useProHistoryReservations";
+import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
+import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
-export const MOCK_RESERVATIONS = [
-  {
-    id: "1",
-    time: "9:00",
-    name: "María Gómez",
-    service: "Corte de cabello",
-    status: "Confirmada",
-  },
-  {
-    id: "2",
-    time: "11:00",
-    name: "Instalación de luminaria",
-    service: "—",
-    status: "Cancelada",
-  },
-  {
-    id: "3",
-    time: "13:00",
-    name: "Carlos Reyes",
-    service: "Mantenimiento eléctrico",
-    status: "Pendiente",
-  },
-  {
-    id: "4",
-    time: "15:30",
-    name: "Ana Martínez",
-    service: "Reparación de tubería",
-    status: "Pendiente",
-  },
-];
+const HistoryScreen = () => {
+  const { history, isLoading, isFetchingMore, refresh, loadMore } =
+    useProHistoryReservations();
 
-const reservations = () => {
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText={"Reservas"} />
-
-      <View style={styles.divider}></View>
-
-      <Text style={styles.title}> Próximas reservas</Text>
+      <ToolBarTitle titleText="Historial" />
+      <View style={styles.divider} />
 
       <View style={styles.contentContainer}>
         <FlatList
-          data={MOCK_RESERVATIONS}
+          data={history}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <CalendarReservationCard
-              time={item.time}
-              name={item.name}
-              service={item.service}
-              status={"Confirmada"}
+            <ReservationCard
+              // Pasamos 'professional' para que el helper sepa extraer los datos del Cliente
+              {...mapReservationToCard(item, "professional")}
               onPress={() =>
                 router.push(
-                  `/(professional)/(tabs)/reservations/ReservationsDetailsScreen/${item.id}`
+                  `/(professional)/(tabs)/history/HistoryDetails/${item.id}`
                 )
               }
             />
           )}
+          contentContainerStyle={styles.listContent}
+          onRefresh={refresh}
+          refreshing={false} // Managed by MiniLoader for initial, pull-to-refresh internal logic
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={isFetchingMore ? <MiniLoaderScreen /> : null}
+          ListEmptyComponent={
+            <StatusPlaceholder
+              title="Sin actividad"
+              subtitle="Aún no tienes reservas en tu historial."
+              icon="calendar"
+            />
+          }
         />
       </View>
     </View>
   );
 };
 
-export default reservations;
+export default HistoryScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -81,13 +65,11 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    paddingBottom: 20,
   },
-  title: {
-    fontSize: SIZES.h2,
-    paddingHorizontal: 20,
+  listContent: {
+    paddingBottom: 20,
+    paddingHorizontal: 16,
     paddingTop: 10,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
+    flexGrow: 1,
   },
 });

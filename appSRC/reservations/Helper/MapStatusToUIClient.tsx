@@ -2,10 +2,11 @@ import {
   Reservation,
   ReservationStatusDTO,
 } from "@/appSRC/reservations/Type/ReservationType";
+// Asegúrate de que ReservationCardProps ya tenga 'counterpartName' en lugar de 'professionalName'
 import {
   ReservationCardProps,
   ReservationStatus as ReservationStatusUI,
-} from "@/appSRC/reservations/Screens/Client/ReservationCard";
+} from "@/appCOMP/cards/ReservationCard";
 
 /**
  * Convierte el estado técnico de la base de datos (DTO)
@@ -19,68 +20,87 @@ export const mapStatusToUI = (
     case "quoting":
     case "pending_approval":
       return "pending";
-
     case "confirmed":
       return "confirmed";
-
     case "on_route":
       return "on_route";
-
     case "in_progress":
       return "in_progress";
-
     case "completed":
       return "finalized";
-
     case "canceled_client":
     case "canceled_pro":
     case "disputed":
       return "canceled";
-
     default:
       return "pending";
   }
 };
 
-/**
- * Transforma la Entidad de Dominio (Reservation)
- * en las Props exactas que necesita la Tarjeta Visual.
- */
-export const mapReservationToCard = (
-  item: Reservation
-): ReservationCardProps => {
-  // Formateo de fecha y hora (Localización Argentina)
-  const dateObj = new Date(item.schedule.startDate);
+// ... (keep mapStatusToUI and getStatusConfig as they are) ...
 
-  // Ej: "15 de diciembre"
+export const mapReservationToCard = (
+  item: Reservation,
+  viewRole: "client" | "professional"
+): ReservationCardProps => {
+  // 1. Date Formatting (Safe check)
+  const dateObj =
+    item.schedule.startDate instanceof Date &&
+    !isNaN(item.schedule.startDate.getTime())
+      ? item.schedule.startDate
+      : new Date(); // Fallback if invalid
+
   const dateStr = dateObj.toLocaleDateString("es-AR", {
     day: "numeric",
     month: "long",
   });
 
-  // Ej: "14:30"
   const timeStr = dateObj.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
+  // 2. 🛠 FIX 1: Name Logic
+  let nameToDisplay = "Usuario";
+  let avatarToDisplay = require("@/appASSETS/RawImages/avatar-0.jpg"); // Default
+
+  if (viewRole === "client") {
+    // If I am the client, I want to see the Professional's name
+    if (item.professional && item.professional.name) {
+      nameToDisplay = item.professional.name;
+      // avatarToDisplay = item.professional.avatar ...
+    } else {
+      nameToDisplay = "Buscando Profesional..."; // Friendly fallback for 'draft'/'pending'
+    }
+  } else {
+    // If I am the professional, I want to see the Client's name
+    if (item.client && item.client.name) {
+      nameToDisplay = item.client.name;
+    } else {
+      nameToDisplay = "Cliente Reservado";
+    }
+  }
+
+  // 3. 🛠 FIX 3: Price Logic
+  // Ensure we are displaying the estimated price correctly
+  const priceDisplay =
+    item.financials.priceEstimated > 0
+      ? `$${item.financials.priceEstimated.toLocaleString("es-AR")}`
+      : "A cotizar"; // If 0, show text instead of $0 or $10.000
+
   return {
     id: item.id,
-    // TODO: Usar el nombre real cuando el backend lo envíe en el join
-    professionalName: "Profesional Zolver",
+    counterpartName: nameToDisplay, // Use the variable we calculated
     serviceName: item.title,
     date: dateStr,
     time: timeStr,
-    status: mapStatusToUI(item.status),
-    // Placeholder hasta tener bucket de imágenes real
-    avatar: require("@/appASSETS/RawImages/avatar-0.jpg"),
-    price: item.financials.priceEstimated
-      ? `$${item.financials.priceEstimated.toLocaleString("es-AR")}`
-      : undefined,
+    status: mapStatusToUI(item.status), // Ensure this function is imported
+    avatar: avatarToDisplay,
+    price: priceDisplay,
   };
 };
 
-/* Transforma un estado en un texto con un color */
+/* Transforma un estado en un texto con un color (Sin cambios, está perfecto) */
 export const getStatusConfig = (statusUI: string) => {
   switch (statusUI) {
     case "confirmed":

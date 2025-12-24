@@ -1,7 +1,7 @@
 // IncomeCard.tsx
 // Reusable card component for income-related metrics
 
-import { SIZES } from "@/appASSETS/theme";
+import { COLORS, SIZES } from "@/appASSETS/theme";
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
@@ -51,14 +51,8 @@ const IncomeCard: React.FC<IncomeCardProps> = ({
         styles.card,
         width === "half" && styles.halfWidth,
         width === "full" && styles.fullWidth,
-      ]}
-    >
-      <Text
-        style={[
-          titleVariant === "h2" ? styles.titleH2 : styles.titleH3,
-          boldTitle && styles.bold,
-        ]}
-      >
+      ]}>
+      <Text style={[titleVariant === "h2" ? styles.titleH2 : styles.titleH3]}>
         {title}
       </Text>
 
@@ -100,37 +94,36 @@ const styles = StyleSheet.create({
   // Titles
   titleH2: {
     fontSize: SIZES.h2,
-    color: "#111",
+    color: COLORS.textPrimary,
     marginBottom: 6,
+    fontWeight: "600",
   },
   titleH3: {
     fontSize: SIZES.h3,
-    color: "#333",
+    color: COLORS.textPrimary,
     marginBottom: 6,
+    fontWeight: "600",
   },
-  bold: {
-    fontWeight: "bold",
-  },
-
   // Values
   moneyValue: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: SIZES.h3,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
   },
   numberValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: SIZES.h3,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
   },
   textValue: {
-    fontSize: 20,
-    color: "#000",
+    fontSize: SIZES.h3,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
   },
 
   subtitle: {
     marginTop: 6,
     fontSize: 14,
-    color: "#666",
+    color: COLORS.textSecondary,
   },
 });

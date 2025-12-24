@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
+// Asumo que este helper existe según tu código anterior
+import { getStatusConfig } from "../../appSRC/reservations/Helper/MapStatusToUIClient";
 
 export type ReservationStatus =
   | "pending"
@@ -14,37 +16,18 @@ export type ReservationStatus =
 
 export interface ReservationCardProps {
   id: string;
-  professionalName: string;
+  counterpartName: string; // <--- CAMBIO: Nombre genérico (Cliente o Profesional)
   serviceName: string;
   date: string;
   time: string;
   status: ReservationStatus;
   price?: string;
-  avatar: any;
+  avatar?: any; // Hecho opcional por si acaso
   onPress?: () => void;
 }
 
-const getStatusConfig = (status: ReservationStatus) => {
-  switch (status) {
-    case "pending":
-      return { label: "Pendiente", color: "#F59E0B", bg: "#FEF3C7" };
-    case "confirmed":
-      return { label: "Confirmada", color: "#3B82F6", bg: "#DBEAFE" };
-    case "on_route":
-      return { label: "En Camino", color: "#8B5CF6", bg: "#EDE9FE" };
-    case "in_progress":
-      return { label: "En Curso", color: "#10B981", bg: "#D1FAE5" };
-    case "finalized":
-      return { label: "Finalizada", color: "#10B981", bg: "transparent" };
-    case "canceled":
-      return { label: "Cancelada", color: "#EF4444", bg: "#FEE2E2" };
-    default:
-      return { label: status, color: "#6B7280", bg: "#F3F4F6" };
-  }
-};
-
 export const ReservationCard: React.FC<ReservationCardProps> = ({
-  professionalName,
+  counterpartName,
   serviceName,
   date,
   time,
@@ -56,23 +39,23 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 
   return (
     <BaseCard onPress={onPress}>
-      {/* HEADER: Refactorizado a Columna (Vertical) */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.serviceTitle} numberOfLines={2}>
           {serviceName}
         </Text>
 
-        {/* Badge debajo del título */}
+        {/* Badge */}
         <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
           <Text style={[styles.badgeText, { color: statusInfo.color }]}>
-            {statusInfo.label}
+            {statusInfo.text}
           </Text>
         </View>
       </View>
 
       <View style={styles.divider} />
 
-      {/* BODY: Info Clave */}
+      {/* BODY */}
       <View style={styles.body}>
         <View style={styles.row}>
           <Ionicons
@@ -80,7 +63,8 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
             size={16}
             color={COLORS.textSecondary}
           />
-          <Text style={styles.infoText}>{professionalName}</Text>
+          {/* Aquí se muestra el nombre genérico */}
+          <Text style={styles.infoText}>{counterpartName}</Text>
         </View>
 
         <View style={styles.metaRow}>
@@ -103,17 +87,16 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    // CAMBIO: Eliminado flexDirection row para layout vertical
-    alignItems: "flex-start", // Alinea contenido a la izquierda
+    alignItems: "flex-start",
     justifyContent: "center",
     marginBottom: 10,
-    gap: 8, // Espacio entre Título y Badge
+    gap: 8,
   },
   serviceTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: COLORS.textPrimary,
-    lineHeight: 22, // Mejor legibilidad si el texto ocupa 2 líneas
+    lineHeight: 22,
   },
   badge: {
     paddingVertical: 4,

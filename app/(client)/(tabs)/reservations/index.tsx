@@ -15,7 +15,7 @@ import {
   TabbedReservationFilters,
   ReservationFilterType,
 } from "@/appSRC/reservations/Screens/Client/MenuFilterReservation";
-import { ReservationCard } from "@/appSRC/reservations/Screens/Client/ReservationCard";
+import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 
 // Lógica de Negocio y Datos
 
@@ -102,7 +102,7 @@ const Reservations = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ReservationCard
-              {...mapReservationToCard(item)}
+              {...mapReservationToCard(item, "client")}
               onPress={() => handleCardPress(item.id)}
             />
           )}

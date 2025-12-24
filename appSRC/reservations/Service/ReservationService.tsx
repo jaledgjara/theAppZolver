@@ -6,12 +6,13 @@ import {
 } from "../Type/ReservationType";
 import { mapReservationFromDTO } from "../Mapper/ReservationMapper";
 import { getTodayRangeString } from "../Helper/GetTodayRangeString";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 // ============================================================================
-// 1. UPLOADING: A)INSTANT B)QUOTE
+// MARK: - SHARED / CORE SERVICES
+// (Generic functionality used across domains)
 // ============================================================================
 
-//A
 export const createReservationService = async (payload: ReservationPayload) => {
   // [ZOLVER-DEBUG] 02: Entrada al Servicio
   console.log("[ZOLVER-DEBUG] 02: Service - Sending RPC...", payload.status);
@@ -53,48 +54,299 @@ export const createReservationService = async (payload: ReservationPayload) => {
   return { id: data, ...payload }; // Retorno mockeado o real según tu RPC
 };
 
-// Aliases for compatibility with your existing Hooks
+/**
+ * Busca el detalle completo de una reserva por su ID.
+ * Incluye datos del profesional y categoría.
+ */
+export const fetchReservationById = async (
+  reservationId: string
+): Promise<Reservation> => {
+  // CORRECCIÓN: Pedimos 'legal_name' en lugar de 'display_name'.
+  // Quitamos 'photo_url' porque tu tabla no tiene esa columna.
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      `
+      *,
+      professional:professional_id ( legal_name )
+    `
+    )
+    .eq("id", reservationId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching reservation details:", error);
+    throw new Error(`Error al cargar reserva: ${error.message}`);
+  }
+
+  return mapReservationFromDTO(data as any);
+};
+
+// ============================================================================
+// MARK: - CLIENT SERVICES
+// (Creation, Monitoring & History)
+// ============================================================================
+
+// --- 1. CREATION ALIASES ---
 export const createInstantReservation = createReservationService;
 export const createQuoteReservation = createReservationService;
 
-// ============================================================================
-// 1. FETCHING: A)INSTANT B)QUOTE C)CLIENTS
-// ============================================================================
+// --- 2. READING (ACTIVE & PENDING) ---
 
-//A)
-// B) LECTURA (PROFESIONAL)
-export const fetchProIncomingRequests = async (professionalId: string) => {
-  console.log(
-    "[ZOLVER-DEBUG] 03: Service - Fetching Requests for Pro:",
-    professionalId
-  );
+// appSRC/reservations/Service/ReservationService.tsx
 
-  // NOTA DE ARQUITECTURA:
-  // Revisa que .in() incluya el status que definimos en el Builder ('pending_approval')
+// =============================================================================
+// ACCIONES DE LECTURA (CLIENTE)
+// =============================================================================
+const HISTORY_PAGE_SIZE = 10;
+
+/**
+ * Trae reservas activas con DATOS DEL PROFESIONAL.
+ * Status: confirmed, on_route, in_progress
+ */
+export const fetchClientActiveReservations = async (
+  clientId: string
+): Promise<Reservation[]> => {
   const { data, error } = await supabase
     .from("reservations")
-    .select(`*, professional:professional_id(legal_name)`)
-    .eq("professional_id", professionalId)
-    .in("status", ["pending_approval", "quoting", "draft"]) // <--- AÑADIR TODOS PARA DEBUG
-    .order("created_at", { ascending: false });
+    .select(
+      `
+      *,
+      professional:professional_profiles!professional_id (
+        legal_name,
+        photo_url
+      )
+    `
+    )
+    .eq("client_id", clientId)
+    .in("status", ["confirmed", "on_route", "in_progress"])
+    .order("scheduled_range", { ascending: true });
 
-  if (error) {
-    console.error("[ZOLVER-DEBUG] ❌ FETCH ERROR:", error.message);
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
-  console.log(`[ZOLVER-DEBUG] ✅ FETCH FOUND: ${data?.length} records`);
-  if (data && data.length > 0) {
-    console.log("[ZOLVER-DEBUG] Sample Record Status:", data[0].status);
-  } else {
-    console.log("[ZOLVER-DEBUG] ⚠️ No records found via Query.");
-  }
-
-  return (data as any[]).map(mapReservationFromDTO);
+  // Mapeo con Polyfill de Avatar
+  return data.map((dto: any) => {
+    if (dto.professional && dto.professional.photo_url) {
+      dto.professional.avatar_url = dto.professional.photo_url;
+    }
+    return mapReservationFromDTO(dto);
+  });
 };
 
-// ... imports y funciones existentes ...
+/**
+ * Trae reservas pendientes.
+ * Nota: En estado 'draft' o 'quoting' puede que no haya profesional asignado aún,
+ * pero si lo hay (ej: pending_approval), lo traeremos.
+ */
+export const fetchClientPendingReservations = async (
+  clientId: string
+): Promise<Reservation[]> => {
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      `
+      *,
+      professional:professional_profiles!professional_id (
+        legal_name,
+        photo_url
+      )
+    `
+    )
+    .eq("client_id", clientId)
+    .in("status", ["pending_approval", "quoting", "draft"])
+    .order("created_at", { ascending: false });
 
+  if (error) throw new Error(error.message);
+
+  return data.map((dto: any) => {
+    if (dto.professional && dto.professional.photo_url) {
+      dto.professional.avatar_url = dto.professional.photo_url;
+    }
+    return mapReservationFromDTO(dto);
+  });
+};
+
+/**
+ * Trae el historial paginado con DATOS DEL PROFESIONAL.
+ */
+export const fetchClientHistoryReservations = async (
+  clientId: string,
+  cursor?: string
+) => {
+  let query = supabase
+    .from("reservations")
+    .select(
+      `
+      *,
+      professional:professional_profiles!professional_id (
+        legal_name,
+        photo_url
+      )
+    `
+    )
+    .eq("client_id", clientId)
+    .in("status", ["completed", "canceled_client", "canceled_pro", "disputed"])
+    .order("scheduled_range", { ascending: false })
+    .limit(HISTORY_PAGE_SIZE);
+
+  if (cursor) {
+    query = query.lt("scheduled_range", cursor);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw new Error(error.message);
+
+  const mappedData = data.map((dto: any) => {
+    if (dto.professional && dto.professional.photo_url) {
+      dto.professional.avatar_url = dto.professional.photo_url;
+    }
+    return mapReservationFromDTO(dto);
+  });
+
+  const nextCursor =
+    data && data.length === HISTORY_PAGE_SIZE
+      ? data[data.length - 1].scheduled_range
+      : null;
+
+  return {
+    reservations: mappedData,
+    nextCursor,
+  };
+};
+
+// --- 4. ACTIONS (QUOTE FLOW) ---
+
+/**
+ * CONVERSIÓN DE PRESUPUESTO A RESERVA
+ * 1. Crea la reserva en base a los datos del mensaje.
+ * 2. (Opcional) El trigger de base de datos o el cliente debe actualizar el mensaje a 'accepted'.
+ */
+// appSRC/reservations/Service/ReservationService.tsx
+
+export const confirmBudgetService = async (
+  clientId: string,
+  professionalId: string,
+  budgetData: any
+) => {
+  const DEBUG_TAG = "🔍 [CONFIRM BUDGET]";
+  console.log(`${DEBUG_TAG} Init Transaction`);
+  console.log(`${DEBUG_TAG} Client ID:`, clientId);
+  console.log(`${DEBUG_TAG} Pro ID:`, professionalId);
+  console.log(`${DEBUG_TAG} Payload Raw:`, JSON.stringify(budgetData, null, 2));
+
+  try {
+    // Validación preventiva
+    if (!budgetData || !budgetData.proposedDate) {
+      throw new Error(
+        "Datos del presupuesto incompletos (Falta fecha o precio)"
+      );
+    }
+
+    const payload = {
+      p_client_id: clientId,
+      p_professional_id: professionalId,
+      p_category: "personalized_quote",
+      p_modality: "quote",
+      p_title: budgetData.serviceName || "Presupuesto Aceptado",
+      p_description: budgetData.notes || "",
+      p_service_tags: [],
+      p_address_display: "Ubicación del Cliente",
+      p_address_coords: null,
+      // Construcción segura del rango
+      p_range: `[${budgetData.proposedDate},${budgetData.proposedDate})`,
+      p_status: "confirmed",
+      p_price_estimated: Number(budgetData.price),
+      p_price_final: Number(budgetData.price),
+      p_platform_fee: 0,
+    };
+
+    console.log(`${DEBUG_TAG} Sending RPC Payload:`, payload);
+
+    const { data, error } = await supabase.rpc(
+      "create_reservation_bypass",
+      payload
+    );
+
+    if (error) {
+      console.error(`${DEBUG_TAG} ❌ RPC Error:`, error);
+      throw new Error(error.message);
+    }
+
+    console.log(`${DEBUG_TAG} ✅ Success! Reservation ID:`, data);
+    return data;
+  } catch (err) {
+    console.error(`${DEBUG_TAG} 💥 Crash:`, err);
+    throw err;
+  }
+};
+
+// ============================================================================
+// MARK: - PROFESSIONAL SERVICES
+// (Incoming Requests & Agenda Management)
+// ============================================================================
+
+// --- 1. READING (INCOMING REQUESTS) ---
+// appSRC/reservations/Service/ReservationService.tsx
+
+export const fetchProIncomingRequests = async (professionalId: string) => {
+  const DEBUG_TAG = "🔍 [FETCH REQUESTS]";
+  console.log(`${DEBUG_TAG} Init for Pro:`, professionalId);
+
+  try {
+    const { data, error } = await supabase
+      .from("reservations")
+      .select(
+        `
+        *,
+        client:user_accounts!client_id (
+          legal_name
+        ),
+        professional:professional_profiles!reservations_to_pro_profile_fkey (
+          legal_name,
+          photo_url
+        )
+      `
+      )
+      .eq("professional_id", professionalId)
+      .in("status", ["pending_approval", "quoting", "draft"])
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      // 🛑 AQUÍ CAPTURAMOS EL ERROR REAL
+      console.error(`${DEBUG_TAG} ❌ Supabase Error Code:`, error.code);
+      console.error(`${DEBUG_TAG} ❌ Message:`, error.message);
+      console.error(`${DEBUG_TAG} ❌ Details:`, error.details); // <--- ESTO ES CRUCIAL
+      console.error(`${DEBUG_TAG} ❌ Hint:`, error.hint);
+      throw new Error(error.message);
+    }
+
+    console.log(`${DEBUG_TAG} ✅ Query Success. Records found:`, data?.length);
+
+    // Mapeo seguro para detectar si falla al convertir
+    return (data as any[])
+      .map((dto, index) => {
+        try {
+          // Polyfill del Avatar
+          if (dto.professional && dto.professional.photo_url) {
+            dto.professional.avatar_url = dto.professional.photo_url;
+          }
+          return mapReservationFromDTO(dto);
+        } catch (mapError) {
+          console.error(
+            `${DEBUG_TAG} ⚠️ Mapping Error at index ${index}:`,
+            mapError
+          );
+          return null; // O manejarlo como prefieras
+        }
+      })
+      .filter(Boolean); // Filtrar nulos si hubo error de mapeo
+  } catch (err) {
+    console.error(`${DEBUG_TAG} 💥 Critical Failure in Service:`, err);
+    throw err;
+  }
+};
+// --- 2. READING (CONFIRMED AGENDA) ---
 /**
  * FETCH: Trabajos Confirmados del Profesional (Agenda Activa)
  * Trae todas las reservas en estado 'confirmed' (y opcionalmente 'on_route' o 'in_progress').
@@ -142,64 +394,47 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
   }
 };
 
-const HISTORY_PAGE_SIZE = 10;
-/**
- * Trae reservas que requieren atención inmediata o futura.
- * Status: confirmed, on_route, in_progress
- */
-export const fetchClientActiveReservations = async (
-  clientId: string
-): Promise<Reservation[]> => {
-  const { data, error } = await supabase
-    .from("reservations")
-    .select("*")
-    .eq("client_id", clientId)
-    .in("status", ["confirmed", "on_route", "in_progress"])
-    .order("scheduled_range", { ascending: true });
+// En ReservationService.ts
 
-  if (error) throw new Error(error.message);
-  return (data as any[]).map(mapReservationFromDTO);
-};
+// ... imports
 
 /**
- * Trae reservas en negociación o espera.
- * Status: pending_approval, quoting, draft
+ * FETCH: Historial Completo (Paginado)
+ * Trae todo lo que ya "pasó": completado, cancelado (por cualquiera) o disputado.
+ * Es la "Actividad" tipo Mercado Pago.
  */
-export const fetchClientPendingReservations = async (
-  clientId: string
-): Promise<Reservation[]> => {
-  const { data, error } = await supabase
-    .from("reservations")
-    .select("*")
-    .eq("client_id", clientId)
-    .in("status", ["pending_approval", "quoting", "draft"])
-    .order("created_at", { ascending: false }); // Las creadas más recientemente primero
+// appSRC/reservations/Service/ReservationService.tsx
 
-  if (error) throw new Error(error.message);
-  return (data as any[]).map(mapReservationFromDTO);
-};
-
-// ============================================================================
-// 2. COLD DATA (Historical) - CURSOR PAGINATION
-// ============================================================================
+// appSRC/reservations/Service/ReservationService.tsx
 
 /**
- * Trae el historial paginado.
- * Status: completed, canceled_*, disputed
- * @param cursor - (Opcional) La fecha de inicio de la última reserva cargada.
+ * Obtiene el historial de reservas de un profesional con paginación y relaciones.
+ * SOLUCIÓN: Usa 'profiles' en lugar de 'user_accounts' para obtener avatar y nombre.
  */
-export const fetchClientHistoryReservations = async (
-  clientId: string,
+// appSRC/reservations/Service/ReservationService.tsx
+
+export const fetchProHistoryReservations = async (
+  professionalId: string,
   cursor?: string
 ) => {
+  const DEBUG_TAG = "🔍 [FETCH HISTORY]";
+
   let query = supabase
     .from("reservations")
-    .select("*")
-    .eq("client_id", clientId)
-    .in("status", ["completed", "canceled_client", "canceled_pro", "disputed"])
-    // Ordenar por fecha de servicio descendente (lo más reciente arriba)
-    // Nota: lower(scheduled_range) accede al inicio del rango en Postgres
-    .order("scheduled_range", { ascending: false })
+    .select(
+      `
+        *,
+        client:user_accounts!client_id (
+          legal_name
+        ),
+        professional:professional_profiles!professional_id (
+          legal_name,
+          photo_url
+        )
+      `
+    )
+    .eq("professional_id", professionalId)
+    .order("created_at", { ascending: false })
     .limit(HISTORY_PAGE_SIZE);
 
   // Si hay cursor, traemos solo las que tienen fecha MENOR (más antigua) al cursor
@@ -224,72 +459,7 @@ export const fetchClientHistoryReservations = async (
     nextCursor,
   };
 };
-
-/**
- * Busca el detalle completo de una reserva por su ID.
- * Incluye datos del profesional y categoría.
- */
-export const fetchReservationById = async (
-  reservationId: string
-): Promise<Reservation> => {
-  // CORRECCIÓN: Pedimos 'legal_name' en lugar de 'display_name'.
-  // Quitamos 'photo_url' porque tu tabla no tiene esa columna.
-  const { data, error } = await supabase
-    .from("reservations")
-    .select(
-      `
-      *,
-      professional:professional_id ( legal_name )
-    `
-    )
-    .eq("id", reservationId)
-    .single();
-
-  if (error) {
-    console.error("Error fetching reservation details:", error);
-    throw new Error(`Error al cargar reserva: ${error.message}`);
-  }
-
-  return mapReservationFromDTO(data as any);
-};
-
-// ... imports existentes
-
-/**
- * CONVERSIÓN DE PRESUPUESTO A RESERVA
- * 1. Crea la reserva en base a los datos del mensaje.
- * 2. (Opcional) El trigger de base de datos o el cliente debe actualizar el mensaje a 'accepted'.
- */
-export const confirmBudgetService = async (
-  clientId: string,
-  professionalId: string,
-  budgetData: any // El payload que venía en el mensaje
-) => {
-  console.log("[ZOLVER-DEBUG] Converting Budget to Reservation...");
-
-  // 1. Construimos el Payload de Reserva compatible con tu RPC o Insert
-  // NOTA: Asumimos 'quote' porque viene de un presupuesto
-  const { data, error } = await supabase.rpc("create_reservation_bypass", {
-    p_client_id: clientId,
-    p_professional_id: professionalId,
-    p_category: "personalized_quote", // O la categoría real si la guardaste en el payload
-    p_modality: "quote",
-    p_title: budgetData.serviceName,
-    p_description: budgetData.notes,
-    p_service_tags: [],
-    p_address_display: "Ubicación del Cliente", // Deberías sacar esto del Store de Ubicación
-    p_address_coords: null,
-    p_range: `[${budgetData.proposedDate},${budgetData.proposedDate})`, // Rango simple
-    p_status: "confirmed", // <--- NACE CONFIRMADA
-    p_price_estimated: budgetData.price,
-    p_price_final: budgetData.price,
-    p_platform_fee: 0,
-  });
-
-  if (error) throw new Error(error.message);
-
-  return data; // Retorna el ID de la nueva reserva
-};
+// --- 3. ACTIONS (INSTANT / ZOLVER YA FLOW) ---
 
 /**
  * CONFIRMACIÓN DE SERVICIO INSTANTÁNEO (Zolver Ya)
@@ -359,4 +529,290 @@ export const confirmInstantReservationService = async (
     );
     throw err;
   }
+};
+
+// ============================================================================
+// MARK: - PROFESSIONAL FLOW CONTROL (Active Job & Status Machine)
+// ============================================================================
+
+/**
+ * 1) FETCH ACTIVE JOB (The "Locking" Order)
+ * Busca la reserva que tiene al profesional ocupado actualmente.
+ * ESTADOS QUE BLOQUEAN: 'confirmed', 'on_route', 'in_progress'.
+ */
+export const fetchActiveProfessionalReservation = async (
+  professionalId: string
+): Promise<Reservation | null> => {
+  console.log("[ZOLVER-DEBUG] Checking for Active Job...", professionalId);
+  console.log(
+    "🔍 [SERVICIO] Buscando trabajo activo para Pro ID:",
+    professionalId
+  );
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      `
+      *,
+      client:user_accounts!reservations_client_id_fkey (
+        auth_uid,
+        legal_name,
+        phone,
+        email
+      )
+    `
+    )
+    .eq("professional_id", professionalId)
+    .in("status", ["confirmed", "on_route", "in_progress"])
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "[ZOLVER-DEBUG] ❌ Error checking active job:",
+      error.message
+    );
+    throw new Error(error.message);
+  }
+
+  console.log(
+    "📦 [SERVICIO] Data Cruda de Supabase:",
+    JSON.stringify(data, null, 2)
+  );
+
+  if (data) {
+    console.log("[ZOLVER-DEBUG] 🔒 Pro is BUSY with Reservation:", data.id);
+    // Asumiendo que tienes esta función importada:
+    return mapReservationFromDTO(data as any);
+  }
+
+  console.log("[ZOLVER-DEBUG] 🔓 Pro is FREE (No active job found).");
+  return null;
+};
+
+/**
+ * 2) FETCH SPECIFIC ORDER (With Security Check)
+ * Obtiene el detalle de una orden específica.
+ * CORRECCIÓN: Ahora trae los datos del CLIENTE también.
+ */
+export const fetchReservationDetailsForPro = async (
+  reservationId: string,
+  professionalId: string
+): Promise<Reservation> => {
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      `
+        *, 
+        professional:professional_id(legal_name),
+        client:user_accounts!reservations_client_id_fkey (
+            legal_name,
+            display_name,
+            phone,
+            avatar_url
+        )
+    `
+    )
+    .eq("id", reservationId)
+    .eq("professional_id", professionalId) // Security check
+    .single();
+
+  if (error) {
+    throw new Error("No se pudo cargar la orden o no te pertenece.");
+  }
+
+  return mapReservationFromDTO(data as any);
+};
+
+/**
+ * 3) CHANGE STATUS (The State Machine)
+ * Maneja las transiciones de estado.
+ */
+export const updateReservationStatusService = async (
+  reservationId: string,
+  professionalId: string,
+  newStatus: "on_route" | "in_progress" | "completed"
+) => {
+  console.log(`[ZOLVER-DEBUG] Updating Status to: ${newStatus}`);
+
+  // A. Actualizar el estado de la reserva
+  const { data, error } = await supabase
+    .from("reservations")
+    .update({
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", reservationId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Error updating status: ${error.message}`);
+  }
+
+  // B. SI EL TRABAJO FINALIZÓ -> LIBERAR AL PROFESIONAL
+  if (newStatus === "completed") {
+    console.log(
+      "[ZOLVER-DEBUG] Job Completed. Attempting to Unlock Professional..."
+    );
+
+    const { error: unlockError } = await supabase
+      .from("professional_profiles")
+      .update({ is_active: true })
+      .eq("user_id", professionalId);
+
+    if (unlockError) {
+      // ESTE ES EL ERROR QUE PROBABLEMENTE ESTÁ OCURRIENDO (RLS)
+      console.error(
+        "[ZOLVER-DEBUG] ⚠️ CRITICAL: Failed to unlock Pro (RLS Error?):",
+        unlockError.message
+      );
+    } else {
+      console.log(
+        "[ZOLVER-DEBUG] ✅ Professional Unlocked successfully (is_active = true)."
+      );
+    }
+  }
+
+  // Retornamos la data mapeada
+  // Nota: mapReservationFromDTO debe estar importado
+  return data;
+};
+
+/**
+ * 4) FETCH ACTIVE RESERVATION (Legacy/Utility)
+ * CORRECCIÓN: Usaba 'client_profiles', cambiado a 'user_accounts' para consistencia con tu DB.
+ */
+export const fetchActiveReservationService = async (professionalId: string) => {
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(
+      `
+        *, 
+        client:user_accounts!reservations_client_id_fkey (
+            legal_name, 
+            display_name, 
+            avatar_url,
+            phone
+        )
+    `
+    )
+    .eq("professional_id", professionalId)
+    .in("status", ["on_route", "in_progress"])
+    .maybeSingle();
+
+  if (error) {
+    console.error("[ZOLVER-DEBUG] Error fetching active job:", error);
+    return null;
+  }
+  return data;
+};
+
+/**
+ * Suscribe al cliente a cambios en la tabla 'reservations' para un profesional específico.
+ * @param professionalId - ID del profesional a escuchar
+ * @param onUpdate - Callback que se ejecuta cuando hay un cambio
+ * @returns El canal de suscripción (para poder cerrarlo después)
+ */
+
+// =============================================================================
+// [REALTIME SUBSCRIPTION] - Production Ready
+// =============================================================================
+export const subscribeToIncomingRequestsService = (
+  professionalId: string,
+  onUpdate: () => void,
+  onConnectionError: (status: string, error?: any) => void
+): RealtimeChannel => {
+  console.log(
+    `🔌 [SERVICE] Iniciando handshake Realtime para Pro: ${professionalId}`
+  );
+
+  const channel = supabase
+    .channel(`room_orders_${professionalId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "reservations",
+        filter: `professional_id=eq.${professionalId}`,
+      },
+      (payload) => {
+        console.log("🔔 [REALTIME] Payload recibido:", payload);
+        onUpdate();
+      }
+    )
+    .subscribe((status, err) => {
+      if (status === "SUBSCRIBED") {
+        console.log("✅ [REALTIME] Canal establecido y seguro.");
+      }
+
+      // Manejo de errores críticos para escalar al Hook
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error(`❌ [REALTIME] Falla crítica (${status}):`, err);
+        onConnectionError(status, err);
+      }
+    });
+
+  return channel;
+};
+
+export const unsubscribeFromChannel = async (channel: RealtimeChannel) => {
+  // Verificamos estado antes de intentar remover para evitar errores basura
+  if (channel && channel.state !== "closed") {
+    console.log("🔌 [SERVICE] Cerrando canal de forma segura.");
+    await supabase.removeChannel(channel);
+  }
+};
+
+// =============================================================================
+// ACCIONES DEL PROFESIONAL
+// =============================================================================
+
+/**
+ * El Profesional RECHAZA el trabajo.
+ * Estado resultante: 'REJECTED'
+ */
+export const rejectReservationByPro = async (
+  reservationId: string,
+  professionalId: string
+) => {
+  const { data, error } = await supabase
+    .from("reservations")
+    .update({
+      status: "canceled_pro",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", reservationId)
+    .eq("professional_id", professionalId) // 🔒 Security Guard: Solo el pro asignado
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// =============================================================================
+// ACCIONES DEL CLIENTE
+// =============================================================================
+
+/**
+ * El Cliente CANCELA la solicitud (antes de que sea aceptada o completada).
+ * Estado resultante: 'CANCELLED'
+ */
+export const cancelReservationByClient = async (
+  reservationId: string,
+  clientId: string
+) => {
+  const { data, error } = await supabase
+    .from("reservations")
+    .update({
+      status: "canceled_client",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", reservationId)
+    .eq("client_id", clientId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 };

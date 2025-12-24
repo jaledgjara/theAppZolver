@@ -1,54 +1,130 @@
-// IncomeChartCard.tsx
-// Chart displayed with the same style as IncomeCard
-
-import { SIZES } from "@/appASSETS/theme";
+import { COLORS } from "@/appASSETS/theme";
 import React from "react";
-import { View, Image, StyleSheet, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 
-const IncomeChartCard = () => {
-  const chartUrl =
-    "https://quickchart.io/chart?width=900&height=420&format=png&backgroundColor=white&c=%7B%22type%22%3A%22line%22%2C%22data%22%3A%7B%22labels%22%3A%5B%22Lun%22%2C%22Mar%22%2C%22Mi%C3%A9%22%2C%22Jue%22%2C%22Vie%22%2C%22S%C3%A1b%22%2C%22Dom%22%5D%2C%22datasets%22%3A%5B%7B%22label%22%3A%22Ingresos%22%2C%22data%22%3A%5B150%2C400%2C320%2C800%2C1200%2C600%2C900%5D%2C%22borderColor%22%3A%22%234A90E2%22%2C%22borderWidth%22%3A3%2C%22tension%22%3A0.35%2C%22pointRadius%22%3A4%2C%22pointBackgroundColor%22%3A%22%234A90E2%22%2C%22pointBorderWidth%22%3A1%2C%22fill%22%3Afalse%7D%5D%7D%2C%22options%22%3A%7B%22plugins%22%3A%7B%22legend%22%3A%7B%22display%22%3Afalse%7D%7D%2C%22scales%22%3A%7B%22x%22%3A%7B%22grid%22%3A%7B%22display%22%3Afalse%7D%2C%22ticks%22%3A%7B%22color%22%3A%22%23777%22%2C%22font%22%3A%7B%22size%22%3A12%7D%7D%7D%2C%22y%22%3A%7B%22beginAtZero%22%3Afalse%2C%22grid%22%3A%7B%22color%22%3A%22rgba(0%2C0%2C0%2C0.05)%22%7D%2C%22ticks%22%3A%7B%22color%22%3A%22%23777%22%2C%22font%22%3A%7B%22size%22%3A12%7D%7D%7D%7D%7D%7D";
+// Interfaz para las props que recibe este componente
+interface ChartDataPoint {
+  label: string;
+  value: number;
+}
+
+interface IncomeChartsProps {
+  data: ChartDataPoint[]; // Ahora recibe datos reales
+}
+
+// Colores del sistema
+const SECONDARY_COLOR = "#f3d681ff";
+
+// Recibimos 'data' como prop, ya NO hay mock data adentro
+const IncomeCharts: React.FC<IncomeChartsProps> = ({ data }) => {
+  // Si no hay datos, manejamos un estado vacío seguro
+  const chartData =
+    data && data.length > 0
+      ? data
+      : [
+          { label: "Sin datos", value: 0 },
+          { label: "Sin datos", value: 0 },
+          { label: "Sin datos", value: 0 },
+        ];
+
+  // 2. Lógica para calcular altura
+  const maxValue = Math.max(...chartData.map((d) => d.value)) || 1; // Evitar división por cero
+  const MAX_BAR_HEIGHT = 150;
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      maximumFractionDigits: 0,
+    });
+  };
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}> Ingresos</Text>
+      <Text style={styles.title}>Rendimiento del Mes</Text>
 
-      <Image
-        source={{ uri: chartUrl }}
-        style={styles.chartImage}
-        resizeMode="contain"
-      />
+      <View style={styles.chartContainer}>
+        {chartData.map((item, index) => {
+          const barHeight =
+            item.value === 0 ? 4 : (item.value / maxValue) * MAX_BAR_HEIGHT;
+
+          const isMax = item.value === maxValue && item.value > 0;
+
+          return (
+            <View key={index} style={styles.barColumn}>
+              <Text
+                style={styles.valueLabel}
+                numberOfLines={1}
+                adjustsFontSizeToFit>
+                {formatCurrency(item.value)}
+              </Text>
+
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    height: barHeight,
+                    backgroundColor: isMax ? COLORS.primary : SECONDARY_COLOR,
+                  },
+                ]}
+              />
+
+              <Text style={styles.periodLabel}>{item.label}</Text>
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
-export default IncomeChartCard;
+export default IncomeCharts;
 
 const styles = StyleSheet.create({
+  // ... (Mantén tus estilos exactamente igual que antes)
   card: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 18,
-    paddingHorizontal: 18,
+    backgroundColor: "#fff",
+    padding: 20,
     borderRadius: 16,
-    marginBottom: 16,
-
-    // Shadow (iOS)
+    marginVertical: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-
-    // Shadow (Android)
-    elevation: 2,
-  },
-
-  chartImage: {
-    width: "100%",
-    height: 250,
-    borderRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: SIZES.h2,
-    fontWeight: '600'
-  }
+    color: "#666",
+    marginBottom: 25,
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  chartContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-end",
+    height: 180,
+  },
+  barColumn: {
+    alignItems: "center",
+    width: "30%",
+    justifyContent: "flex-end",
+  },
+  valueLabel: {
+    marginBottom: 6,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#333",
+    textAlign: "center",
+  },
+  bar: {
+    width: 24,
+    borderRadius: 12,
+  },
+  periodLabel: {
+    marginTop: 8,
+    fontSize: 11,
+    color: "#888",
+    textAlign: "center",
+  },
 });

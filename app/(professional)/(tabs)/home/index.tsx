@@ -6,6 +6,7 @@ import { useProfessionalOnboardingStore } from "@/appSRC/auth/Type/ProfessionalA
 // Importamos las pantallas correspondientes
 import IndexInstantScreen from "@/appSRC/reservations/Screens/Instant/IndexInstantScreen";
 import IndexQuoteScreen from "@/appSRC/reservations/Screens/Quote/IndexQuoteScreen";
+import { useRejectByProfessional } from "@/appSRC/reservations/Hooks/useRejectByProfessional";
 
 const ProfessionalHomeScreen = () => {
   // 1. Obtenemos el tipo de trabajo del Store Global

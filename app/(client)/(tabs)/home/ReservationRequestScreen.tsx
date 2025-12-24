@@ -89,11 +89,8 @@ const ReservationRequestScreen = () => {
       clientId: user.uid,
       professionalId,
       category: categoryName,
-
-      // Pasamos los datos crudos para que el Builder haga la magia
       selectedTags: selectedTags,
-      activeAddress: activeAddress, // <--- Pasamos el objeto completo (tiene coords)
-
+      activeAddress: activeAddress,
       description: description,
       startTime,
       isInstant,

@@ -1,50 +1,41 @@
 import { useState } from "react";
 import { Alert } from "react-native";
-import { useRouter } from "expo-router";
 import { confirmInstantReservationService } from "../Service/ReservationService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 
 export const useConfirmInstantReservation = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { user } = useAuthStore();
-  const router = useRouter();
 
-  const confirmRequest = async (reservationId: string) => {
+  const confirmRequest = async (
+    reservationId: string,
+    onSuccess?: () => void // <--- Callback para refrescar la UI padre
+  ) => {
     if (!user) return;
 
-    setProcessingId(reservationId); // Activa loader específico para esa tarjeta
+    setProcessingId(reservationId);
     console.log(`[ZOLVER-DEBUG] Hook: Aceptando solicitud ${reservationId}...`);
 
     try {
-      // 1. Llamada al Servicio
-      const confirmedReservation = await confirmInstantReservationService(
-        reservationId,
-        user.uid
-      );
+      // 1. Llamada al Servicio (Transacción atómica)
+      await confirmInstantReservationService(reservationId, user.uid);
 
-      // 2. Feedback Inmediato
+      // 2. Ejecutar Callback de éxito
+      // Esto gatilla 'refreshActiveJob()' en IndexInstantScreen, cambiando la vista instantáneamente
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // 3. Feedback Visual simple (sin navegación forzada)
       Alert.alert(
         "¡Trabajo Aceptado!",
-        "Tu estado ha cambiado a 'Ocupado'. Dirígete a la ubicación del cliente.",
-        [
-          {
-            text: "IR AL MAPA (EN CAMINO)",
-            onPress: () => {
-              // 3. Navegación al flujo de ejecución (On Route)
-              router.replace({
-                pathname:
-                  "/(professional)/(tabs)/reservations/ReservationDetailsScreen/[id]",
-                params: { id: confirmedReservation.id },
-              });
-            },
-          },
-        ]
+        "Tu estado ahora es 'Ocupado'. Tienes el control del servicio en pantalla."
       );
     } catch (error: any) {
       console.error("[ZOLVER-DEBUG] Error en Hook:", error);
       Alert.alert(
         "Error",
-        "No se pudo aceptar el trabajo. Es posible que otro profesional lo haya tomado."
+        "No se pudo aceptar el trabajo. Es posible que otro profesional lo haya tomado antes."
       );
     } finally {
       setProcessingId(null);
@@ -53,6 +44,6 @@ export const useConfirmInstantReservation = () => {
 
   return {
     confirmRequest,
-    processingId, // Para mostrar spinner en el botón específico
+    processingId,
   };
 };

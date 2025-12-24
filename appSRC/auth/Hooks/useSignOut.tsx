@@ -4,6 +4,7 @@ import { auth } from "@/APIconfig/firebaseAPIConfig";
 import { useRouter } from "expo-router";
 // 👇 1. IMPORTA TU STORE DE UBICACIÓN
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
+import { Alert } from "react-native";
 
 export const useSignOut = () => {
   const router = useRouter();
@@ -12,7 +13,7 @@ export const useSignOut = () => {
   // 👇 2. OBTÉN LA FUNCIÓN RESET
   const resetLocation = useLocationStore((state) => state.reset);
 
-  const handleSignOut = async () => {
+  const performSignOut = async () => {
     try {
       // A. Cerrar en Firebase
       await signOut(auth);
@@ -30,6 +31,27 @@ export const useSignOut = () => {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  /**
+   * Función pública que dispara la UI de confirmación.
+   */
+  const handleSignOut = () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro de que quieres salir de tu cuenta?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Cerrar Sesión",
+          style: "destructive", // En iOS muestra el texto en rojo
+          onPress: performSignOut,
+        },
+      ]
+    );
   };
 
   return { handleSignOut };

@@ -12,24 +12,21 @@ import type { AuthStatus } from "@/appSRC/auth/Store/AuthStore";
 export function useAuthGuard() {
   const router = useRouter();
   const pathname = usePathname();
-  const segments = useSegments(); // 👈 CLAVE: Nos dice en qué grupo estamos ('(professional)', '(auth)', etc.)
+  const segments = useSegments();
   const navState = useRootNavigationState();
 
   const { status, user, isBootLoading, setTransitionDirection } =
     useAuthStore();
 
   const isNavReady = navState?.key != null;
+
+  // 1. Usamos useRef para recordar el estado anterior y saber si venimos de Welcome
   const prevStatus = useRef<AuthStatus | null>(null);
 
   useEffect(() => {
-    // 1. ANÁLISIS PRELIMINAR
     if (!isNavReady) return;
-
-    // Si está cargando, silencio total (Loading First)
     if (isBootLoading) return;
 
-    // 2. LOGICA DE ZONA SEGURA (Safe Zone Logic)
-    // En lugar de comparar rutas exactas, verificamos si estamos en el "Barrio" correcto.
     const inAuthGroup = segments[0] === "(auth)";
     const inClientGroup = segments[0] === "(client)";
     const inProfessionalGroup = segments[0] === "(professional)";
@@ -49,48 +46,45 @@ export function useAuthGuard() {
       // -----------------------------------------------------------------
       case "unknown":
       case "anonymous":
-      case "preAuth": // 👈 AQUÍ ESTÁ EL CAMBIO
+      case "preAuth":
       case "phoneVerified":
       case "preProfessionalForm":
       case "pendingReview":
       case "rejected":
         if (!inAuthGroup) {
-          // Si te saliste del stack (auth), vuelve.
           target = getTargetForAuthStatus(status);
           direction = "back";
         } else {
-          // Estás en (auth), pero verifiquemos si es la pantalla correcta.
           const expectedPath = getTargetForAuthStatus(status);
           const currentSimple = normalize(pathname);
           const expectedSimple = normalize(expectedPath);
 
-          // 🔥 EXCEPCIÓN CRÍTICA: PERMITIR PANTALLA DE VERIFICACIÓN
-          // Si estoy en 'preAuth' Y en 'PhoneVerificationScreen', ES VÁLIDO.
+          // Excepciones (Verificación Teléfono / Email)
           if (
             status === "preAuth" &&
             currentSimple === "/PhoneVerificationScreen"
-          ) {
-            console.log(
-              "   ✅ [AuthGuard] 'preAuth' en verificación de teléfono. Permitido."
-            );
+          )
             return;
-          }
-
-          // 🔥 EXCEPCIÓN 2: PERMITIR PANTALLA DE EMAIL LINK (Si aplica)
-          if (
-            status === "anonymous" &&
-            currentSimple === "/SignInEmailScreen"
-          ) {
+          if (status === "anonymous" && currentSimple === "/SignInEmailScreen")
             return;
-          }
 
-          // Si no es ninguna excepción y no es el path esperado -> REDIRECT
+          // REDIRECT LOGIC
           if (currentSimple !== expectedSimple) {
             target = expectedPath;
-            direction =
-              status === "anonymous" || status === "unknown"
-                ? "back"
-                : "forward";
+
+            // 👇👇👇 AQUÍ ESTÁ EL CAMBIO CLAVE 👇👇👇
+            if (status === "anonymous") {
+              // Si vengo de "unknown" (Welcome) o es el inicio (null) -> ADELANTE
+              // Si vengo de "preAuth" (me arrepentí y volví) -> ATRÁS
+              const cameFromWelcome =
+                prevStatus.current === "unknown" || prevStatus.current === null;
+              direction = cameFromWelcome ? "forward" : "back";
+            } else if (status === "unknown") {
+              direction = "back"; // Volver a Welcome siempre es back
+            } else {
+              direction = "forward"; // Ir a preAuth, phone, etc. siempre es forward
+            }
+            // 👆👆👆 FIN DEL CAMBIO CLAVE 👆👆👆
           }
         }
         break;
@@ -99,12 +93,10 @@ export function useAuthGuard() {
       // CASO B: CLIENTE AUTENTICADO
       // -----------------------------------------------------------------
       case "authenticated":
-        // Si YA estamos en territorio Cliente, ¡déjalo navegar en paz!
         if (inClientGroup) {
-          // ✅ SAFE ZONE: No hacemos nada, el usuario es libre.
+          prevStatus.current = status; // Actualizamos historial si estamos en zona segura
           return;
         }
-        // Si NO estamos en cliente (ej: está en Login), mándalo a Home.
         target = AUTH_PATHS.authenticated;
         direction = "forward";
         break;
@@ -113,29 +105,31 @@ export function useAuthGuard() {
       // CASO C: PROFESIONAL AUTENTICADO
       // -----------------------------------------------------------------
       case "authenticatedProfessional":
-        // Si YA estamos en territorio Profesional, ¡libertad!
         if (inProfessionalGroup) {
-          // ✅ SAFE ZONE: No hacemos nada.
-          console.log("   ✅ [AuthGuard] Professional in Safe Zone. Allowed.");
+          prevStatus.current = status; // Actualizamos historial si estamos en zona segura
           return;
         }
-        // Si está perdido, mándalo a su Home.
         target = AUTH_PATHS.authenticatedProfessional;
         direction = "forward";
         break;
     }
 
-    // 3. EJECUCIÓN DE REDIRECCIÓN (Si target != null)
+    // 3. EJECUCIÓN DE REDIRECCIÓN
     if (target) {
       console.log(`🚀 [AuthGuard] REDIRECT -> ${target} (${direction})`);
       setTransitionDirection(direction);
 
-      // Pequeño delay para estabilidad
+      // Guardamos el status actual como "previo" antes de saltar
+      prevStatus.current = status;
+
       requestAnimationFrame(() => {
         router.replace(target as any);
       });
+    } else {
+      // Si no hubo redirección, también actualizamos el historial para la próxima vez
+      prevStatus.current = status;
     }
-  }, [isNavReady, isBootLoading, status, pathname, segments]); // Agregamos segments a dep
+  }, [isNavReady, isBootLoading, status, pathname, segments]);
 }
 
 // Helpers locales
@@ -149,9 +143,6 @@ function normalize(p: string) {
 }
 
 function getTargetForAuthStatus(status: string): string {
-  // Usamos tu mapa AUTH_PATHS existente, pero manejamos la lógica aquí para claridad
-  // Nota: Asegúrate de que AUTH_PATHS tenga todas las claves o usa un switch/map aquí.
-  // Usaremos AUTH_PATHS directo como en tu código original:
   return AUTH_PATHS[status] ?? AUTH_PATHS.unknown;
 }
 
