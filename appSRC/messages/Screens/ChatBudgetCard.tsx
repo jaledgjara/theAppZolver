@@ -3,32 +3,26 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { BudgetMessage } from "../Type/MessageType";
+import { mapStatusToUI } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 
 export interface Props {
   message: BudgetMessage;
-  onPress?: () => void; // El padre nos pasará la función de navegación
+  onPress?: () => void;
 }
 
 export const ChatBudgetCard = ({ message, onPress }: Props) => {
   const { data, isMine } = message;
+
+  if (!data) return null;
   const { serviceName, price, currency, proposedDate, status, notes } = data;
 
-  // 1. Helper para colores
-  const getStatusColor = () => {
-    switch (status) {
-      case "accepted":
-        return "#10B981";
-      case "rejected":
-        return "#EF4444";
-      case "expired":
-        return "#9CA3AF";
-      default:
-        return "#F59E0B";
-    }
-  };
-
-  const statusColor = getStatusColor();
+  // Helper visual
+  const uiState = mapStatusToUI(status);
   const dateObj = new Date(proposedDate);
+
+  // ✅ CRÍTICO: El botón solo aparece si el estado es EXACTAMENTE 'pending_approval'
+  // Si el backend actualizó a 'confirmed', esto será false y el botón desaparecerá.
+  const showActionButtons = status === "pending_approval";
 
   return (
     <View
@@ -36,11 +30,12 @@ export const ChatBudgetCard = ({ message, onPress }: Props) => {
         styles.wrapper,
         isMine ? styles.wrapperMine : styles.wrapperOther,
       ]}>
-      {/* Header */}
-      <View style={[styles.header, { borderLeftColor: statusColor }]}>
+      {/* Header con color dinámico */}
+      <View style={[styles.header, { borderLeftColor: uiState.color }]}>
         <View style={styles.headerTopRow}>
-          <Text style={[styles.statusText, { color: statusColor }]}>
-            {status === "pending" ? "PROPUESTA" : status.toUpperCase()}
+          <Text style={[styles.statusText, { color: uiState.color }]}>
+            {/* Asegúrate de usar .label o .text según tu helper */}
+            {uiState.label?.toUpperCase() || uiState.text?.toUpperCase()}
           </Text>
         </View>
         <Text style={styles.serviceName}>{serviceName}</Text>
@@ -59,12 +54,11 @@ export const ChatBudgetCard = ({ message, onPress }: Props) => {
         )}
       </View>
 
-      {/* Footer Accionable */}
-      {/* Solo mostramos el botón si está pendiente y tenemos un onPress */}
-      {status === "pending" && onPress && (
+      {/* Footer Accionable - Desaparece al confirmar */}
+      {showActionButtons && onPress && (
         <Pressable
           style={styles.footer}
-          onPress={onPress} // <--- AQUÍ SE EJECUTA LA MAGIA QUE VIENE DEL PADRE
+          onPress={onPress}
           android_ripple={{ color: "#EEE" }}>
           <Text style={styles.footerText}>Ver y Aceptar Presupuesto</Text>
           <MaterialCommunityIcons

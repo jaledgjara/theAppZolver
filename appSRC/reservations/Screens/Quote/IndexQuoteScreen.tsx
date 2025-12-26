@@ -1,38 +1,28 @@
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import { StyleSheet, Text, View, FlatList, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
-import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS, FONTS } from "@/appASSETS/theme";
-import QuoteRequestCard from "@/appCOMP/cards/QuoteRequestCard"; // O usar ReservationCard si prefieres
-import { useProConfirmedWorks } from "@/appSRC/reservations/Hooks/useProConfirmedWorks"; // Importar el Hook nuevo
+
+// Hook
+import { useProConfirmedWorks } from "@/appSRC/reservations/Hooks/useProConfirmedWorks";
+
+// UI Components
+import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
 const IndexQuoteScreen = () => {
   const router = useRouter();
-
-  // 1. INYECCIÓN DEL HOOK (Lógica de Negocio)
   const { works, loading, refreshing, onRefresh } = useProConfirmedWorks();
 
-  // 2. Handler de Navegación
-  const handlePressWork = (workId: string) => {
-    console.log("[ZOLVER-DEBUG] Navigating to Work Detail:", workId);
-    // Navegar al detalle de la reserva confirmada
+  const handlePressWork = (reservationId: string) => {
     router.push({
       pathname:
-        "/(professional)/(tabs)/reservations/ReservationDetailsScreen/[id]", // Ajustar ruta real
-      params: { id: workId },
+        "/(professional)/(tabs)/reservations/ReservationDetailsScreen/[id]",
+      params: { id: reservationId },
     });
   };
 
-  // Header dinámico
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.statsCard}>
@@ -59,29 +49,56 @@ const IndexQuoteScreen = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          // En IndexQuoteScreen.tsx dentro del FlatList renderItem
+          renderItem={({ item }) => {
+            // --- [DEBUG-UI] TRAZA DE RENDERIZADO ---
+            // console.log(`[DEBUG-UI] Rendering Item ${item.id}`);
+            // console.log(`[DEBUG-UI] StartDate Type:`, typeof item.schedule.startDate);
+            // console.log(`[DEBUG-UI] StartDate Value:`, item.schedule.startDate);
 
-          renderItem={({ item }) => (
-            <QuoteRequestCard
-              // 1. Desestructuración de props (Flat Props)
-              category={item.serviceCategory || "Servicio"}
-              description={item.title}
-              clientName="Cliente Zolver" // O item.client?.full_name si ya hiciste el join
-              date={
-                item.schedule?.startDate
-                  ? new Date(item.schedule.startDate).toLocaleString()
-                  : "Fecha por definir"
-              }
-              status="Confirmado" // Ahora es válido gracias al paso 1
-              // 2. Nombre correcto de la función
-              onViewDetails={() => handlePressWork(item.id)}
-            />
-          )}
+            // A. Lógica de Fecha Segura
+            let dateStr = "A coordinar";
+            let timeStr = "";
+            const dateObj = item.schedule.startDate;
+
+            if (dateObj && !isNaN(dateObj.getTime())) {
+              dateStr = dateObj.toLocaleDateString("es-AR", {
+                day: "numeric",
+                month: "long",
+              });
+              timeStr = dateObj.toLocaleTimeString("es-AR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            } else {
+              // Logueamos solo si falla la fecha para no saturar consola
+              console.warn(
+                `[DEBUG-UI] ⚠️ Item ${item.id} tiene fecha nula o inválida.`
+              );
+            }
+
+            const price =
+              item.financials.priceFinal > 0
+                ? `$${item.financials.priceFinal.toLocaleString("es-AR")}`
+                : "A cotizar";
+
+            return (
+              <ReservationCard
+                id={item.id}
+                serviceName={item.title || "Servicio"}
+                counterpartName={item.client?.name || "Cliente Zolver"}
+                status={item.status}
+                date={dateStr}
+                time={timeStr}
+                price={price}
+                onPress={() => handlePressWork(item.id)}
+              />
+            );
+          }}
           ListEmptyComponent={
             <StatusPlaceholder
-              icon="inbox"
+              icon="calendar-outline"
               title="Sin trabajos confirmados"
-              subtitle="Tus reservas aceptadas aparecerán aquí para gestionar la ejecución."
+              subtitle="Tus reservas aceptadas aparecerán aquí."
             />
           }
         />
@@ -93,7 +110,7 @@ const IndexQuoteScreen = () => {
 export default IndexQuoteScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "WHITE" },
+  container: { flex: 1, backgroundColor: COLORS.white },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   headerContainer: { marginTop: 20, marginBottom: 10 },
@@ -126,11 +143,4 @@ const styles = StyleSheet.create({
   },
   statsLabel: { ...FONTS.h3, color: COLORS.textPrimary, fontWeight: "700" },
   statsSubLabel: { ...FONTS.body4, color: COLORS.textSecondary },
-  emptyContainer: { alignItems: "center", marginTop: 40, padding: 20 },
-  emptyText: { ...FONTS.h3, color: COLORS.textSecondary, marginBottom: 8 },
-  emptySubText: {
-    ...FONTS.body4,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
 });

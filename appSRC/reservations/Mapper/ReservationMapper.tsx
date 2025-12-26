@@ -4,57 +4,85 @@ import {
 } from "@/appSRC/reservations/Type/ReservationType";
 
 /**
- * Parsea el string de rango de Postgres "[start,end)" a objetos Date de JS
+ * [DEBUG] Helper para limpiar fechas de Postgres
  */
-const parseRange = (rangeStr: string): { start: Date; end: Date } => {
-  if (!rangeStr) {
-    return { start: new Date(), end: new Date() };
+const fixPostgresDateStr = (dateStr: string): Date | null => {
+  if (!dateStr) return null;
+
+  try {
+    // Logueamos la entrada para ver qué formato extraño trae
+    // console.log(`[DEBUG-MAPPER] Fixing Date Str: '${dateStr}'`);
+
+    let clean = dateStr.replace(/['"]/g, "").trim();
+    clean = clean.replace(" ", "T");
+    if (clean.endsWith("+00")) {
+      clean = clean.replace("+00", "Z");
+    }
+
+    const date = new Date(clean);
+    const isValid = !isNaN(date.getTime());
+
+    if (!isValid) {
+      console.error(`[DEBUG-MAPPER] ❌ Fecha Inválida tras fix: ${clean}`);
+      return null;
+    }
+
+    return date;
+  } catch (e) {
+    console.error(`[DEBUG-MAPPER] 💥 Error en fixPostgresDateStr:`, e);
+    return null;
+  }
+};
+
+const parseRange = (
+  rangeStr: string
+): { start: Date | null; end: Date | null } => {
+  // 1. Logs de entrada
+  // console.log(`[DEBUG-MAPPER] Parsing Range Raw: ${rangeStr}`);
+
+  if (!rangeStr || rangeStr === "empty") {
+    console.warn("[DEBUG-MAPPER] ⚠️ Rango 'empty' o null detectado.");
+    return { start: null, end: null };
   }
 
-  // 1. Clean the string: remove [, ), ", and \ characters
-  const cleanStr = rangeStr.replace(/[\[\]()"\\]/g, "");
+  try {
+    const cleanStr = rangeStr.replace(/[\[\]\(\)\"\\]/g, "");
+    const parts = cleanStr.split(","); // [start, end]
 
-  // 2. Split by comma
-  const parts = cleanStr.split(",");
+    const start = parts[0] ? fixPostgresDateStr(parts[0]) : null;
+    const end = parts[1] ? fixPostgresDateStr(parts[1]) : null;
 
-  // 3. Parse dates. If split fails, return current date to avoid "Invalid Date"
-  const start = parts[0] ? new Date(parts[0]) : new Date();
-  const end = parts[1] ? new Date(parts[1]) : new Date();
-
-  return { start, end };
+    return { start, end };
+  } catch (e) {
+    console.error("[DEBUG-MAPPER] ❌ Error parseando rango:", rangeStr);
+    return { start: null, end: null };
+  }
 };
 
 export const mapReservationFromDTO = (dto: ReservationDTO): Reservation => {
-  // 1. Fix Time Range
+  // --- TRAZA DE MAPEO ---
+  // console.log(`[DEBUG-MAPPER] Mapeando ID: ${dto.id}`);
+
   const { start, end } = parseRange(dto.scheduled_range);
 
-  // 2. Location Parsing
+  // Mapeos auxiliares
   const coords = dto.address_coords
     ? { latitude: dto.address_coords.y, longitude: dto.address_coords.x }
     : undefined;
-  // 3. 🛠 FIX 1: Mapping correct names from DB relations
-  // We explicitly map 'legal_name' from the DB to 'name' for the Domain Entity
+
   const clientObj = dto.client
     ? {
         id: dto.client_id,
-        name: dto.client.legal_name || "Cliente Sin Nombre", // Map legal_name -> name
-        avatar: dto.client.avatar_url,
+        name: dto.client.legal_name || "Cliente",
+        avatar: undefined, // Sin avatar_url por ahora
       }
     : undefined;
 
   const professionalObj = dto.professional
     ? {
         id: dto.professional_id,
-        name: dto.professional.legal_name || "Profesional Zolver", // Map legal_name -> name
+        name: dto.professional.legal_name || "Profesional",
         avatar: dto.professional.avatar_url,
-      }
-    : undefined;
-
-  // 4. Safe Client Parsing (Aquí es donde ocurría tu error anterior)
-  // Ahora mapeamos 'legal_name' (DB) a 'legalName' (UI)
-  const clientData = dto.client
-    ? {
-        legal_name: dto.client.legal_name || "Cliente", // Fallback seguro
       }
     : undefined;
 
@@ -63,34 +91,25 @@ export const mapReservationFromDTO = (dto: ReservationDTO): Reservation => {
     title: dto.title || "Servicio",
     clientId: dto.client_id,
     professionalId: dto.professional_id,
-
+    status: dto.status as any,
     serviceCategory: dto.service_category,
     serviceModality: dto.service_modality,
-
     description: dto.description || "",
-
-    // 📍 UBICACIÓN
     location: {
-      street: dto.address_display || "Ubicación registrada",
+      street: dto.address_display || "Ubicación",
       number: "",
       coordinates: coords,
     },
-
     schedule: {
       startDate: start,
       endDate: end,
     },
-
     financials: {
       currency: "ARS",
       priceEstimated: Number(dto.price_estimated) || 0,
       priceFinal: Number(dto.price_final) || 0,
       platformFee: Number(dto.platform_fee) || 0,
     },
-
-    status: dto.status as any, // Cast a ReservationStatusDTO
-
-    // Pass the objects explicitly
     client: clientObj,
     professional: professionalObj,
   };

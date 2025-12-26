@@ -1,77 +1,79 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { MessageService } from "../Service/MessageService";
-import { ChatMessage, BudgetPayload } from "../Type/MessageType";
-import { mapMessageDTOToDomain } from "../Mapper/MessageMapper"; // Necesitamos importar el mapper
-import { Alert } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/appSRC/services/supabaseClient";
+import { ChatMessage, MessageDTO } from "../Type/MessageType";
 
-export const useMessages = (conversationId: string, partnerId: string) => {
-  const user = useAuthStore((state) => state.user);
+export const useMessages = (conversationId: string, professionalId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const subscriptionRef = useRef<any>(null);
 
-  // 1. CARGAR HISTORIAL Y SUSCRIBIRSE
-  useEffect(() => {
-    let isMounted = true;
-    const initChat = async () => {
-      if (!user?.uid || !conversationId) return;
+  // 1. Fetch de Mensajes (Lo necesitamos fuera para poder exportarlo)
+  const fetchMessages = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
 
-      try {
-        setLoading(true);
-        const history = await MessageService.getMessages(
-          conversationId,
-          user.uid
-        );
+      if (error) throw error;
 
-        if (isMounted) {
-          setMessages(history);
-          setLoading(false);
-        }
-
-        // B. Conectar Realtime
-        if (subscriptionRef.current) subscriptionRef.current.unsubscribe();
-
-        subscriptionRef.current = MessageService.subscribeToConversation(
-          conversationId,
-          user.uid,
-          (newMsgDomain) => {
-            // 🛡️ FILTRO ANTI-DUPLICADOS (Efecto Eco)
-            // Si llega un mensaje que es MÍO, verificamos si ya lo tenemos en la lista.
-            // Esto evita que salga doble cuando llega la confirmación del servidor.
-            if (newMsgDomain.isMine) {
-              setMessages((prev) => {
-                // Si ya existe un mensaje con ese ID real, ignoramos el evento
-                const exists = prev.some((m) => m.id === newMsgDomain.id);
-                if (exists) return prev;
-                return [...prev, newMsgDomain];
-              });
-            } else {
-              // Si es del OTRO, lo agregamos siempre
-              setMessages((prev) => [...prev, newMsgDomain]);
-            }
+      // Mapeo a Entidades de Dominio
+      const parsedMessages: ChatMessage[] = (data as MessageDTO[]).map(
+        (msg) => {
+          // Mapeo para Texto
+          if (msg.type === "text") {
+            return {
+              id: msg.id,
+              conversationId: msg.conversation_id,
+              createdAt: new Date(msg.created_at),
+              isMine: msg.sender_id !== professionalId,
+              isRead: msg.is_read,
+              type: "text",
+              data: { text: msg.content || "" }, // ✅ Estructura Correcta
+            };
           }
-        );
-      } catch (error) {
-        console.error("Error init chat:", error);
-        if (isMounted) setLoading(false);
-      }
-    };
+          // Mapeo para Presupuesto
+          if (msg.type === "budget") {
+            return {
+              id: msg.id,
+              conversationId: msg.conversation_id,
+              createdAt: new Date(msg.created_at),
+              isMine: msg.sender_id !== professionalId,
+              isRead: msg.is_read,
+              type: "budget",
+              data: msg.payload,
+            };
+          }
+          // ... (otros tipos)
+          return { ...msg } as any;
+        }
+      );
 
-    initChat();
+      setMessages(parsedMessages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [conversationId, professionalId]);
 
-    return () => {
-      isMounted = false;
-      if (subscriptionRef.current) subscriptionRef.current.unsubscribe();
-    };
-  }, [conversationId, user?.uid]);
+  // Carga inicial
+  useEffect(() => {
+    fetchMessages();
+
+    // Aquí iría la suscripción a Realtime...
+  }, [fetchMessages]);
 
   // 2. FUNCIÓN PARA ENVIAR TEXTO (OPTIMISTIC UI 🚀)
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || !user?.uid) return;
+      // Necesitamos el ID del usuario actual (mock o desde store)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!text.trim() || !user?.id) return;
 
-      // 1. CREAR MENSAJE TEMPORAL (Falso)
+      // A. Optimistic Update (CORREGIDO ERROR 1)
       const tempId = `temp-${Date.now()}`;
       const optimisticMsg: ChatMessage = {
         id: tempId,
@@ -80,55 +82,40 @@ export const useMessages = (conversationId: string, partnerId: string) => {
         isMine: true,
         isRead: false,
         type: "text",
-        text: text,
+        // ✅ CORRECCIÓN: Envolvemos en 'data' según la interfaz TextMessage
+        data: {
+          text: text,
+        },
       };
 
-      try {
-        // 2. AGREGAR A LA UI INMEDIATAMENTE (Sin esperar)
-        setMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev) => [...prev, optimisticMsg]);
 
-        // 3. ENVIAR AL SERVIDOR
-        const realDto = await MessageService.sendTextMessage(
-          conversationId,
-          user.uid,
-          partnerId,
-          text
-        );
+      // B. Envío real a Supabase
+      const { error } = await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        receiver_id: professionalId,
+        type: "text",
+        content: text,
+        payload: {}, // Payload vacío para texto
+      });
 
-        // 4. REEMPLAZAR EL TEMPORAL POR EL REAL
-        // Mapeamos el DTO real a dominio
-        const realMsgDomain = mapMessageDTOToDomain(realDto, user.uid);
-
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === tempId ? realMsgDomain : msg))
-        );
-      } catch (error) {
-        console.error(error);
-        Alert.alert("Error", "No se entregó el mensaje");
-        // Rollback: Si falla, borramos el mensaje temporal
-        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      if (error) {
+        console.error("Error sending message:", error);
+        // Rollback si falla (filtrar el optimista)
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      } else {
+        // Refrescar para obtener el ID real (o reemplazar in-place)
+        fetchMessages();
       }
     },
-    [conversationId, user?.uid, partnerId]
+    [conversationId, professionalId, fetchMessages]
   );
 
-  // 3. FUNCIÓN PARA ENVIAR PRESUPUESTO (Igual que antes)
-  const sendBudget = useCallback(
-    async (budgetData: BudgetPayload) => {
-      if (!user?.uid) return;
-      try {
-        await MessageService.sendBudgetProposal(
-          conversationId,
-          user.uid,
-          partnerId,
-          budgetData
-        );
-      } catch (error) {
-        Alert.alert("Error", "Falló el envío del presupuesto");
-      }
-    },
-    [conversationId, user?.uid, partnerId]
-  );
-
-  return { messages, loading, sendMessage, sendBudget };
+  return {
+    messages,
+    loading,
+    sendMessage,
+    refreshMessages: fetchMessages,
+  };
 };

@@ -1,21 +1,25 @@
 import { Address } from "@/appSRC/location/Type/LocationType";
 import { ReservationPayload } from "../Type/ReservationType";
 import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
-// ✅ Correct Import based on your snippet
+
+// Función helper local (o impórtala si la tienes en otro archivo)
+const getTodayRangeString = (): string => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0); // Inicio del día local
+  const end = new Date();
+  end.setHours(23, 59, 59, 999); // Fin del día local
+  // Formato estricto para Postgres: ["ISO","ISO")
+  return `[${start.toISOString()},${end.toISOString()})`;
+};
 
 export interface BuilderInput {
-  // Common Data
   clientId: string;
   professionalId: string;
   category: string;
   isInstant: boolean;
   startTime: Date;
   pricePerHour: number;
-
-  // Location Data (From Store)
   activeAddress?: Address | null;
-
-  // Variable Data
   selectedTags?: ServiceTag[];
   title?: string;
   description?: string;
@@ -25,107 +29,71 @@ export interface BuilderInput {
 export const buildReservationPayload = (
   input: BuilderInput
 ): ReservationPayload => {
-  // =================================================================
-  // 1. LOGICA DE TÍTULO (Restaurada)
-  // =================================================================
+  // 1. LÓGICA DE TÍTULO
   let finalTitle = input.title || "Servicio General";
   if (!input.title && input.selectedTags && input.selectedTags.length > 0) {
-    // Si no hay título manual, usamos los tags (ej: "Plomería, Destape")
     finalTitle = input.selectedTags.map((t) => t.label).join(", ");
   }
-  console.log("🏗️ [BUILDER] Input PricePerHour:", input.pricePerHour);
-  console.log("🏗️ [BUILDER] Is Instant?:", input.isInstant);
-  // =================================================================
-  // 2. LOGICA DE DIRECCIÓN Y COORDENADAS (Restaurada)
-  // =================================================================
+
+  // 2. LÓGICA DE DIRECCIÓN
   let finalAddress = "Ubicación a coordinar";
   let finalCoordsStr: string | undefined = undefined;
 
   if (input.activeAddress) {
-    const { address_street, address_number, floor, apartment, coords } =
-      input.activeAddress;
-
-    // String legible para la UI
+    const { address_street, address_number, coords } = input.activeAddress;
     finalAddress = `${address_street} ${address_number}`;
-    if (floor || apartment) {
-      finalAddress += ` (Piso ${floor || "-"} ${apartment || ""})`;
-    }
-
-    // Formato Point para Postgres (Longitude, Latitude)
-    // Importante: Postgres usa (x, y) = (lng, lat)
     if (coords && coords.lng !== undefined && coords.lat !== undefined) {
       finalCoordsStr = `(${coords.lng},${coords.lat})`;
     }
-    console.log("🏗️ [BUILDER] Input PricePerHour:", input.pricePerHour);
-    console.log("🏗️ [BUILDER] Is Instant?:", input.isInstant);
   }
 
   // =================================================================
-  // 3. LOGICA DE TIEMPO (Restaurada)
+  // 3. LÓGICA DE TIEMPO (CORREGIDA)
   // =================================================================
-  // MVP: Bloques de 2 horas por defecto
-  const endTime = new Date(input.startTime);
-  endTime.setHours(endTime.getHours() + 2);
+  let rangeString: string;
 
-  // =================================================================
-  // 4. LOGICA DE ESTADO (CRÍTICO: Fix de Visibilidad)
-  // =================================================================
-  // Instant -> pending_approval (visible en inbox)
-  // Quote -> quoting (visible en inbox o chat)
+  if (input.isInstant) {
+    // CASO INSTANT: Usamos tu lógica de "Todo el día de hoy"
+    rangeString = getTodayRangeString();
+  } else {
+    // CASO QUOTE / AGENDADO: Usamos la hora seleccionada + 2 horas
+    const start = input.startTime || new Date(); // Protección contra null
+    const end = new Date(start);
+    end.setHours(end.getHours() + 2);
+    rangeString = `[${start.toISOString()},${end.toISOString()})`;
+  }
+
+  // LOG DE SEGURIDAD (Míralo en la consola al crear)
+  console.log("🏗️ [BUILDER] Generated Range:", rangeString);
+
+  // 4. PRECIOS Y ESTADO
   const initialStatus = input.isInstant ? "pending_approval" : "quoting";
-
-  // =================================================================
-  // 5. LOGICA DE PRECIOS
-  // =================================================================
   const calculatedPrice = input.isInstant
-    ? input.pricePerHour // Instant: 2 horas fijas
-    : input.proposedPrice || 0; // Quote: Propuesta del cliente o 0
+    ? input.pricePerHour
+    : input.proposedPrice || 0;
 
-  // =================================================================
-  // 6. CONSTRUCCIÓN DEL PAYLOAD (RETURN)
-  // =================================================================
+  // 5. PAYLOAD FINAL
   const payload: ReservationPayload = {
     client_id: input.clientId,
     professional_id: input.professionalId,
-
     service_category: input.category,
     service_modality: input.isInstant ? "instant" : "quote",
-
-    // Fix Error 1: Falta currency
     currency: "ARS",
-
-    // Fix Error de Status
     status: initialStatus,
-
     service_tags: input.selectedTags || [],
-
-    // Fix Error 2: Variables restauradas
     title: finalTitle,
     description: input.description || "",
-
-    // Fix Error 3: Variables restauradas
     address_street: finalAddress,
     address_number: input.activeAddress?.address_number || "",
-
-    // Fix Error 4: Variables restauradas
     address_coords: finalCoordsStr,
 
-    // Fix Error 5: endTime restaurado
-    scheduled_range: `[${input.startTime.toISOString()},${endTime.toISOString()})`,
+    // AQUÍ VA EL RANGO CORRECTO
+    scheduled_range: rangeString,
 
-    // Financials
     price_estimated: calculatedPrice,
     price_final: calculatedPrice,
     platform_fee: 0,
   };
-  console.log("🏗️ [BUILDER] Input PricePerHour:", input.pricePerHour);
-  console.log("🏗️ [BUILDER] Is Instant?:", input.isInstant);
-  // [ZOLVER-DEBUG] Logs para trazabilidad
-  console.log("\n--- [ZOLVER-DEBUG] 01: BUILDER PAYLOAD ---");
-  console.log("Modality:", payload.service_modality);
-  console.log("Status Asignado:", payload.status);
-  console.log("Coords:", payload.address_coords);
-  console.log("------------------------------------------\n");
 
   return payload;
 };

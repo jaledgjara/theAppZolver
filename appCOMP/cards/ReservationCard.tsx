@@ -5,14 +5,7 @@ import { COLORS } from "@/appASSETS/theme";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
 // Asumo que este helper existe según tu código anterior
 import { getStatusConfig } from "../../appSRC/reservations/Helper/MapStatusToUIClient";
-
-export type ReservationStatus =
-  | "pending"
-  | "confirmed"
-  | "on_route"
-  | "in_progress"
-  | "finalized"
-  | "canceled";
+import { ReservationStatusDTO } from "@/appSRC/reservations/Type/ReservationType";
 
 export interface ReservationCardProps {
   id: string;
@@ -20,7 +13,7 @@ export interface ReservationCardProps {
   serviceName: string;
   date: string;
   time: string;
-  status: ReservationStatus;
+  status: ReservationStatusDTO;
   price?: string;
   avatar?: any; // Hecho opcional por si acaso
   onPress?: () => void;

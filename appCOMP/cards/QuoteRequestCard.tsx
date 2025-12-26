@@ -1,177 +1,152 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS } from "@/appASSETS/theme"; // Asumiendo imports del theme
-import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { COLORS, FONTS } from "@/appASSETS/theme";
+import { BaseCard } from "@/appCOMP/cards/BaseCard";
+// Helpers de Estado
+import {
+  getStatusConfig,
+  mapStatusToUI,
+} from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { ReservationStatusDTO } from "@/appSRC/reservations/Type/ReservationType";
 
 export interface QuoteRequestCardProps {
-  clientName: string;
-  category: string;
-  description: string; // Ej: "Instalación eléctrica"
-  date: string;
-  status: "Pendiente" | "Enviado" | "Rechazado" | "Confirmado";
-  onViewDetails: () => void;
+  id: string;
+  counterpartName: string; // Nombre del Cliente
+  serviceName: string; // Título del trabajo
+  date: string; // Fecha formateada
+  time: string; // Hora formateada
+  status: ReservationStatusDTO; // Estado crudo de la DB (DTO)
+  price?: string;
+  onPress?: () => void;
 }
 
-const QuoteRequestCard = ({
-  clientName,
-  category,
-  description,
+const QuoteRequestCard: React.FC<QuoteRequestCardProps> = ({
+  counterpartName,
+  serviceName,
   date,
+  time,
   status,
-  onViewDetails,
-}: QuoteRequestCardProps) => {
-  // 1. Lógica de Colores de Estado (Helper)
-  const getStatusColor = () => {
-    switch (status) {
-      case "Pendiente":
-        return "#FFC107"; // Amarillo (Atención requerida)
-      case "Confirmado":
-        return "#4CAF50"; // Verde (Éxito/Trabajo Activo)
-      case "Rechazado":
-        return "#EF4444"; // Rojo (Descartado)
-      case "Enviado":
-        return COLORS.primary; // Azul/Primary (Esperando respuesta)
-      default:
-        return COLORS.primary;
-    }
-  };
-
-  // 2. Lógica de Texto del Botón (UX)
-  const getButtonTitle = () => {
-    if (status === "Confirmado") return "VER DETALLES DEL TRABAJO";
-    if (status === "Enviado") return "VER PRESUPUESTO";
-    return "VER DETALLE";
-  };
+  price,
+  onPress,
+}) => {
+  // 1. Mapeo Centralizado: DTO -> UI Status -> Color Config
+  const uiStatus = mapStatusToUI(status);
+  const statusInfo = getStatusConfig(uiStatus);
 
   return (
-    <View style={styles.cardContainer}>
-      {/* HEADER: Categoría y Fecha */}
+    <BaseCard onPress={onPress}>
+      {/* --- HEADER: Título y Estado --- */}
       <View style={styles.header}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{category}</Text>
-        </View>
-        <Text style={styles.dateText}>{date}</Text>
-      </View>
-
-      {/* BODY: Información Principal */}
-      <View style={styles.body}>
-        <Text style={styles.descriptionText} numberOfLines={2}>
-          {description}
+        <Text style={styles.serviceTitle} numberOfLines={2}>
+          {serviceName}
         </Text>
 
-        <View style={styles.clientRow}>
-          <Ionicons
-            name="person-circle-outline"
-            size={20}
-            color={COLORS.textSecondary}
-          />
-          <Text style={styles.clientText}>Cliente: {clientName}</Text>
-        </View>
-
-        {/* Estado Badge */}
-        <View style={styles.statusContainer}>
-          <View
-            style={[styles.statusDot, { backgroundColor: getStatusColor() }]}
-          />
-          <Text style={[styles.statusText, { color: getStatusColor() }]}>
-            {status.toUpperCase()}
+        {/* Badge de Estado Dinámico */}
+        <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
+          <Text style={[styles.badgeText, { color: statusInfo.color }]}>
+            {statusInfo.text}
           </Text>
         </View>
       </View>
 
-      {/* FOOTER: Acciones */}
-      <View style={styles.footer}>
-        <LargeButton title={getButtonTitle()} onPress={onViewDetails} />
+      <View style={styles.divider} />
+
+      {/* --- BODY: Cliente y Fecha --- */}
+      <View style={styles.body}>
+        {/* Fila Cliente */}
+        <View style={styles.row}>
+          <Ionicons
+            name="person-circle-outline"
+            size={18}
+            color={COLORS.textSecondary}
+          />
+          <Text style={styles.infoText} numberOfLines={1}>
+            {counterpartName}
+          </Text>
+        </View>
+
+        {/* Fila Meta (Fecha y Precio) */}
+        <View style={styles.metaRow}>
+          <View style={styles.row}>
+            <Ionicons
+              name="calendar-outline"
+              size={16}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.smallText}>
+              {date} • {time}
+            </Text>
+          </View>
+
+          {/* Precio condicional */}
+          {price && <Text style={styles.price}>{price}</Text>}
+        </View>
       </View>
-    </View>
+    </BaseCard>
   );
 };
 
 export default QuoteRequestCard;
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB", // gray-200
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    marginBottom: 12,
+    gap: 8,
+  },
+  serviceTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    lineHeight: 22,
+  },
+  badge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#F3F4F6", // gray-100
     marginBottom: 12,
   },
-  categoryBadge: {
-    backgroundColor: "#F3F4F6", // gray-100
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  categoryText: {
-    ...FONTS.body4,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    fontSize: 10,
-  },
-  dateText: {
-    ...FONTS.body4,
-    color: COLORS.textSecondary,
-  },
   body: {
-    marginBottom: 16,
+    gap: 8,
   },
-  descriptionText: {
-    ...FONTS.h3,
-    color: COLORS.textPrimary,
-    fontWeight: "bold",
-    marginBottom: 8,
-    fontSize: 18,
-  },
-  clientRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
     gap: 6,
   },
-  clientText: {
-    ...FONTS.body3,
-    color: COLORS.textSecondary,
-  },
-  statusContainer: {
+  metaRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#FFFBEB", // Fondo amarillo muy claro para resaltar pendiente
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
     marginTop: 4,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+  infoText: {
+    ...FONTS.body3,
+    color: COLORS.textPrimary,
+    fontWeight: "500",
+    flex: 1,
   },
-  statusText: {
+  smallText: {
     ...FONTS.body4,
-    color: "#B45309", // Color oscuro para contraste en amarillo
-    fontWeight: "bold",
-    fontSize: 12,
+    color: COLORS.textSecondary,
   },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: 12,
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.primary,
   },
 });

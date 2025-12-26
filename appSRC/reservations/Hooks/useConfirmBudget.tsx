@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { confirmBudgetService } from "../Service/ReservationService";
-import { supabase } from "@/appSRC/services/supabaseClient";
+import { updateBudgetMessageStatusService } from "@/appSRC/messages/Service/MessageService";
+// ✅ Importamos ambas funciones del servicio
 
 export const useConfirmBudget = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const DEBUG_TAG = "⚡ [DEBUG-FLOW] [Hook]";
 
   const confirmBudget = async (
     clientId: string,
@@ -14,29 +16,45 @@ export const useConfirmBudget = () => {
     budgetPayload: any,
     messageId: string
   ) => {
+    console.log(`${DEBUG_TAG} START: Confirmando presupuesto...`);
     setLoading(true);
+
     try {
-      // 1. Crear Reserva
+      // PASO 1
+      console.log(`${DEBUG_TAG} Paso 1: Creando Reserva...`);
       const newReservationId = await confirmBudgetService(
         clientId,
         professionalId,
         budgetPayload
       );
+      console.log(`${DEBUG_TAG} ✅ Reserva Creada ID:`, newReservationId);
 
-      // 2. Actualizar Mensaje a Accepted
-      const updatedPayload = { ...budgetPayload, status: "accepted" };
-      await supabase
-        .from("messages")
-        .update({ payload: updatedPayload })
-        .eq("id", messageId);
+      // PASO 2
+      console.log(`${DEBUG_TAG} Paso 2: Actualizando Mensaje a 'confirmed'...`);
+      const updatedPayload = {
+        ...budgetPayload,
+        status: "confirmed",
+      };
 
-      // 3. ÉXITO: Navegación Crítica
-      // Usamos .replace para que al dar "Atrás" desde la reserva, no vuelva al ticket de pago.
+      const updateSuccess = await updateBudgetMessageStatusService(
+        messageId,
+        updatedPayload
+      );
+
+      if (updateSuccess) {
+        console.log(`${DEBUG_TAG} ✅ Ciclo completado correctamente.`);
+      } else {
+        console.warn(
+          `${DEBUG_TAG} ⚠️ Reserva creada pero falló update del mensaje.`
+        );
+      }
+
+      // PASO 3
       Alert.alert("¡Éxito!", "Servicio contratado correctamente.", [
         {
           text: "Ver Reserva",
           onPress: () => {
-            // 🚀 SALTO DE STACK: De Mensajes -> A Detalle de Reserva
+            console.log(`${DEBUG_TAG} 🚀 Navegando a detalles de reserva...`);
             router.replace({
               pathname: "/(client)/(tabs)/reservations",
               params: { id: newReservationId },
@@ -45,8 +63,8 @@ export const useConfirmBudget = () => {
         },
       ]);
     } catch (error: any) {
-      console.error(error);
-      Alert.alert("Error", "Hubo un problema al confirmar.");
+      console.error(`${DEBUG_TAG} 💥 Error Fatal:`, error);
+      Alert.alert("Error", "Hubo un problema al confirmar la reserva.");
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,7 @@ import {
 import { mapReservationFromDTO } from "../Mapper/ReservationMapper";
 import { getTodayRangeString } from "../Helper/GetTodayRangeString";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { da } from "date-fns/locale";
 
 // ============================================================================
 // MARK: - SHARED / CORE SERVICES
@@ -58,27 +59,32 @@ export const createReservationService = async (payload: ReservationPayload) => {
  * Busca el detalle completo de una reserva por su ID.
  * Incluye datos del profesional y categoría.
  */
+// En tu archivo de servicios (ej. ReservationService.ts)
+
 export const fetchReservationById = async (
   reservationId: string
 ): Promise<Reservation> => {
-  // CORRECCIÓN: Pedimos 'legal_name' en lugar de 'display_name'.
-  // Quitamos 'photo_url' porque tu tabla no tiene esa columna.
   const { data, error } = await supabase
     .from("reservations")
     .select(
       `
       *,
-      professional:professional_id ( legal_name )
+      professional:professional_profiles!reservations_to_pro_profile_fkey (
+        legal_name,
+        photo_url,
+        biography
+      )
     `
     )
     .eq("id", reservationId)
     .single();
 
   if (error) {
-    console.error("Error fetching reservation details:", error);
+    console.error("❌ Error fetching reservation details for Client:", error);
     throw new Error(`Error al cargar reserva: ${error.message}`);
   }
 
+  // Asegúrate de que tu mapReservationFromDTO maneje "professional" correctamente
   return mapReservationFromDTO(data as any);
 };
 
@@ -222,65 +228,58 @@ export const fetchClientHistoryReservations = async (
  * 1. Crea la reserva en base a los datos del mensaje.
  * 2. (Opcional) El trigger de base de datos o el cliente debe actualizar el mensaje a 'accepted'.
  */
-// appSRC/reservations/Service/ReservationService.tsx
 
+// 1. Crear Reserva (RPC)
 export const confirmBudgetService = async (
   clientId: string,
   professionalId: string,
   budgetData: any
 ) => {
-  const DEBUG_TAG = "🔍 [CONFIRM BUDGET]";
-  console.log(`${DEBUG_TAG} Init Transaction`);
-  console.log(`${DEBUG_TAG} Client ID:`, clientId);
-  console.log(`${DEBUG_TAG} Pro ID:`, professionalId);
-  console.log(`${DEBUG_TAG} Payload Raw:`, JSON.stringify(budgetData, null, 2));
+  const DEBUG_TAG = "🔍 [RESERVATION]";
 
   try {
-    // Validación preventiva
     if (!budgetData || !budgetData.proposedDate) {
-      throw new Error(
-        "Datos del presupuesto incompletos (Falta fecha o precio)"
-      );
+      throw new Error("Datos del presupuesto incompletos");
     }
+
+    // Formato Técnico de Rango (Postgres tstzrange)
+    const startDate = new Date(budgetData.proposedDate);
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + 1);
+
+    const rangePayload = `[${startDate.toISOString()},${endDate.toISOString()})`;
 
     const payload = {
       p_client_id: clientId,
       p_professional_id: professionalId,
       p_category: "personalized_quote",
       p_modality: "quote",
-      p_title: budgetData.serviceName || "Presupuesto Aceptado",
+      p_title: budgetData.serviceName || "Servicio Agendado",
       p_description: budgetData.notes || "",
       p_service_tags: [],
       p_address_display: "Ubicación del Cliente",
       p_address_coords: null,
-      // Construcción segura del rango
-      p_range: `[${budgetData.proposedDate},${budgetData.proposedDate})`,
+      p_range: rangePayload,
       p_status: "confirmed",
       p_price_estimated: Number(budgetData.price),
       p_price_final: Number(budgetData.price),
       p_platform_fee: 0,
     };
 
-    console.log(`${DEBUG_TAG} Sending RPC Payload:`, payload);
-
     const { data, error } = await supabase.rpc(
       "create_reservation_bypass",
       payload
     );
 
-    if (error) {
-      console.error(`${DEBUG_TAG} ❌ RPC Error:`, error);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
 
-    console.log(`${DEBUG_TAG} ✅ Success! Reservation ID:`, data);
+    console.log(`${DEBUG_TAG} ✅ Reserva creada:`, data);
     return data;
   } catch (err) {
-    console.error(`${DEBUG_TAG} 💥 Crash:`, err);
+    console.error(`${DEBUG_TAG} 💥 Error:`, err);
     throw err;
   }
 };
-
 // ============================================================================
 // MARK: - PROFESSIONAL SERVICES
 // (Incoming Requests & Agenda Management)
@@ -351,49 +350,55 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
  * FETCH: Trabajos Confirmados del Profesional (Agenda Activa)
  * Trae todas las reservas en estado 'confirmed' (y opcionalmente 'on_route' o 'in_progress').
  */
+// ... imports
+
+// =============================================================================
+// [DEBUG] FETCH CONFIRMED WORKS
+// =============================================================================
 export const fetchProConfirmedWorks = async (professionalId: string) => {
+  const DEBUG_TAG = "🔍 [DEBUG-SERVICE]";
   console.log("---------------------------------------------------------");
-  console.log(
-    "[ZOLVER-DEBUG] 01: Service - Fetching Confirmed Works for Pro:",
-    professionalId
-  );
+  console.log(`${DEBUG_TAG} Fetching Confirmed Works for Pro:`, professionalId);
 
   try {
     const { data, error } = await supabase
       .from("reservations")
-      .select(`*, professional:professional_id(legal_name)`)
+      .select(
+        `
+        *,
+        client:user_accounts!client_id(legal_name), 
+        professional:professional_profiles!professional_id(legal_name, photo_url)
+      `
+      )
       .eq("professional_id", professionalId)
-      // FILTRO CRÍTICO: Solo trabajos confirmados listos para ejecutar
       .in("status", ["confirmed", "on_route", "in_progress"])
-      .order("scheduled_range", { ascending: true }); // Ordenar por fecha de inicio (lo más próximo primero)
+
+      // --- CAMBIO AQUÍ ---
+      // Ordenar por FECHA DE CREACIÓN (Descendente) para ver la nueva arriba
+      .order("created_at", { ascending: false });
+    // Antes tenías: .order("scheduled_range", { ascending: true });
 
     if (error) {
-      console.error("[ZOLVER-DEBUG] ❌ FETCH ERROR:", error.message);
+      console.error(`${DEBUG_TAG} ❌ Error en Query Supabase:`, error.message);
       throw new Error(error.message);
     }
 
-    console.log(
-      `[ZOLVER-DEBUG] ✅ FETCH FOUND: ${data?.length} confirmed records`
-    );
-
     if (data && data.length > 0) {
-      console.log("[ZOLVER-DEBUG] Sample Record ID:", data[0].id);
-      console.log("[ZOLVER-DEBUG] Sample Status:", data[0].status);
-    } else {
-      console.log("[ZOLVER-DEBUG] ⚠️ No confirmed works found.");
+      console.log(`${DEBUG_TAG} Registros encontrados: ${data.length}`);
+      // Log del PRIMERO (que ahora será el nuevo)
+      console.log(`${DEBUG_TAG} >> MUESTRA RAW [0] (Más nueva):`, {
+        id: data[0].id,
+        range: data[0].scheduled_range,
+        status: data[0].status,
+      });
     }
 
-    // Mapeamos al modelo de dominio seguro para la UI
     return (data as any[]).map(mapReservationFromDTO);
   } catch (err: any) {
-    console.error(
-      "[ZOLVER-DEBUG] ❌ EXCEPTION in fetchProConfirmedWorks:",
-      err
-    );
+    console.error(`${DEBUG_TAG} 💥 Excepción Crítica:`, err);
     throw err;
   }
 };
-
 // En ReservationService.ts
 
 // ... imports

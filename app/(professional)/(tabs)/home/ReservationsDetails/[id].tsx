@@ -9,35 +9,35 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { format, isValid } from "date-fns";
+import { es } from "date-fns/locale";
 
 // Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { ReservationDetailsCard } from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { useReservationDetail } from "@/appSRC/reservations/Hooks/useClientReservationDetail";
+
+// Hooks & Utils
+import { useReservationDetailsForProfessional } from "@/appSRC/reservations/Hooks/useReservationDetailsForProfessional";
 import {
   getStatusConfig,
   mapStatusToUI,
-} from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+} from "@/appSRC/reservations/Helper/MapStatusToUIClient"; // Assuming shared helper or similar logic
+import ReservationDetailsCard from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 
-const ReservationDetailScreen = () => {
-  const { id } = useLocalSearchParams();
-  const reservationId = Array.isArray(id) ? id[0] : id;
+const ReservationsDetailsScreen = () => {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  // 1. Data Fetching
-  const { reservation, isLoading, isError, refetch } =
-    useReservationDetail(reservationId);
+  // 1. Data Fetching (Professional Hook)
+  const { reservation, isLoading, error, refresh } =
+    useReservationDetailsForProfessional(id);
 
-  // 2. Data Preparation (Igual que en Professional Screen)
+  // 2. Data Preparation
   const displayData = useMemo(() => {
     if (!reservation) return null;
 
-    // DEBUG: Descomenta esto para ver qué llega exactamente en la fecha
-    // console.log("SCHEDULE DATA:", reservation.schedule);
-
-    // A. Fechas
+    // Date Safety
     const dateObj =
       reservation.schedule.startDate instanceof Date &&
       !isNaN(reservation.schedule.startDate.getTime())
@@ -53,71 +53,64 @@ const ReservationDetailScreen = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
+    const title = reservation.title || "Servicio";
 
-    // B. Professional Info
-    // Buscamos legalName, luego name, luego fallback
-    const proName =
-      reservation.professional?.name ||
-      reservation.professional?.name ||
-      "Profesional Zolver";
-
-    const proAvatar = reservation.professional?.avatar
-      ? { uri: reservation.professional.avatar }
-      : require("@/appASSETS/RawImages/avatar-0.jpg");
-
-    // C. Status & Styles
+    // UI Status
     const uiStatus = mapStatusToUI(reservation.status);
     const statusStyle = getStatusConfig(uiStatus);
 
-    // D. Financials
-    const priceService = reservation.financials?.priceEstimated || 0;
-    const platformFee = reservation.financials?.platformFee || 0;
-    const totalAmount =
-      reservation.financials?.priceFinal || priceService + platformFee;
-
     return {
-      // Info Principal
-      proName: proName,
-      proAvatar: proAvatar,
+      // Client Info (For the professional view)
+      clientName: reservation.client?.name || "Cliente",
+      clientAvatar: reservation.client?.avatar
+        ? { uri: reservation.client.avatar }
+        : require("@/appASSETS/RawImages/avatar-0.jpg"), // Fallback
 
-      // Detalles Servicio
-      serviceTitle: reservation.title || "Servicio Solicitado",
+      serviceTitle: title,
       description: reservation.description,
 
-      // Fechas
-      dateFormatted: dateStr,
-      timeFormatted: `${timeStr} hs`,
-
-      // Status Visuals
+      // Status Styles
       statusText: statusStyle.text,
       statusBg: statusStyle.bg,
       statusColor: statusStyle.color,
 
-      // Ubicación
-      address: reservation.location?.street || "Ubicación a coordinar",
+      // Formatting
+      dateFormatted: dateStr,
+      timeFormatted: timeStr,
 
-      // Dinero
-      priceService: `$${priceService.toLocaleString("es-AR")}`,
-      platformFee: `$${platformFee.toLocaleString("es-AR")}`,
-      totalAmount: `$${totalAmount.toLocaleString("es-AR")}`,
+      // Location
+      address: reservation.location?.street || "Dirección no disponible",
 
-      // Lógica de visualización
+      // Financials (Add fallbacks/safe access)
+      priceService: reservation.financials?.priceEstimated || 0,
+      platformFee: reservation.financials?.platformFee || 0,
+      totalAmount:
+        reservation.financials?.priceFinal ||
+        (reservation.financials?.priceEstimated || 0) +
+          (reservation.financials?.platformFee || 0),
+
       showContact: uiStatus === "in_progress" || uiStatus === "confirmed",
     };
   }, [reservation]);
 
   // 3. Loading State
   if (isLoading) {
-    return <MiniLoaderScreen />;
+    return (
+      <View style={styles.centerContainer}>
+        <MiniLoaderScreen />
+      </View>
+    );
   }
 
   // 4. Error State
-  if (isError || !displayData) {
+  if (error || !displayData) {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
         <Text style={styles.errorTitle}>Error al cargar</Text>
-        <Text style={styles.errorText}>No pudimos encontrar esta reserva.</Text>
+        <Text style={styles.errorText}>
+          No pudimos encontrar la información de esta reserva.
+        </Text>
         <LargeButton title="Volver" onPress={() => router.back()} />
       </View>
     );
@@ -125,63 +118,65 @@ const ReservationDetailScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText="Detalle de Reserva" showBackButton={true} />
+      <ToolBarTitle titleText="Detalles del Trabajo" showBackButton={true} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          <RefreshControl refreshing={isLoading} onRefresh={refresh} />
         }>
-        {/* SECCIÓN 1: Profesional & Estado */}
+        {/* SECTION 1: Client Info & Status */}
         <ReservationDetailsCard
           type="professional"
-          name={displayData.proName}
-          avatar={displayData.proAvatar}
+          name={displayData.clientName}
+          avatar={displayData.clientAvatar}
           statusText={displayData.statusText}
           statusBg={displayData.statusBg}
           statusColor={displayData.statusColor}
         />
-
-        {/* Título del Servicio */}
+        {/* SECTION 2: Work title */}
         <ReservationDetailsCard type="title" title={displayData.serviceTitle} />
 
-        {/* SECCIÓN 2: Fecha y Hora */}
+        {/* SECTION 2: Date & Time */}
         <ReservationDetailsCard
           type="date"
           date={displayData.dateFormatted}
           time={displayData.timeFormatted}
         />
 
-        {/* SECCIÓN 3: Ubicación */}
+        {/* SECTION 3: Location */}
         <ReservationDetailsCard
           type="location"
           location={displayData.address}
+          // Optional: Add onPress to open maps if supported in your Card
+          onPress={() => console.log("Open Maps Logic")}
         />
 
-        {/* SECCIÓN 4: Descripción */}
+        {/* SECTION 4: Description (Context) */}
         {displayData.description ? (
           <View style={styles.descriptionContainer}>
-            <Text style={styles.sectionHeader}>Nota del servicio</Text>
+            <Text style={styles.sectionHeader}>Nota del cliente</Text>
             <Text style={styles.descriptionText}>
               {displayData.description}
             </Text>
           </View>
         ) : null}
 
-        {/* SECCIÓN 5: Desglose de Pago */}
+        {/* SECTION 5: Payment Details */}
         <ReservationDetailsCard
           type="payment"
-          priceService={displayData.priceService}
-          platformFee={displayData.platformFee}
-          totalAmount={displayData.totalAmount}
+          priceService={`$${displayData.priceService.toLocaleString("es-AR")}`}
+          platformFee={`$${displayData.platformFee.toLocaleString("es-AR")}`}
+          totalAmount={`$${displayData.totalAmount.toLocaleString("es-AR")}`}
         />
 
+        {/* Actions */}
         {displayData.showContact && (
           <View style={styles.footerAction}>
             <LargeButton
-              title="Contactar Profesional"
+              title="Contactar Cliente"
               iconName="chatbubble-outline"
-              onPress={() => console.log("Ir al chat")}
+              onPress={() => console.log("Navigate to Chat")}
             />
           </View>
         )}
@@ -190,13 +185,12 @@ const ReservationDetailScreen = () => {
   );
 };
 
-export default ReservationDetailScreen;
+export default ReservationsDetailsScreen;
 
-// ... (Mismos estilos que tenías)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: "white", // Matches the clean look
   },
   scrollContent: {
     padding: 16,
@@ -208,6 +202,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FAFAFA",
     padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: "#6B7280",
+    fontSize: 16,
   },
   errorTitle: {
     fontSize: 20,
@@ -221,17 +220,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
   },
+  // Description Box Styles
   descriptionContainer: {
     backgroundColor: "white",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14, // Consistent with Card radius
     marginBottom: 16,
+    marginTop: 12,
     borderWidth: 1,
     borderColor: "#F3F4F6",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 2,
   },
   sectionHeader: {
@@ -247,6 +248,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   footerAction: {
-    marginTop: 10,
+    marginTop: 20,
   },
 });

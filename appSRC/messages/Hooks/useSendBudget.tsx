@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { MessageService } from "../Service/MessageService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { BudgetPayload } from "../Type/MessageType"; // <--- IMPORTANTE
+import { BudgetPayload } from "../Type/MessageType";
 
 export const useSendBudget = (
   conversationId: string,
@@ -25,21 +25,41 @@ export const useSendBudget = (
     }
 
     setLoading(true);
-    try {
-      const priceValue = parseFloat(priceStr);
-      if (isNaN(priceValue)) throw new Error("Precio inválido");
 
-      // FIX: Tipado explícito para que TypeScript valide los literales ('pending', 'ARS')
+    // --- 🔍 LOGGING INICIAL ---
+    console.log("------------------------------------------------");
+    console.log("[DEBUG PRICE] 1. Input Original:", priceStr);
+
+    try {
+      // 1. SANITIZACIÓN DE PRECIO (Formato Argentina/Latam)
+      // a. Eliminamos los puntos de miles (ej: "2.000.000" -> "2000000")
+      // b. Reemplazamos la coma decimal por punto (ej: "1500,50" -> "1500.50")
+      let sanitizedPrice = priceStr.replace(/\./g, "").replace(",", ".");
+
+      console.log("[DEBUG PRICE] 2. Sanitized String:", sanitizedPrice);
+
+      const priceValue = parseFloat(sanitizedPrice);
+
+      console.log("[DEBUG PRICE] 3. Final Number Value:", priceValue);
+
+      if (isNaN(priceValue) || priceValue <= 0) {
+        throw new Error("El precio ingresado no es válido.");
+      }
+
+      // FIX: Tipado explícito para que TypeScript valide los literales
       const budgetPayload: BudgetPayload = {
         serviceName: title,
-        price: priceValue,
+        price: priceValue, // Aquí va el número limpio (ej: 2000000)
         currency: "ARS",
         proposedDate: new Date().toISOString(),
         notes: description,
-        status: "pending",
+        status: "pending_approval",
       };
 
-      console.log("[useSendBudget] Sending:", budgetPayload);
+      console.log(
+        "[useSendBudget] Sending Payload:",
+        JSON.stringify(budgetPayload, null, 2)
+      );
 
       await MessageService.sendBudgetProposal(
         conversationId,
@@ -47,15 +67,14 @@ export const useSendBudget = (
         targetClientId,
         budgetPayload
       );
-
       Alert.alert("Enviado", "El presupuesto ha sido enviado al chat.", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error: any) {
-      console.error(error);
+      console.error("[useSendBudget] Error:", error);
       Alert.alert(
         "Error",
-        "No se pudo enviar el presupuesto. Intenta nuevamente."
+        "No se pudo enviar el presupuesto. Verifica el formato del precio."
       );
     } finally {
       setLoading(false);

@@ -66,8 +66,8 @@ export interface Reservation {
   };
 
   schedule: {
-    startDate: Date;
-    endDate: Date;
+    startDate: Date | null; // <--- CAMBIO: Permitimos null
+    endDate: Date | null; // <--- CAMBIO: Permitimos null
   };
 
   financials: {

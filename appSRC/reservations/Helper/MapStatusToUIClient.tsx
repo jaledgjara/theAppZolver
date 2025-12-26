@@ -3,10 +3,7 @@ import {
   ReservationStatusDTO,
 } from "@/appSRC/reservations/Type/ReservationType";
 // Asegúrate de que ReservationCardProps ya tenga 'counterpartName' en lugar de 'professionalName'
-import {
-  ReservationCardProps,
-  ReservationStatus as ReservationStatusUI,
-} from "@/appCOMP/cards/ReservationCard";
+import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard";
 
 /**
  * Convierte el estado técnico de la base de datos (DTO)

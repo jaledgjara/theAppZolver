@@ -1,19 +1,20 @@
-// appSRC/messages/Type/MessageType.ts
+import { ReservationStatusDTO } from "@/appSRC/reservations/Type/ReservationType"; // Asegúrate de que esta importación exista
 
-// 1. Tipos de Mensaje (Alineado con DB enum)
-export type MessageTypeDTO = "text" | "image" | "budget"; // ✅ CAMBIADO DE budget_proposal
+// 1. Tipos de Mensaje
+export type MessageTypeDTO = "text" | "image" | "budget";
 
-// 2. Payload de Presupuesto
+// 2. Payload de Presupuesto (Unificado con Reservas)
 export interface BudgetPayload {
   serviceName: string;
   price: number;
   currency: "ARS" | "USD";
   proposedDate: string;
   notes: string;
-  status: "pending" | "accepted" | "rejected" | "expired";
+  // ✅ CORRECCIÓN: Usamos el tipo estricto de la reserva
+  status: ReservationStatusDTO;
 }
 
-// 3. MessageDTO (Lo que viene de Supabase)
+// 3. MessageDTO (Supabase)
 export interface MessageDTO {
   id: string;
   created_at: string;
@@ -22,16 +23,14 @@ export interface MessageDTO {
   receiver_id: string;
   type: MessageTypeDTO;
   content: string | null;
-  payload: BudgetPayload | any | null; // JSONB
+  payload: BudgetPayload | any | null;
   is_read: boolean;
 }
 
-// 4. DOMAIN ENTITIES (UI)
-// ✅ Estandarización: TODOS tienen una propiedad 'data'
-
+// 4. Entidades de UI
 interface BaseMessage {
   id: string;
-  createdAt: Date; // Date object real
+  createdAt: Date;
   conversationId: string;
   isMine: boolean;
   isRead: boolean;
@@ -39,24 +38,17 @@ interface BaseMessage {
 
 export interface TextMessage extends BaseMessage {
   type: "text";
-  // Envolvemos el texto en data para consistencia
-  data: {
-    text: string;
-  };
+  data: { text: string };
 }
 
 export interface ImageMessage extends BaseMessage {
   type: "image";
-  data: {
-    imageUrl: string;
-    caption?: string;
-  };
+  data: { imageUrl: string; caption?: string };
 }
 
 export interface BudgetMessage extends BaseMessage {
-  type: "budget"; // ✅ CAMBIADO
+  type: "budget";
   data: BudgetPayload;
 }
 
-// Unión Exportada
 export type ChatMessage = TextMessage | ImageMessage | BudgetMessage;

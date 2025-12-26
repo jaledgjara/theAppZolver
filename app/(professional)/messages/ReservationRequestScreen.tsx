@@ -36,6 +36,7 @@ const ReservationRequestScreen = () => {
     <View style={styles.container}>
       <ToolBarTitle
         titleText="Crear Presupuesto"
+        showBackButton={true}
         onBackPress={() => router.back()}
       />
 

@@ -4,28 +4,39 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
+import { COLORS } from "@/appASSETS/theme";
 
 export interface ReservationDetailCardProps {
-  type: "professional" | "date" | "location" | "payment";
+  type: "professional" | "date" | "location" | "payment" | "title";
+
+  // Professional & Title
   name?: string;
-  service?: string;
+  title?: string; // Prop para el título del servicio
   avatar?: any;
   statusText?: string;
   statusBg?: string;
   statusColor?: string;
+
+  // Date
   date?: string;
   time?: string;
+
+  // Location
   location?: string;
+
+  // Payment
   priceService?: string;
   platformFee?: string;
   totalAmount?: string;
+
+  // Actions
   onPress?: () => void;
 }
 
 export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
   type,
   name,
-  service,
+  title,
   avatar,
   date,
   time,
@@ -40,21 +51,24 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
 }) => {
   return (
     <BaseCard onPress={onPress}>
-      {/* PROFESSIONAL: Layout Refactorizado -> Avatar | Columna(Info + Badge) */}
+      {/* --- NUEVO: TITLE CARD --- */}
+      {type === "title" && (
+        <View>
+          <Text style={styles.labelTitle}>Servicio solicitado</Text>
+          <Text style={styles.mainTitle}>{title}</Text>
+        </View>
+      )}
+
+      {/* PROFESSIONAL: Layout Refactorizado */}
       {type === "professional" && (
         <View style={styles.professionalRow}>
           <Image source={avatar} style={styles.avatar} />
 
           <View style={styles.infoColumn}>
-            {/* Bloque de Texto */}
             <Text style={styles.name} numberOfLines={1}>
               {name}
             </Text>
-            <Text style={styles.service} numberOfLines={1}>
-              {service}
-            </Text>
 
-            {/* Status Badge: Ahora debajo del texto, alineado al inicio */}
             {statusText && (
               <View
                 style={[
@@ -122,6 +136,19 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
 export default ReservationDetailsCard;
 
 const styles = StyleSheet.create({
+  // --- Title Card Styles (Integrado) ---
+  labelTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+    marginRight: 4,
+  },
+  mainTitle: {
+    fontSize: 14,
+    color: "#666",
+  },
+
   // --- Professional Layout ---
   professionalRow: {
     flexDirection: "row",
@@ -136,27 +163,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
   infoColumn: {
-    flex: 1, // Toma todo el ancho restante
+    flex: 1,
     justifyContent: "center",
-    paddingTop: 2, // Ajuste fino visual para alinear con el top del avatar
+    paddingVertical: 2,
   },
   name: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 2,
+    color: COLORS.textPrimary,
+    marginBottom: 10,
     marginRight: 4,
-  },
-  service: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8, // Espacio entre el servicio y el badge
   },
   statusBadge: {
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 6,
-    alignSelf: "flex-start", // CLAVE: Se ajusta al contenido a la izquierda
+    alignSelf: "flex-start",
   },
   statusText: {
     fontSize: 11,

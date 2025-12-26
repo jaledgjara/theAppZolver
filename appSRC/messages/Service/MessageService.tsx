@@ -149,3 +149,68 @@ export const MessageService = {
     return channel;
   },
 };
+
+export const getBudgetStatusService = async (
+  messageId: string
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("payload")
+      .eq("id", messageId)
+      .single();
+
+    if (error) throw error;
+    console.log("RETURNING getBudgetStatusService:", data?.payload);
+    // Accedemos al JSONB payload y extraemos el status
+    return data?.payload?.status || null;
+  } catch (error) {
+    console.error("Error fetching budget status:", error);
+    return null;
+  }
+};
+
+// ... imports
+
+// ... imports
+
+// Función Modificada para usar RPC (Bypass de Seguridad)
+export const updateBudgetMessageStatusService = async (
+  messageId: string,
+  fullPayload: any
+) => {
+  const DEBUG_TAG = "🔍 [DEBUG-FLOW] [Service]";
+
+  console.log(`${DEBUG_TAG} 1. Iniciando actualización (Vía RPC Bypass)...`);
+  console.log(`${DEBUG_TAG}    ID Mensaje:`, messageId);
+
+  try {
+    // ✅ CAMBIO CRÍTICO: Usamos .rpc en lugar de .from().update()
+    // Esto llama a la función SQL que acabamos de crear con permisos de admin.
+    const { data, error } = await supabase.rpc(
+      "update_message_payload_bypass",
+      {
+        p_message_id: messageId,
+        p_new_payload: fullPayload,
+      }
+    );
+
+    if (error) {
+      console.error(`${DEBUG_TAG} ❌ Error en RPC:`, error.message);
+      throw error;
+    }
+
+    if (data === true) {
+      console.log(`${DEBUG_TAG} ✅ Mensaje actualizado exitosamente (RPC).`);
+      return true;
+    } else {
+      console.warn(
+        `${DEBUG_TAG} ⚠️ El RPC no encontró el mensaje o no lo actualizó.`
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error(`${DEBUG_TAG} 💥 Excepción capturada:`, error);
+    return false;
+  }
+};
