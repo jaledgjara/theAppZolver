@@ -1,26 +1,34 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, Text, View, FlatList, RefreshControl } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 
-// Hook
+// Hook de Datos
 import { useProConfirmedWorks } from "@/appSRC/reservations/Hooks/useProConfirmedWorks";
 
 // UI Components
-import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
+import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
+import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
+
+// Utils
 
 const IndexQuoteScreen = () => {
   const router = useRouter();
   const { works, loading, refreshing, onRefresh } = useProConfirmedWorks();
 
+  // Refrescar al entrar para asegurar datos frescos
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, [])
+  );
+
   const handlePressWork = (reservationId: string) => {
-    router.push({
-      pathname:
-        "/(professional)/(tabs)/reservations/ReservationDetailsScreen/[id]",
-      params: { id: reservationId },
-    });
+    router.push(
+      `/(professional)/(tabs)/reservations/ReservationsDetails/${reservationId}`
+    );
   };
 
   const renderHeader = () => (
@@ -50,45 +58,46 @@ const IndexQuoteScreen = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           renderItem={({ item }) => {
-            // --- [DEBUG-UI] TRAZA DE RENDERIZADO ---
-            // console.log(`[DEBUG-UI] Rendering Item ${item.id}`);
-            // console.log(`[DEBUG-UI] StartDate Type:`, typeof item.schedule.startDate);
-            // console.log(`[DEBUG-UI] StartDate Value:`, item.schedule.startDate);
+            // ================================================================
+            // 🛡️ LÓGICA DE FECHA BLINDADA (Fix Date { NaN })
+            // ================================================================
 
-            // A. Lógica de Fecha Segura
-            let dateStr = "A coordinar";
-            let timeStr = "";
-            const dateObj = item.schedule.startDate;
+            // 1. Elegir la fuente preferida
+            let rawDate =
+              item.modality === "instant"
+                ? item.createdAt
+                : item.scheduledStart;
 
-            if (dateObj && !isNaN(dateObj.getTime())) {
-              dateStr = dateObj.toLocaleDateString("es-AR", {
-                day: "numeric",
-                month: "long",
-              });
-              timeStr = dateObj.toLocaleTimeString("es-AR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-            } else {
-              // Logueamos solo si falla la fecha para no saturar consola
-              console.warn(
-                `[DEBUG-UI] ⚠️ Item ${item.id} tiene fecha nula o inválida.`
-              );
+            // 2. Verificar si es válida
+            const isValidDate =
+              rawDate instanceof Date && !isNaN(rawDate.getTime());
+
+            // 3. Fallback: Si está rota, usar createdAt. Si también falla, usar AHORA.
+            if (!isValidDate) {
+              // console.warn(`⚠️ [UI] Fecha inválida en ID ${item.id}. Usando fallback.`);
+              rawDate = item.createdAt || new Date();
             }
 
+            // 4. Formatear
+            const { date, time } = formatForUI(rawDate);
+
+            // ================================================================
+
             const price =
-              item.financials.priceFinal > 0
-                ? `$${item.financials.priceFinal.toLocaleString("es-AR")}`
+              item.financials.price > 0
+                ? `$${item.financials.price.toLocaleString("es-AR")}`
                 : "A cotizar";
 
             return (
               <ReservationCard
                 id={item.id}
-                serviceName={item.title || "Servicio"}
-                counterpartName={item.client?.name || "Cliente Zolver"}
-                status={item.status}
-                date={dateStr}
-                time={timeStr}
+                // Usamos propiedades planas de la nueva entidad
+                serviceName={item.serviceTitle || "Servicio"}
+                counterpartName={item.roleName || "Cliente"}
+                status={item.statusUI} // Estado Visual
+                avatar={item.roleAvatar}
+                date={date}
+                time={time}
                 price={price}
                 onPress={() => handlePressWork(item.id)}
               />
@@ -96,7 +105,7 @@ const IndexQuoteScreen = () => {
           }}
           ListEmptyComponent={
             <StatusPlaceholder
-              icon="calendar-outline"
+              icon="calendar"
               title="Sin trabajos confirmados"
               subtitle="Tus reservas aceptadas aparecerán aquí."
             />

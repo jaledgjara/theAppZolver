@@ -1,6 +1,7 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
 import {
   Reservation,
+  ReservationDTO,
   ReservationPayload,
   ReservationStatusDTO,
 } from "../Type/ReservationType";
@@ -15,11 +16,13 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 /**
  * Crea una nueva reserva utilizando una función RPC segura.
  * Se utiliza tanto para flujos 'Instant' como 'Quote'.
- * * @param payload Datos necesarios para la creación de la reserva.
- * @returns Objeto con el ID de la reserva creada y los datos enviados.
  */
 export const createReservationService = async (payload: ReservationPayload) => {
   console.log("Service - Sending RPC creation...", payload.status);
+
+  // NOTA: Asegúrate de que tu ReservationPayload tenga 'platform_fee' opcional (?)
+  // Si TS se queja, lo casteamos a any temporalmente o actualizas el Type.
+  const fee = (payload as any).platform_fee || 0;
 
   const { data, error } = await supabase.rpc("create_reservation_bypass", {
     p_client_id: payload.client_id,
@@ -35,7 +38,7 @@ export const createReservationService = async (payload: ReservationPayload) => {
     p_status: payload.status,
     p_price_estimated: payload.price_estimated,
     p_price_final: payload.price_final,
-    p_platform_fee: payload.platform_fee || 0,
+    p_platform_fee: fee,
   });
 
   if (error) {
@@ -43,24 +46,12 @@ export const createReservationService = async (payload: ReservationPayload) => {
     throw new Error(error.message);
   }
 
-  // Verificación opcional de persistencia
-  if (data) {
-    const check = await supabase
-      .from("reservations")
-      .select("status")
-      .eq("id", data)
-      .single();
-    console.log("DB Persistence verified:", check.data?.status);
-  }
-
   return { id: data, ...payload };
 };
 
 /**
  * Recupera el detalle completo de una reserva por su ID.
- * Incluye la relación con el perfil profesional.
- * * @param reservationId ID de la reserva.
- * @returns Entidad de dominio Reservation.
+ * (Vista CLIENTE: Trae datos del profesional)
  */
 export const fetchReservationById = async (
   reservationId: string
@@ -85,24 +76,24 @@ export const fetchReservationById = async (
     throw new Error(`Error al cargar reserva: ${error.message}`);
   }
 
-  return mapReservationFromDTO(data as any);
+  // ✅ FIX: Pasamos "client" porque esta función trae datos del Pro
+  return mapReservationFromDTO(data as any, "client");
 };
 
 // ============================================================================
 // MARK: - CLIENT SERVICES
 // ============================================================================
 
-// --- 1. CREATION ALIASES ---
 export const createInstantReservation = createReservationService;
 export const createQuoteReservation = createReservationService;
 
-// --- 2. READ OPERATIONS (Lists & History) ---
-
 const HISTORY_PAGE_SIZE = 10;
+
+// ... imports
 
 /**
  * Obtiene las reservas activas del cliente.
- * Estados: confirmed, on_route, in_progress.
+ * FIX: Agregamos order by created_at para desempatar rangos idénticos.
  */
 export const fetchClientActiveReservations = async (
   clientId: string
@@ -120,21 +111,22 @@ export const fetchClientActiveReservations = async (
     )
     .eq("client_id", clientId)
     .in("status", ["confirmed", "on_route", "in_progress"])
-    .order("scheduled_range", { ascending: true });
+
+    // ✅ FIX ORDENAMIENTO:
+    .order("scheduled_range", { ascending: true }) // Lo más próximo primero
+    .order("created_at", { ascending: true }); // Desempate
 
   if (error) throw new Error(error.message);
 
-  return data.map((dto: any) => {
-    if (dto.professional && dto.professional.photo_url) {
-      dto.professional.avatar_url = dto.professional.photo_url;
-    }
-    return mapReservationFromDTO(dto);
+  return (data as any[]).map((dto) => {
+    // ✅ FIX: Pasamos "client" para que el mapper sepa que somos nosotros
+    // y ponga el nombre del PROFESIONAL en la tarjeta.
+    return mapReservationFromDTO(dto, "client");
   });
 };
 
 /**
- * Obtiene las reservas pendientes o en proceso de cotización.
- * Estados: pending_approval, quoting, draft.
+ * Obtiene las reservas pendientes (Cliente).
  */
 export const fetchClientPendingReservations = async (
   clientId: string
@@ -152,20 +144,18 @@ export const fetchClientPendingReservations = async (
     )
     .eq("client_id", clientId)
     .in("status", ["pending_approval", "quoting", "draft"])
+    // ✅ FIX: Lo más nuevo arriba
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
 
-  return data.map((dto: any) => {
-    if (dto.professional && dto.professional.photo_url) {
-      dto.professional.avatar_url = dto.professional.photo_url;
-    }
-    return mapReservationFromDTO(dto);
+  return (data as any[]).map((dto) => {
+    return mapReservationFromDTO(dto, "client");
   });
 };
 
 /**
- * Obtiene el historial de reservas finalizadas o canceladas (Paginado).
+ * Obtiene el historial del cliente.
  */
 export const fetchClientHistoryReservations = async (
   clientId: string,
@@ -184,7 +174,11 @@ export const fetchClientHistoryReservations = async (
     )
     .eq("client_id", clientId)
     .in("status", ["completed", "canceled_client", "canceled_pro", "disputed"])
-    .order("scheduled_range", { ascending: false })
+
+    // ✅ FIX ORDENAMIENTO DOBLE:
+    .order("scheduled_range", { ascending: false }) // Lo más reciente primero
+    .order("created_at", { ascending: false }) // Desempate
+
     .limit(HISTORY_PAGE_SIZE);
 
   if (cursor) {
@@ -195,11 +189,8 @@ export const fetchClientHistoryReservations = async (
 
   if (error) throw new Error(error.message);
 
-  const mappedData = data.map((dto: any) => {
-    if (dto.professional && dto.professional.photo_url) {
-      dto.professional.avatar_url = dto.professional.photo_url;
-    }
-    return mapReservationFromDTO(dto);
+  const mappedData = (data as any[]).map((dto) => {
+    return mapReservationFromDTO(dto, "client");
   });
 
   const nextCursor =
@@ -213,15 +204,8 @@ export const fetchClientHistoryReservations = async (
   };
 };
 
-// --- 3. QUOTE FLOW (Specific Actions) ---
+// --- 3. QUOTE FLOW ---
 
-/**
- * Confirma un presupuesto convirtiéndolo en una reserva oficial.
- * Transforma los datos del chat/presupuesto en una estructura de reserva válida.
- * * @param clientId ID del cliente.
- * @param professionalId ID del profesional.
- * @param budgetData Payload JSON del presupuesto aceptado.
- */
 export const confirmBudgetService = async (
   clientId: string,
   professionalId: string,
@@ -268,9 +252,6 @@ export const confirmBudgetService = async (
   }
 };
 
-/**
- * Cancela una reserva por parte del cliente.
- */
 export const cancelReservationByClient = async (
   reservationId: string,
   clientId: string
@@ -294,11 +275,8 @@ export const cancelReservationByClient = async (
 // MARK: - PROFESSIONAL SERVICES
 // ============================================================================
 
-// --- 1. READ OPERATIONS (Inbox & Agenda) ---
-
 /**
  * Obtiene las solicitudes entrantes para el profesional.
- * Incluye nuevas cotizaciones y solicitudes pendientes de aprobación.
  */
 export const fetchProIncomingRequests = async (professionalId: string) => {
   try {
@@ -328,10 +306,8 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
     return (data as any[])
       .map((dto) => {
         try {
-          if (dto.professional && dto.professional.photo_url) {
-            dto.professional.avatar_url = dto.professional.photo_url;
-          }
-          return mapReservationFromDTO(dto);
+          // ✅ FIX: Pasamos "professional"
+          return mapReservationFromDTO(dto, "professional");
         } catch (mapError) {
           console.warn("Mapping error:", mapError);
           return null;
@@ -346,7 +322,6 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
 
 /**
  * Obtiene la agenda confirmada del profesional.
- * Ordenada por fecha de creación descendente (lo más nuevo arriba).
  */
 export const fetchProConfirmedWorks = async (professionalId: string) => {
   try {
@@ -367,7 +342,11 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
       throw new Error(error.message);
     }
 
-    return (data as any[]).map(mapReservationFromDTO);
+    // ✅ FIX: Usamos arrow function para pasar "professional"
+    // NO HACER: .map(mapReservationFromDTO) <-- Esto pasa el índice como 2do argumento
+    return (data as any[]).map((dto) =>
+      mapReservationFromDTO(dto, "professional")
+    );
   } catch (err: any) {
     console.error("Exception fetching confirmed works:", err);
     throw err;
@@ -375,42 +354,38 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
 };
 
 /**
- * Obtiene el historial de trabajos del profesional (Paginado).
+ * Obtiene el historial del profesional (Paginado + Doble Orden).
  */
+// Lista de estados para el historial
+const HISTORY_STATUSES_PRO: ReservationStatusDTO[] = [
+  "confirmed",
+  "completed",
+  "canceled_client",
+  "canceled_pro",
+  "disputed",
+];
+
 export const fetchProHistoryReservations = async (
   professionalId: string,
   cursor?: string
 ) => {
-  // Definimos los estados que queremos ver en la pestaña "Historial".
-  // Basado en tu DTO real:
-  const targetStatuses: ReservationStatusDTO[] = [
-    "confirmed", // Activa (Aceptada)
-    "on_route", // Activa (En camino)
-    "in_progress", // Activa (Trabajando)
-    "completed", // Finalizada (Éxito)
-    "canceled_client", // Cancelada por cliente (CORREGIDO)
-    "canceled_pro", // Cancelada por ti/Rechazada (CORREGIDO)
-    "disputed", // En disputa
-  ];
+  console.log(`📡 [SERVICE] Fetching History for Pro: ${professionalId}`);
 
   let query = supabase
     .from("reservations")
     .select(
       `
-        *,
-        client:user_accounts!client_id (
-          legal_name
-        ),
-        professional:professional_profiles!professional_id (
-          legal_name,
-          photo_url
-        )
-      `
+      *,
+      client:user_accounts!client_id(legal_name), 
+      professional:professional_profiles!professional_id(legal_name, photo_url)
+    `
+      // 👆 NOTA: Quitamos 'avatar_url' de 'client' para evitar el error de columna.
     )
-    // Usamos el array corregido sin "rejected" ni "finalized" ni doble L
-    .in("status", targetStatuses)
+    .in("status", HISTORY_STATUSES_PRO)
     .eq("professional_id", professionalId)
+    // ⬇️ Ordenamiento correcto: Primero fecha turno, desempate por creación
     .order("scheduled_range", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(HISTORY_PAGE_SIZE);
 
   if (cursor) {
@@ -420,31 +395,28 @@ export const fetchProHistoryReservations = async (
   const { data, error } = await query;
 
   if (error) {
-    console.error("❌ Error en fetchProHistoryReservations:", error.message);
-    throw new Error(error.message);
+    console.error("❌ [SERVICE] Error fetching history:", error);
+    throw error;
   }
 
-  const mappedData = (data as any[]).map(mapReservationFromDTO);
+  const dtos = data as ReservationDTO[];
+
+  // ✅ MAPEO OBLIGATORIO: Convertimos DTO (crudo) a Entidad (procesada)
+  // Si falta esto, la UI recibe basura y explota.
+  const mappedData = dtos.map((dto) =>
+    mapReservationFromDTO(dto, "professional")
+  );
 
   const nextCursor =
-    data && data.length === HISTORY_PAGE_SIZE
+    data.length === HISTORY_PAGE_SIZE
       ? data[data.length - 1].scheduled_range
       : null;
 
-  return {
-    reservations: mappedData,
-    nextCursor,
-  };
+  return { reservations: mappedData, nextCursor };
 };
 
-// --- 2. INSTANT FLOW / ZOLVER YA (Specific Actions) ---
+// --- INSTANT FLOW ---
 
-/**
- * Confirma una reserva Instantánea (Zolver Ya).
- * Realiza dos acciones atómicas:
- * 1. Confirma la reserva y la asigna al profesional (Claim).
- * 2. Bloquea al profesional (is_active = false) para evitar nuevas asignaciones.
- */
 export const confirmInstantReservationService = async (
   reservationId: string,
   professionalId: string
@@ -452,7 +424,6 @@ export const confirmInstantReservationService = async (
   console.log("Service - Confirming Instant Reservation");
 
   try {
-    // 1. Confirmar y asignar
     const { data: reservationData, error: resError } = await supabase
       .from("reservations")
       .update({
@@ -466,32 +437,25 @@ export const confirmInstantReservationService = async (
 
     if (resError) throw resError;
 
-    // 2. Bloquear disponibilidad (Side Effect)
     const { error: statusError } = await supabase
       .from("professional_profiles")
       .update({ is_active: false })
       .eq("user_id", professionalId);
 
     if (statusError) {
-      console.warn(
-        "Warning: Could not update is_active status:",
-        statusError.message
-      );
+      console.warn("Warning: Could not update is_active status");
     }
 
-    return mapReservationFromDTO(reservationData as any);
+    // ✅ FIX: Retornamos como vista Profesional
+    return mapReservationFromDTO(reservationData as any, "professional");
   } catch (err: any) {
     console.error("Exception confirming instant reservation:", err);
     throw err;
   }
 };
 
-// --- 3. WORKFLOW CONTROL (State Machine) ---
+// --- WORKFLOW CONTROL ---
 
-/**
- * Busca si el profesional tiene un trabajo activo que lo esté bloqueando.
- * Estados bloqueantes: confirmed, on_route, in_progress.
- */
 export const fetchActiveProfessionalReservation = async (
   professionalId: string
 ): Promise<Reservation | null> => {
@@ -518,15 +482,13 @@ export const fetchActiveProfessionalReservation = async (
   }
 
   if (data) {
-    return mapReservationFromDTO(data as any);
+    // ✅ FIX: Vista Profesional
+    return mapReservationFromDTO(data as any, "professional");
   }
 
   return null;
 };
 
-/**
- * Obtiene una reserva específica con datos completos del cliente para la vista del Profesional.
- */
 export const fetchReservationByIdForProfessional = async (
   reservationId: string
 ) => {
@@ -553,14 +515,16 @@ export const fetchReservationByIdForProfessional = async (
   if (error) {
     throw new Error(error.message);
   }
-
-  return mapReservationFromDTO(data as any);
+  // ✅ FIX: Vista Profesional
+  return mapReservationFromDTO(data as any, "professional");
 };
 
 /**
- * Legacy: Obtiene reserva activa (Variante alternativa).
+ * Legacy
  */
 export const fetchActiveReservationService = async (professionalId: string) => {
+  // Este servicio devolvía RAW data, no DTOs mapeados, así que lo dejamos igual
+  // o lo deprecas si no lo usas.
   const { data, error } = await supabase
     .from("reservations")
     .select(
@@ -585,16 +549,11 @@ export const fetchActiveReservationService = async (professionalId: string) => {
   return data;
 };
 
-/**
- * Actualiza el estado de la reserva y gestiona la disponibilidad del profesional.
- * Si el estado es 'completed', libera al profesional (is_active = true).
- */
 export const updateReservationStatusService = async (
   reservationId: string,
   professionalId: string,
   newStatus: "on_route" | "in_progress" | "completed"
 ) => {
-  // A. Actualizar estado de la reserva
   const { data, error } = await supabase
     .from("reservations")
     .update({
@@ -605,28 +564,18 @@ export const updateReservationStatusService = async (
     .select()
     .single();
 
-  if (error) {
-    throw new Error(`Error updating status: ${error.message}`);
-  }
+  if (error) throw new Error(`Error updating status: ${error.message}`);
 
-  // B. Liberar al profesional si finalizó
   if (newStatus === "completed") {
-    const { error: unlockError } = await supabase
+    await supabase
       .from("professional_profiles")
       .update({ is_active: true })
       .eq("user_id", professionalId);
-
-    if (unlockError) {
-      console.error("Critical: Failed to unlock Pro:", unlockError.message);
-    }
   }
 
   return data;
 };
 
-/**
- * Rechaza una reserva por parte del profesional.
- */
 export const rejectReservationByPro = async (
   reservationId: string,
   professionalId: string
@@ -646,11 +595,8 @@ export const rejectReservationByPro = async (
   return data;
 };
 
-// --- 4. REALTIME (Subscriptions) ---
+// --- REALTIME ---
 
-/**
- * Suscribe a eventos de nuevas reservas para un profesional.
- */
 export const subscribeToIncomingRequestsService = (
   professionalId: string,
   onUpdate: () => void,
@@ -683,9 +629,6 @@ export const subscribeToIncomingRequestsService = (
   return channel;
 };
 
-/**
- * Cierra un canal de realtime de forma segura.
- */
 export const unsubscribeFromChannel = async (channel: RealtimeChannel) => {
   if (channel && channel.state !== "closed") {
     console.log("Service - Closing channel safely.");

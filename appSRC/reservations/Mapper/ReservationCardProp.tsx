@@ -1,6 +1,6 @@
 // appSRC/reservations/Helper/MapStatusToUIClient.ts
 
-import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard"; // O la ruta correcta
+import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard";
 
 // Asumo que tu objeto de reserva crudo (item) se parece a esto:
 interface ReservationData {

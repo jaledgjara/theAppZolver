@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react"; // Agregamos useCallback
 import {
   FlatList,
   StyleSheet,
   View,
-  Text,
   ActivityIndicator,
   RefreshControl,
+  Text,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router"; // Agregamos useFocusEffect
 
 // Componentes UI
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -15,21 +15,20 @@ import {
   TabbedReservationFilters,
   ReservationFilterType,
 } from "@/appSRC/reservations/Screens/Client/MenuFilterReservation";
-import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 
 // Lógica de Negocio y Datos
-
 import { Reservation } from "@/appSRC/reservations/Type/ReservationType";
 import { useClientReservations } from "@/appSRC/reservations/Hooks/useClientFetchingReservations";
 import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
+import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 
 const Reservations = () => {
   const router = useRouter();
   const [currentFilter, setCurrentFilter] =
     useState<ReservationFilterType>("active");
 
-  // 1. Hook de Datos (React Query)
+  // 1. Hook de Datos
   const {
     activeReservations,
     pendingReservations,
@@ -43,7 +42,16 @@ const Reservations = () => {
     refreshAll,
   } = useClientReservations();
 
-  // 2. Selector de Datos según Filtro
+  // ✅ FIX: REFRESH AUTOMÁTICO AL ENTRAR A LA PESTAÑA
+  // Esto soluciona que la reserva recién creada no aparezca.
+  useFocusEffect(
+    useCallback(() => {
+      // console.log("🔄 [CLIENT UI] Refrescando reservas al enfocar...");
+      refreshAll();
+    }, [])
+  );
+
+  // 2. Selector de Datos
   let currentData: Reservation[] = [];
   let isLoading = false;
 
@@ -80,7 +88,7 @@ const Reservations = () => {
     router.push(`/(client)/(tabs)/reservations/ReservationDetailsScreen/${id}`);
   };
 
-  // Flag para mostrar loader inicial (pantalla vacía + cargando)
+  // Loader inicial solo si no hay data
   const showInitialLoader = isLoading && currentData.length === 0;
 
   return (
@@ -102,24 +110,23 @@ const Reservations = () => {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ReservationCard
+              // ✅ El mapper ahora funciona perfecto gracias a los cambios previos
               {...mapReservationToCard(item, "client")}
               onPress={() => handleCardPress(item.id)}
             />
           )}
+          // Optimizaciones de lista
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={true}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          // Pull to Refresh
           refreshControl={
             <RefreshControl refreshing={isLoading} onRefresh={refreshAll} />
           }
-          // Infinite Scroll (Historial)
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
-          // Loader al pie de página
           ListFooterComponent={
             currentFilter === "historical" && isFetchingNextHistory ? (
               <View style={styles.footerLoader}>
@@ -128,11 +135,13 @@ const Reservations = () => {
             ) : null
           }
           ListEmptyComponent={
-            <StatusPlaceholder
-              icon="calendar-blank-outline"
-              title="Sin reservas aún"
-              subtitle="Aquí aparecerán tus citas programadas y el historial de tus servicios."
-            />
+            !isLoading ? (
+              <StatusPlaceholder
+                icon="calendar" // Icono corregido si no tienes 'calendar-blank-outline'
+                title="Sin reservas aún"
+                subtitle="Aquí aparecerán tus citas programadas."
+              />
+            ) : null
           }
         />
       )}
@@ -162,9 +171,5 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: 20,
     alignItems: "center",
-  },
-  emptyText: {
-    color: "#9CA3AF",
-    fontSize: 16,
   },
 });

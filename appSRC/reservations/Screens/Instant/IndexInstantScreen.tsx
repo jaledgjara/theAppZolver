@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -11,46 +11,47 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { COLORS } from "@/appASSETS/theme";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
 // --- HOOKS ---
 import { useIsActive } from "@/appSRC/users/Professional/Hooks/useIsActive";
 import { useConfirmInstantReservation } from "../../Hooks/useConfirmInstantReservation";
 import { useProIncomingRequests } from "../../Hooks/useProIncomingRequests";
-
-// --- CARDS ---
-import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
-import { ActiveJobControlCard } from "@/appCOMP/cards/ActiveJobControlCard";
 import { useCurrentActiveJob } from "../../Hooks/useCurrentActiveJob";
 import { useRejectByProfessional } from "../../Hooks/useRejectByProfessional";
-import { rejectReservationByPro } from "../../Service/ReservationService";
-import { ref } from "process";
-import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
+
+// --- CARDS & UTILS ---
+import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
+import { ActiveJobControlCard } from "@/appCOMP/cards/ActiveJobControlCard";
+import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
 
 const IndexInstantScreen = () => {
-  // [LOGIC FLOW] 1. Trabajo Activo
+  // 1. Trabajo Activo
   const {
     currentJob,
     isLoading: loadingJob,
     refresh: refreshActiveJob,
   } = useCurrentActiveJob();
 
-  const { rejectReservation, isRejecting } = useRejectByProfessional();
+  const { rejectReservation } = useRejectByProfessional();
 
-  // [LOGIC FLOW] 2. Radar y Solicitudes
+  // 2. Radar y Solicitudes
   const { isActive, toggleStatus, isLoading: switchingStatus } = useIsActive();
+
+  // Solo buscamos requests si estamos activos y NO estamos trabajando
   const shouldFetchRequests = isActive && !currentJob;
+
   const {
     requests,
     loading: loadingData,
     refresh: refreshRequests,
   } = useProIncomingRequests(shouldFetchRequests);
 
-  // [LOGIC FLOW] 3. Acciones
+  // 3. Acciones
   const { confirmRequest } = useConfirmInstantReservation();
 
   const handleManualRefresh = useCallback(() => {
-    // Refrescamos TODO lo importante
-    console.log("🔄 Refrescando manualmente...");
+    console.log("🔄 Refrescando tablero...");
     refreshActiveJob();
     if (shouldFetchRequests) refreshRequests();
   }, [refreshActiveJob, refreshRequests, shouldFetchRequests]);
@@ -62,21 +63,16 @@ const IndexInstantScreen = () => {
   };
 
   const handleReject = async (reservationId: string) => {
-    // CORRECCIÓN ARQUITECTÓNICA:
-    // Al rechazar, necesitamos actualizar la "Lista de Espera" (Requests),
-    // no el "Trabajo Activo" (Job).
     rejectReservation(reservationId, () => {
-      console.log("🗑️ Solicitud rechazada. Actualizando lista...");
-      refreshRequests(); // <--- ESTA ES LA CLAVE
+      console.log("🗑️ Rechazado. Actualizando lista...");
+      refreshRequests();
     });
   };
 
   // --- VISTA ---
   if (loadingJob) return <MiniLoaderScreen />;
 
-  // ==========================================================================
-  // [VIEW] MODO TRABAJO (COCKPIT) - AHORA CON REFRESH
-  // ==========================================================================
+  // MODO TRABAJO (Job Activo)
   if (currentJob) {
     return (
       <View style={styles.container}>
@@ -84,30 +80,22 @@ const IndexInstantScreen = () => {
           contentContainerStyle={styles.centerContentScroll}
           refreshControl={
             <RefreshControl
-              refreshing={loadingJob} // Usa loadingJob para mostrar el spinner nativo
+              refreshing={loadingJob}
               onRefresh={handleManualRefresh}
-              colors={[COLORS.primary]} // Color del spinner en Android
-              tintColor={COLORS.primary} // Color del spinner en iOS
+              colors={[COLORS.primary]}
             />
           }>
           <ActiveJobControlCard
             job={currentJob}
-            // Pasamos el refresh para que la tarjeta lo llame al cambiar de estado
             onJobCompleted={refreshActiveJob}
           />
-
-          {/* Texto auxiliar discreto para que el usuario sepa que puede deslizar */}
-          <Text style={styles.hintText}>
-            Desliza hacia abajo para actualizar
-          </Text>
+          <Text style={styles.hintText}>Desliza para actualizar</Text>
         </ScrollView>
       </View>
     );
   }
 
-  // ==========================================================================
-  // [VIEW] MODO RADAR (LISTA DE ESPERA)
-  // ==========================================================================
+  // HEADER DEL RADAR
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.statusSection}>
@@ -160,6 +148,7 @@ const IndexInstantScreen = () => {
     </View>
   );
 
+  // MODO RADAR (Lista)
   return (
     <View style={styles.container}>
       {isActive ? (
@@ -171,26 +160,30 @@ const IndexInstantScreen = () => {
               refreshing={loadingData}
               onRefresh={handleManualRefresh}
               colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
             />
           }
-          renderItem={({ item }) => (
-            <ServiceRequestCard
-              category={item.serviceCategory}
-              price={`$${
-                item.financials.priceEstimated?.toLocaleString() || "-"
-              }`}
-              distance="📍 Cerca"
-              location={item.location.street}
-              title={item.title}
-              timeAgo={item.schedule.startDate.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              onAccept={() => handleAccept(item.id)}
-              onDecline={() => handleReject(item.id)}
-            />
-          )}
+          renderItem={({ item }) => {
+            // ✅ FIX: Usar TimeEngine para la hora
+            // Si es instantánea, usamos createdAt. Si no, scheduledStart.
+            const targetDate =
+              item.modality === "instant"
+                ? item.createdAt
+                : item.scheduledStart;
+            const { time } = formatForUI(targetDate);
+
+            return (
+              <ServiceRequestCard
+                category={item.serviceTitle} // Usamos serviceTitle mapeado
+                price={`$${item.financials.price.toLocaleString()}`} // Usamos financials mapeado
+                distance="📍 Cerca"
+                location={item.address} // ✅ Usamos la nueva prop address
+                title={item.roleName} // El nombre del cliente
+                timeAgo={time} // Hora formateada limpia
+                onAccept={() => handleAccept(item.id)}
+                onDecline={() => handleReject(item.id)}
+              />
+            );
+          }}
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -205,7 +198,6 @@ const IndexInstantScreen = () => {
           }
         />
       ) : (
-        /* Vista Inactiva: También permitimos refresh aquí por si acaso */
         <ScrollView
           contentContainerStyle={styles.listContent}
           refreshControl={
@@ -225,12 +217,7 @@ export default IndexInstantScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
-  centerContentScroll: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  centerContent: { flex: 1, justifyContent: "center", padding: 20 },
+  centerContentScroll: { flexGrow: 1, justifyContent: "center", padding: 20 },
   headerContainer: { padding: 20, alignItems: "center" },
   statusSection: { width: "100%", marginBottom: 20 },
   radarContainer: { alignItems: "center", marginVertical: 20 },
@@ -261,16 +248,5 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   listContent: { paddingBottom: 40 },
-  emptyText: {
-    textAlign: "center",
-    marginTop: 40,
-    color: "#999",
-    fontStyle: "italic",
-  },
-  hintText: {
-    textAlign: "center",
-    color: "#999",
-    fontSize: 12,
-    marginTop: 20,
-  },
+  hintText: { textAlign: "center", color: "#999", fontSize: 12, marginTop: 20 },
 });

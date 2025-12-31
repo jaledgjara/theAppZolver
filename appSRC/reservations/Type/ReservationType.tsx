@@ -1,5 +1,6 @@
 import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
 
+// --- STATUS DEFINITIONS ---
 export type ReservationStatusDTO =
   | "draft"
   | "quoting"
@@ -12,92 +13,57 @@ export type ReservationStatusDTO =
   | "canceled_pro"
   | "disputed";
 
-export type ServiceModalityDTO = "instant" | "quote";
+// ✅ AGREGADO: Definición centralizada del estado UI
+export type ReservationStatusUI =
+  | "pending"
+  | "confirmed"
+  | "on_route"
+  | "in_progress"
+  | "finalized"
+  | "canceled";
 
-// 1. DTO (Lo que viene de Supabase/DB - JSON Crudo)
+// --- 1. DTO ---
 export interface ReservationDTO {
   id: string;
   client_id: string;
   professional_id: string;
   service_category: string;
-  service_modality: ServiceModalityDTO;
-
+  service_modality: "instant" | "quote";
   title: string;
   description: string;
   service_tags: ServiceTag[];
-
-  address_display: string;
-  address_coords: { x: number; y: number } | null;
-
-  // ❌ BORRA ESTO (El JSON no trae objetos Date, trae strings):
-  // createdAt: Date;
-
-  // ✅ MANTÉN ESTO (Así llega de Postgres):
   created_at: string;
-
   scheduled_range: string;
+  status: string;
   price_estimated: number;
   price_final: number;
   platform_fee: number;
-  status: string;
-
-  // Datos del Profesional (Join para el Cliente)
-  client?: {
-    legal_name: string;
-    avatar_url?: string;
-  };
-  professional?: {
-    legal_name: string;
-    avatar_url?: string;
-  };
+  address_display: string;
+  address_coords: { x: number; y: number } | null;
+  client?: { legal_name: string; avatar_url?: string };
+  professional?: { legal_name: string; avatar_url?: string };
 }
 
-// 2. DOMAIN ENTITY (Lo que usa la UI - Objetos Reales)
+// --- 2. ENTIDAD ---
 export interface Reservation {
   id: string;
-  clientId: string;
-  professionalId: string;
-
-  // ✅ AGREGA ESTO AQUÍ:
+  roleId: string;
+  roleName: string;
+  roleAvatar: any;
   createdAt: Date;
-
-  status: ReservationStatusDTO;
-  title: string;
-  description: string;
-  serviceCategory: string;
-  serviceModality: "instant" | "quote";
-
-  location: {
-    street: string;
-    number: string;
-    coordinates?: { latitude: number; longitude: number };
-  };
-
-  schedule: {
-    startDate: Date | null;
-    endDate: Date | null;
-  };
-
+  scheduledStart: Date | null;
+  statusDTO: ReservationStatusDTO;
+  statusUI: ReservationStatusUI;
+  address: string; // Dirección formateada
+  serviceTitle: string;
+  modality: "instant" | "quote";
   financials: {
+    price: number;
     currency: string;
-    priceEstimated: number;
-    priceFinal: number;
-    platformFee: number;
-  };
-
-  client?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  professional?: {
-    id: string;
-    name: string;
-    avatar?: string;
   };
 }
 
-// 3. PAYLOAD (Lo que se envía a la DB)
+// --- 3. PAYLOAD ---
 export interface ReservationPayload {
   client_id: string;
   professional_id: string;
@@ -113,6 +79,7 @@ export interface ReservationPayload {
   currency: string;
   price_estimated: number;
   price_final: number;
-  platform_fee?: number;
   status: string;
+  // platform_fee es opcional en payload si quieres
+  platform_fee?: number;
 }

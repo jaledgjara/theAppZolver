@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { BaseCard } from "@/appCOMP/cards/BaseCard"; // Usamos BaseCard para consistencia
+import { BaseCard } from "@/appCOMP/cards/BaseCard";
 import { Reservation } from "@/appSRC/reservations/Type/ReservationType";
 import { COLORS } from "@/appASSETS/theme";
 import { updateReservationStatusService } from "@/appSRC/reservations/Service/ReservationService";
@@ -17,26 +17,18 @@ interface Props {
 export const ActiveJobControlCard = ({ job, onJobCompleted }: Props) => {
   const { user } = useAuthStore();
 
-  // --- LOG CRÍTICO AQUÍ ---
-  console.log("🃏 [CARD UI] Recibiendo Job ID:", job.id);
-  console.log(
-    "👤 [CARD UI] Objeto Client completo:",
-    JSON.stringify(job.client, null, 2)
-  );
-  console.log(
-    "🏷️ [CARD UI] Intentando leer legalName:",
-    job.client?.legal_name
-  );
-  // Aseguramos que haya un nombre o usamos un fallback
-  const clientName = job.client?.legal_name || "Cliente";
+  // ✅ 1. Nombre directo (El Mapper ya decidió quién es)
+  const clientName = job.roleName || "Cliente";
 
   const handleNextStep = async () => {
     if (!user) return;
 
+    // ✅ 2. Usamos 'statusDTO' para la lógica de negocio (Maquina de estados)
     let nextStatus: "on_route" | "in_progress" | "completed" = "on_route";
-    if (job.status === "confirmed") nextStatus = "on_route";
-    else if (job.status === "on_route") nextStatus = "in_progress";
-    else if (job.status === "in_progress") nextStatus = "completed";
+
+    if (job.statusDTO === "confirmed") nextStatus = "on_route";
+    else if (job.statusDTO === "on_route") nextStatus = "in_progress";
+    else if (job.statusDTO === "in_progress") nextStatus = "completed";
 
     try {
       await updateReservationStatusService(job.id, user.uid, nextStatus);
@@ -47,7 +39,8 @@ export const ActiveJobControlCard = ({ job, onJobCompleted }: Props) => {
     }
   };
 
-  const statusInfo = getStatusConfig(job.status);
+  // ✅ 3. Usamos 'statusUI' para la configuración visual (Colores)
+  const statusInfo = getStatusConfig(job.statusUI);
 
   return (
     <BaseCard style={styles.cardContainer}>
@@ -70,7 +63,7 @@ export const ActiveJobControlCard = ({ job, onJobCompleted }: Props) => {
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: statusInfo.color + "20" },
+            { backgroundColor: statusInfo.bg }, // Usamos .bg del config
           ]}>
           <Text style={[styles.statusText, { color: statusInfo.color }]}>
             {statusInfo.text}
@@ -91,8 +84,9 @@ export const ActiveJobControlCard = ({ job, onJobCompleted }: Props) => {
           />
           <View style={{ flex: 1 }}>
             <Text style={styles.infoLabel}>Ubicación del servicio</Text>
+            {/* ✅ 4. Usamos 'address' directa */}
             <Text style={styles.addressText} numberOfLines={2}>
-              {job.location.street}
+              {job.address}
             </Text>
           </View>
         </View>
@@ -100,11 +94,12 @@ export const ActiveJobControlCard = ({ job, onJobCompleted }: Props) => {
 
       {/* --- Footer: Botón de Acción --- */}
       <View style={styles.footer}>
+        {/* ✅ 5. Lógica de botón basada en DTO */}
         <LargeButton
           title={
-            job.status === "confirmed"
+            job.statusDTO === "confirmed"
               ? "INICIAR RUTA"
-              : job.status === "on_route"
+              : job.statusDTO === "on_route"
               ? "LLEGUÉ AL LUGAR"
               : "FINALIZAR TRABAJO"
           }
@@ -134,7 +129,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: COLORS.textSecondary + "30", // Un tono suave del secundario
+    backgroundColor: COLORS.textSecondary + "30",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,

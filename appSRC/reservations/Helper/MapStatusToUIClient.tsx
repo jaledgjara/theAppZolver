@@ -1,21 +1,13 @@
+import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard";
 import {
   Reservation,
   ReservationStatusDTO,
+  ReservationStatusUI,
 } from "@/appSRC/reservations/Type/ReservationType";
-import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard";
-
-// ✅ 1. SOLUCIÓN DEL ERROR DE TIPO: Definimos qué strings espera la UI
-export type ReservationStatusUI =
-  | "pending"
-  | "confirmed"
-  | "on_route"
-  | "in_progress"
-  | "finalized"
-  | "canceled";
 
 /**
- * Convierte el estado técnico de la base de datos (DTO)
- * al estado visual simplificado para la UI.
+ * Convierte el estado técnico (DTO) -> Estado Visual (UI)
+ * Mantenemos esto por si alguna parte de la app lo necesita aislado.
  */
 export const mapStatusToUI = (
   status: ReservationStatusDTO
@@ -35,32 +27,62 @@ export const mapStatusToUI = (
       return "finalized";
     case "canceled_client":
     case "canceled_pro":
-    case "disputed": // Podrías mapearlo a 'canceled' o crear uno nuevo 'disputed'
+    case "disputed":
       return "canceled";
     default:
       return "pending";
   }
 };
 
+/**
+ * Transforma la ENTIDAD DE DOMINIO (Reservation) -> PROPS VISUALES (Card)
+ * Ahora es mucho más simple porque la Entidad ya viene limpia.
+ */
 export const mapReservationToCard = (
   item: Reservation,
   viewRole: "client" | "professional"
 ): ReservationCardProps => {
-  // ✅ 2. SOLUCIÓN DE HORA (12:00 AM FIX):
-  // Si es instantánea, usamos la hora de creación (item.createdAt).
-  // Si es agendada, usamos la hora del turno (item.schedule.startDate).
-  const targetDate =
-    item.serviceModality === "instant" && item.createdAt
-      ? item.createdAt
-      : item.schedule.startDate;
+  // 🛡️ 1. BLOQUE DEFENSIVO
+  if (!item) {
+    return {
+      id: "error",
+      counterpartName: "Error",
+      serviceName: "Datos no disponibles",
+      date: "--",
+      time: "--:--",
+      status: "pending",
+      avatar: require("@/appASSETS/RawImages/avatar-0.jpg"),
+      price: "Error",
+    };
+  }
 
-  // Validación de seguridad
-  const dateObj =
-    targetDate instanceof Date && !isNaN(targetDate.getTime())
-      ? targetDate
-      : new Date();
+  // ========================================================================
+  // 🕒 2. LÓGICA DE FECHA (CORREGIDA PARA QUOTING/PENDING)
+  // ========================================================================
 
-  // Formateo visual
+  let targetDate: Date | null = null;
+
+  // A. Si es Instantánea, SIEMPRE usamos la fecha de creación (createdAt)
+  if (item.modality === "instant") {
+    targetDate = item.createdAt;
+  }
+  // B. Si es Agendada (Quote), intentamos usar la fecha del turno...
+  else {
+    targetDate = item.scheduledStart;
+  }
+
+  // C. FALLBACK CRÍTICO PARA "QUOTING/PENDING":
+  // Si targetDate es null (común en cotizaciones nuevas) o inválido,
+  // usamos createdAt para que la tarjeta tenga SU propia hora y no "Ahora".
+  if (!targetDate || isNaN(targetDate.getTime())) {
+    targetDate = item.createdAt;
+  }
+
+  // D. Fallback Final (Solo si createdAt también estuviera roto)
+  const dateObj = targetDate || new Date();
+
+  // ========================================================================
+
   const dateStr = dateObj.toLocaleDateString("es-AR", {
     day: "numeric",
     month: "short",
@@ -69,49 +91,28 @@ export const mapReservationToCard = (
   const timeStr = dateObj.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true, // AM/PM
+    hour12: true,
   });
 
-  // 3. Lógica de Nombres (Tu lógica existente corregida)
-  let nameToDisplay = "Usuario";
-  let avatarToDisplay = require("@/appASSETS/RawImages/avatar-0.jpg");
-
-  if (viewRole === "client") {
-    // Si soy Cliente, veo al Profesional
-    if (item.professional && item.professional.name) {
-      nameToDisplay = item.professional.name;
-      // if (item.professional.avatar) avatarToDisplay = ...
-    } else {
-      nameToDisplay = "Buscando Profesional...";
-    }
-  } else {
-    // Si soy Profesional, veo al Cliente
-    if (item.client && item.client.name) {
-      nameToDisplay = item.client.name;
-    } else {
-      nameToDisplay = "Cliente Reservado";
-    }
-  }
-
-  // 4. Lógica de Precio
-  const priceDisplay =
-    item.financials.priceEstimated > 0
-      ? `$${item.financials.priceEstimated.toLocaleString("es-AR")}`
-      : "A cotizar";
-
+  // 3. RETORNO LIMPIO
   return {
     id: item.id,
-    counterpartName: nameToDisplay,
-    serviceName: item.title,
+    // Usamos el nombre que ya resolvió el Mapper en la capa de datos
+    counterpartName:
+      item.roleName || (viewRole === "client" ? "Profesional" : "Cliente"),
+    serviceName: item.serviceTitle || "Servicio",
     date: dateStr,
-    time: timeStr, // Ahora mostrará la hora real
-    status: mapStatusToUI(item.status), // Ahora usa el tipo correcto
-    avatar: avatarToDisplay,
-    price: priceDisplay,
+    time: timeStr,
+    status: item.statusUI,
+    avatar: item.roleAvatar,
+    price:
+      item.financials?.price > 0
+        ? `$${item.financials.price.toLocaleString("es-AR")}`
+        : "A cotizar",
   };
 };
 
-/* Transforma un estado en un texto con un color (UI Config) */
+// Configuración de colores (opcional, si la usas fuera de la tarjeta)
 export const getStatusConfig = (statusUI: ReservationStatusUI) => {
   switch (statusUI) {
     case "confirmed":

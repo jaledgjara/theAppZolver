@@ -1,26 +1,39 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/appASSETS/theme";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
-// Asumo que este helper existe según tu código anterior
-import {
-  getStatusConfig,
-  ReservationStatusUI,
-} from "../../appSRC/reservations/Helper/MapStatusToUIClient";
-import { ReservationStatusDTO } from "@/appSRC/reservations/Type/ReservationType";
+import { ReservationStatusUI } from "@/appSRC/reservations/Type/ReservationType";
 
+// ✅ Exportamos la interfaz para que el Mapper pueda usarla si es necesario
 export interface ReservationCardProps {
   id: string;
-  counterpartName: string; // <--- CAMBIO: Nombre genérico (Cliente o Profesional)
+  counterpartName: string;
   serviceName: string;
   date: string;
   time: string;
-  status: ReservationStatusUI;
-  price?: string;
-  avatar?: any; // Hecho opcional por si acaso
+  status: ReservationStatusUI; // Usa el tipo compartido
+  price: string;
+  avatar: any;
   onPress?: () => void;
 }
+
+// Configuración visual local (Rompe la dependencia circular con el Mapper)
+const getStatusConfig = (status: ReservationStatusUI) => {
+  switch (status) {
+    case "confirmed":
+      return { text: "Confirmada", bg: "#DBEAFE", color: "#3B82F6" };
+    case "on_route":
+      return { text: "En Camino", bg: "#EDE9FE", color: "#8B5CF6" };
+    case "in_progress":
+      return { text: "En Curso", bg: "#D1FAE5", color: "#10B981" };
+    case "finalized":
+      return { text: "Finalizada", bg: "#F3F4F6", color: "#374151" };
+    case "canceled":
+      return { text: "Cancelada", bg: "#FEE2E2", color: "#EF4444" };
+    default:
+      return { text: "Pendiente", bg: "#FEF3C7", color: "#F59E0B" };
+  }
+};
 
 export const ReservationCard: React.FC<ReservationCardProps> = ({
   counterpartName,
@@ -29,52 +42,41 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
   time,
   status,
   price,
+  avatar,
   onPress,
 }) => {
-  const statusInfo = getStatusConfig(status);
+  const config = getStatusConfig(status);
 
   return (
     <BaseCard onPress={onPress}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.serviceTitle} numberOfLines={2}>
-          {serviceName}
-        </Text>
-
-        {/* Badge */}
-        <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
-          <Text style={[styles.badgeText, { color: statusInfo.color }]}>
-            {statusInfo.text}
+      <View style={styles.container}>
+        {/* Header: Titulo y Badge */}
+        <View style={styles.headerRow}>
+          <Text style={styles.serviceName} numberOfLines={1}>
+            {serviceName}
           </Text>
-        </View>
-      </View>
-
-      <View style={styles.divider} />
-
-      {/* BODY */}
-      <View style={styles.body}>
-        <View style={styles.row}>
-          <Ionicons
-            name="person-circle-outline"
-            size={16}
-            color={COLORS.textSecondary}
-          />
-          {/* Aquí se muestra el nombre genérico */}
-          <Text style={styles.infoText}>{counterpartName}</Text>
-        </View>
-
-        <View style={styles.metaRow}>
-          <View style={styles.row}>
-            <Ionicons
-              name="calendar-outline"
-              size={14}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.smallText}>
-              {date} • {time}
+          <View style={[styles.badge, { backgroundColor: config.bg }]}>
+            <Text style={[styles.badgeText, { color: config.color }]}>
+              {config.text}
             </Text>
           </View>
-          {price && <Text style={styles.price}>{price}</Text>}
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* Body: Avatar, Nombre, Fecha */}
+        <View style={styles.bodyRow}>
+          <Image source={avatar} style={styles.avatar} />
+          <View style={styles.infoCol}>
+            <Text style={styles.counterpartName}>{counterpartName}</Text>
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar-outline" size={14} color="#666" />
+              <Text style={styles.metaText}>
+                {date} • {time}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.price}>{price}</Text>
         </View>
       </View>
     </BaseCard>
@@ -82,22 +84,24 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  header: {
-    alignItems: "flex-start",
-    justifyContent: "center",
-    marginBottom: 10,
-    gap: 8,
+  container: { padding: 4 },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
   },
-  serviceTitle: {
+  serviceName: {
     fontSize: 16,
     fontWeight: "700",
-    color: COLORS.textPrimary,
-    lineHeight: 22,
+    color: "#333",
+    flex: 1,
+    marginRight: 8,
   },
   badge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 6,
   },
   badgeText: {
     fontSize: 10,
@@ -106,18 +110,42 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#F0F0F0",
-    marginBottom: 10,
+    backgroundColor: "#EEE",
+    marginBottom: 25,
   },
-  body: { gap: 6 },
-  row: { flexDirection: "row", alignItems: "center", gap: 6 },
+  bodyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#DDD",
+    marginRight: 10,
+  },
+  infoCol: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  counterpartName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "black",
+    marginBottom: 7,
+  },
   metaRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 4,
+    gap: 4,
   },
-  infoText: { fontSize: 14, color: "#444" },
-  smallText: { fontSize: 12, color: "#666" },
-  price: { fontSize: 14, fontWeight: "700", color: COLORS.textPrimary },
+  metaText: {
+    fontSize: 12,
+    color: "#888",
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+  },
 });
