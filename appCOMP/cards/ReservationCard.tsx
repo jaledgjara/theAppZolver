@@ -4,7 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
 // Asumo que este helper existe según tu código anterior
-import { getStatusConfig } from "../../appSRC/reservations/Helper/MapStatusToUIClient";
+import {
+  getStatusConfig,
+  ReservationStatusUI,
+} from "../../appSRC/reservations/Helper/MapStatusToUIClient";
 import { ReservationStatusDTO } from "@/appSRC/reservations/Type/ReservationType";
 
 export interface ReservationCardProps {
@@ -13,7 +16,7 @@ export interface ReservationCardProps {
   serviceName: string;
   date: string;
   time: string;
-  status: ReservationStatusDTO;
+  status: ReservationStatusUI;
   price?: string;
   avatar?: any; // Hecho opcional por si acaso
   onPress?: () => void;

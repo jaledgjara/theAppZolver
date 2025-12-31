@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuthGuard } from "@/appSRC/auth/Hooks/useAuthGuard"; // Tu hook de auth existente
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { getIncomeStats } from "../Service/IncomesService";
 import { IncomePayload } from "../Type/IncomesType";
-import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 
 export const useIncomeStats = () => {
   const { user } = useAuthStore();
@@ -11,28 +10,47 @@ export const useIncomeStats = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    if (!user?.uid) return;
+    // [DEBUG] Verificar si tenemos usuario
+    console.log("---- [useIncomeStats] Inicio de fetchStats ----");
+    if (!user?.uid) {
+      console.warn("---- [useIncomeStats] No hay User ID disponible ----");
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log(
+        `---- [useIncomeStats] Solicitando stats para UID: ${user.uid} ----`
+      );
+
       const data = await getIncomeStats(user.uid);
+
+      // [DEBUG] Ver qué devuelve exactamente la DB
+      console.log(
+        "---- [useIncomeStats] Datos crudos recibidos de RPC:",
+        JSON.stringify(data, null, 2)
+      );
+
       if (data) {
         setStats(data);
+      } else {
+        console.warn("---- [useIncomeStats] La data llegó nula ----");
       }
     } catch (error) {
-      console.error(error);
+      console.error("---- [useIncomeStats] Error capturado:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      console.log("---- [useIncomeStats] Fin de carga (loading: false) ----");
     }
   }, [user]);
 
-  // Carga inicial
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  // Función para Pull-to-Refresh
   const onRefresh = () => {
+    console.log("---- [useIncomeStats] Refrescando manualmente... ----");
     setRefreshing(true);
     fetchStats();
   };

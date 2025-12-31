@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { FlatList, StyleSheet, View, Text } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { useProHistoryReservations } from "@/appSRC/reservations/Hooks/useProHistoryReservations";
 import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
@@ -11,6 +11,24 @@ import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 const ReservationsProfessional = () => {
   const { history, isLoading, isFetchingMore, refresh, loadMore } =
     useProHistoryReservations();
+
+  // LOG DE RENDERIZADO
+  console.log(
+    `🖥️ [UI_HISTORY_DEBUG] Render. History Length: ${history.length} | Loading: ${isLoading}`
+  );
+
+  // REFRESH AUTOMÁTICO AL ENFOCAR
+  useFocusEffect(
+    useCallback(() => {
+      console.log(
+        "👁️ [UI_HISTORY_DEBUG] useFocusEffect -> Disparando refresh()"
+      );
+      refresh();
+      return () => {
+        console.log("👋 [UI_HISTORY_DEBUG] useFocusEffect -> Blur (salida)");
+      };
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -31,14 +49,16 @@ const ReservationsProfessional = () => {
               }
             />
           )}
-          // --- OPTIMIZACIÓN DE MEMORIA (100k READY) ---
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={true}
-          // --------------------------------------------
           contentContainerStyle={styles.listContent}
-          onRefresh={refresh}
+          // Pull to refresh
+          onRefresh={() => {
+            console.log("👆 [UI_HISTORY_DEBUG] Pull-to-refresh manual");
+            refresh();
+          }}
           refreshing={isLoading}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}

@@ -2,8 +2,16 @@ import {
   Reservation,
   ReservationStatusDTO,
 } from "@/appSRC/reservations/Type/ReservationType";
-// Asegúrate de que ReservationCardProps ya tenga 'counterpartName' en lugar de 'professionalName'
 import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard";
+
+// ✅ 1. SOLUCIÓN DEL ERROR DE TIPO: Definimos qué strings espera la UI
+export type ReservationStatusUI =
+  | "pending"
+  | "confirmed"
+  | "on_route"
+  | "in_progress"
+  | "finalized"
+  | "canceled";
 
 /**
  * Convierte el estado técnico de la base de datos (DTO)
@@ -27,50 +35,57 @@ export const mapStatusToUI = (
       return "finalized";
     case "canceled_client":
     case "canceled_pro":
-    case "disputed":
+    case "disputed": // Podrías mapearlo a 'canceled' o crear uno nuevo 'disputed'
       return "canceled";
     default:
       return "pending";
   }
 };
 
-// ... (keep mapStatusToUI and getStatusConfig as they are) ...
-
 export const mapReservationToCard = (
   item: Reservation,
   viewRole: "client" | "professional"
 ): ReservationCardProps => {
-  // 1. Date Formatting (Safe check)
-  const dateObj =
-    item.schedule.startDate instanceof Date &&
-    !isNaN(item.schedule.startDate.getTime())
-      ? item.schedule.startDate
-      : new Date(); // Fallback if invalid
+  // ✅ 2. SOLUCIÓN DE HORA (12:00 AM FIX):
+  // Si es instantánea, usamos la hora de creación (item.createdAt).
+  // Si es agendada, usamos la hora del turno (item.schedule.startDate).
+  const targetDate =
+    item.serviceModality === "instant" && item.createdAt
+      ? item.createdAt
+      : item.schedule.startDate;
 
+  // Validación de seguridad
+  const dateObj =
+    targetDate instanceof Date && !isNaN(targetDate.getTime())
+      ? targetDate
+      : new Date();
+
+  // Formateo visual
   const dateStr = dateObj.toLocaleDateString("es-AR", {
     day: "numeric",
-    month: "long",
+    month: "short",
   });
 
   const timeStr = dateObj.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: true, // AM/PM
   });
 
-  // 2. 🛠 FIX 1: Name Logic
+  // 3. Lógica de Nombres (Tu lógica existente corregida)
   let nameToDisplay = "Usuario";
-  let avatarToDisplay = require("@/appASSETS/RawImages/avatar-0.jpg"); // Default
+  let avatarToDisplay = require("@/appASSETS/RawImages/avatar-0.jpg");
 
   if (viewRole === "client") {
-    // If I am the client, I want to see the Professional's name
+    // Si soy Cliente, veo al Profesional
     if (item.professional && item.professional.name) {
       nameToDisplay = item.professional.name;
-      // avatarToDisplay = item.professional.avatar ...
+      // if (item.professional.avatar) avatarToDisplay = ...
     } else {
-      nameToDisplay = "Buscando Profesional..."; // Friendly fallback for 'draft'/'pending'
+      nameToDisplay = "Buscando Profesional...";
     }
   } else {
-    // If I am the professional, I want to see the Client's name
+    // Si soy Profesional, veo al Cliente
     if (item.client && item.client.name) {
       nameToDisplay = item.client.name;
     } else {
@@ -78,27 +93,26 @@ export const mapReservationToCard = (
     }
   }
 
-  // 3. 🛠 FIX 3: Price Logic
-  // Ensure we are displaying the estimated price correctly
+  // 4. Lógica de Precio
   const priceDisplay =
     item.financials.priceEstimated > 0
       ? `$${item.financials.priceEstimated.toLocaleString("es-AR")}`
-      : "A cotizar"; // If 0, show text instead of $0 or $10.000
+      : "A cotizar";
 
   return {
     id: item.id,
-    counterpartName: nameToDisplay, // Use the variable we calculated
+    counterpartName: nameToDisplay,
     serviceName: item.title,
     date: dateStr,
-    time: timeStr,
-    status: mapStatusToUI(item.status), // Ensure this function is imported
+    time: timeStr, // Ahora mostrará la hora real
+    status: mapStatusToUI(item.status), // Ahora usa el tipo correcto
     avatar: avatarToDisplay,
     price: priceDisplay,
   };
 };
 
-/* Transforma un estado en un texto con un color (Sin cambios, está perfecto) */
-export const getStatusConfig = (statusUI: string) => {
+/* Transforma un estado en un texto con un color (UI Config) */
+export const getStatusConfig = (statusUI: ReservationStatusUI) => {
   switch (statusUI) {
     case "confirmed":
       return { text: "Confirmada", bg: "#DBEAFE", color: "#3B82F6" };

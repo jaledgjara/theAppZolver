@@ -86,7 +86,7 @@ const ReservationDetailScreen = () => {
 
       // Fechas
       dateFormatted: dateStr,
-      timeFormatted: `${timeStr} hs`,
+      timeFormatted: `${timeStr}`,
 
       // Status Visuals
       statusText: statusStyle.text,

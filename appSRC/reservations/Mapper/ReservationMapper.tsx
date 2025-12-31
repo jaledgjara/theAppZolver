@@ -112,5 +112,6 @@ export const mapReservationFromDTO = (dto: ReservationDTO): Reservation => {
     },
     client: clientObj,
     professional: professionalObj,
+    createdAt: dto.created_at ? new Date(dto.created_at) : new Date(),
   };
 };

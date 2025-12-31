@@ -14,7 +14,7 @@ export type ReservationStatusDTO =
 
 export type ServiceModalityDTO = "instant" | "quote";
 
-// 1. DTO (Lo que viene de Supabase/DB)
+// 1. DTO (Lo que viene de Supabase/DB - JSON Crudo)
 export interface ReservationDTO {
   id: string;
   client_id: string;
@@ -29,12 +29,17 @@ export interface ReservationDTO {
   address_display: string;
   address_coords: { x: number; y: number } | null;
 
+  // ❌ BORRA ESTO (El JSON no trae objetos Date, trae strings):
+  // createdAt: Date;
+
+  // ✅ MANTÉN ESTO (Así llega de Postgres):
+  created_at: string;
+
   scheduled_range: string;
   price_estimated: number;
   price_final: number;
   platform_fee: number;
   status: string;
-  created_at: string;
 
   // Datos del Profesional (Join para el Cliente)
   client?: {
@@ -47,11 +52,14 @@ export interface ReservationDTO {
   };
 }
 
-// 2. DOMAIN ENTITY (Lo que usa la UI)
+// 2. DOMAIN ENTITY (Lo que usa la UI - Objetos Reales)
 export interface Reservation {
   id: string;
   clientId: string;
   professionalId: string;
+
+  // ✅ AGREGA ESTO AQUÍ:
+  createdAt: Date;
 
   status: ReservationStatusDTO;
   title: string;
@@ -66,8 +74,8 @@ export interface Reservation {
   };
 
   schedule: {
-    startDate: Date | null; // <--- CAMBIO: Permitimos null
-    endDate: Date | null; // <--- CAMBIO: Permitimos null
+    startDate: Date | null;
+    endDate: Date | null;
   };
 
   financials: {

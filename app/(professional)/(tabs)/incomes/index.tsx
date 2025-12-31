@@ -1,19 +1,47 @@
 import React from "react";
-import { ScrollView, StyleSheet, View, RefreshControl } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import IncomeCard from "@/appCOMP/cards/IncomeCard";
 import IncomeCardsContainer from "@/appSRC/incomesProf/Screens/IncomesCardContainer";
 import IncomeCharts from "@/appSRC/incomesProf/Screens/IncomeCharts";
-import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen"; // Usamos tu loader existente
-import { useIncomeStats } from "@/appSRC/incomesProf/Hooks/useIncomeStats"; // Importamos el Hook
 
-const incomes = () => {
-  // 1. Usamos el Hook para obtener datos y estado
+// Importamos el hook que creamos arriba
+import { useIncomeStats } from "@/appSRC/incomesProf/Hooks/useIncomeStats";
+import { COLORS } from "@/appASSETS/theme";
+
+const IncomesScreen = () => {
+  // 1. Usamos el hook
   const { stats, loading, refreshing, onRefresh } = useIncomeStats();
 
-  // 2. Estado de carga inicial
-  if (loading) {
-    return <MiniLoaderScreen />;
+  // [DEBUG] Log en el render para ver si stats llega a la UI
+  console.log(
+    "---- [UI Incomes] Renderizando. Loading:",
+    loading,
+    "Stats:",
+    stats ? "OK" : "NULL"
+  );
+
+  // Estado de carga inicial
+  if (loading && !stats) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ marginTop: 10, color: "#666" }}>
+          Cargando finanzas...
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -21,42 +49,43 @@ const incomes = () => {
       <ToolBarTitle titleText="Ingresos" />
 
       <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         <View style={styles.contentContainer}>
           <IncomeCardsContainer>
-            {/* CARD 1: Ganancias Hoy */}
+            {/* Ganancias del Día (Viene del RPC) */}
             <IncomeCard
               title="Ganancias del día"
-              value={stats?.incomeToday || 0}
+              value={stats?.incomeToday?.toString() || "0"}
               valueType="money"
-              titleVariant="h3"
+              titleVariant="h2"
               boldTitle
               width="full"
             />
 
-            {/* CARD 2: Ganancias Mes */}
+            {/* Ganancias del Mes (Viene del RPC) */}
             <IncomeCard
               title="Ganancias del mes"
-              value={stats?.totalMonth || 0}
+              value={stats?.totalMonth?.toString() || "0"}
               valueType="money"
-              titleVariant="h3"
+              titleVariant="h2"
               width="full"
             />
 
-            {/* CARD 3: Por Cobrar */}
+            {/* Por cobrar (Viene del RPC como 'totalPending') */}
             <IncomeCard
-              title="Por Cobrar"
-              value={stats?.pendingPayment || 0}
+              title="Por cobrar"
+              value={stats?.pendingPayment?.toString() || "0"}
               valueType="money"
               titleVariant="h3"
               width="half"
             />
 
-            {/* CARD 4: Mi Servicio (Opcional) */}
+            {/* Servicio Top (Viene del RPC) */}
             <IncomeCard
-              title="Mi servicio"
+              title="Mi Servicio"
               value={stats?.topService || "General"}
               valueType="text"
               titleVariant="h3"
@@ -64,7 +93,7 @@ const incomes = () => {
             />
           </IncomeCardsContainer>
 
-          {/* CHART: Pasamos la data real del Hook al componente */}
+          {/* Gráfico: Le pasamos la data real del RPC */}
           <IncomeCharts data={stats?.chartData || []} />
         </View>
       </ScrollView>
@@ -72,7 +101,7 @@ const incomes = () => {
   );
 };
 
-export default incomes;
+export default IncomesScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -80,9 +109,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   contentContainer: {
-    flex: 1,
     paddingHorizontal: 20,
     marginTop: 30,
-    paddingBottom: 30,
+    paddingBottom: 50,
   },
 });

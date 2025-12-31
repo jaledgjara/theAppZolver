@@ -122,5 +122,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F4F6F8" },
   chatArea: { flex: 1, paddingHorizontal: 12 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { paddingVertical: 16, paddingBottom: 20 },
+  listContent: { paddingVertical: 16, paddingBottom: 10 },
 });

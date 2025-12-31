@@ -1,80 +1,66 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/appSRC/services/supabaseClient";
-import { ChatMessage, MessageDTO } from "../Type/MessageType";
+import { ChatMessage } from "../Type/MessageType";
+import { MessageService } from "../Service/MessageService";
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore"; // 👈 IMPORTANTE
 
 export const useMessages = (conversationId: string, professionalId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch de Mensajes (Lo necesitamos fuera para poder exportarlo)
+  // 1. OBTENER EL ID CORRECTO (FIREBASE UID) DESDE EL STORE GLOBAL
+  // Ya no usamos supabase.auth.getUser() porque da un ID diferente.
+  const user = useAuthStore((s) => s.user);
+  const currentUserId = user?.uid || null;
+
+  // 2. Fetch de Mensajes usando el SERVICIO
   const fetchMessages = useCallback(async () => {
+    if (!currentUserId) return;
+
     try {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-
-      // Mapeo a Entidades de Dominio
-      const parsedMessages: ChatMessage[] = (data as MessageDTO[]).map(
-        (msg) => {
-          // Mapeo para Texto
-          if (msg.type === "text") {
-            return {
-              id: msg.id,
-              conversationId: msg.conversation_id,
-              createdAt: new Date(msg.created_at),
-              isMine: msg.sender_id !== professionalId,
-              isRead: msg.is_read,
-              type: "text",
-              data: { text: msg.content || "" }, // ✅ Estructura Correcta
-            };
-          }
-          // Mapeo para Presupuesto
-          if (msg.type === "budget") {
-            return {
-              id: msg.id,
-              conversationId: msg.conversation_id,
-              createdAt: new Date(msg.created_at),
-              isMine: msg.sender_id !== professionalId,
-              isRead: msg.is_read,
-              type: "budget",
-              data: msg.payload,
-            };
-          }
-          // ... (otros tipos)
-          return { ...msg } as any;
-        }
+      const data = await MessageService.getMessages(
+        conversationId,
+        currentUserId
       );
-
-      setMessages(parsedMessages);
+      setMessages(data);
     } catch (error) {
       console.error("Error fetching messages:", error);
     } finally {
       setLoading(false);
     }
-  }, [conversationId, professionalId]);
+  }, [conversationId, currentUserId]);
 
-  // Carga inicial
+  // 3. Suscripción Realtime
   useEffect(() => {
+    if (!currentUserId) return;
+
     fetchMessages();
 
-    // Aquí iría la suscripción a Realtime...
-  }, [fetchMessages]);
+    const channel = MessageService.subscribeToConversation(
+      conversationId,
+      currentUserId,
+      (newMsg: ChatMessage) => {
+        setMessages((prev: ChatMessage[]) => [...prev, newMsg]);
+      }
+    );
 
-  // 2. FUNCIÓN PARA ENVIAR TEXTO (OPTIMISTIC UI 🚀)
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchMessages, conversationId, currentUserId]);
+
+  // 4. Enviar Mensaje
   const sendMessage = useCallback(
     async (text: string) => {
-      // Necesitamos el ID del usuario actual (mock o desde store)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!text.trim() || !user?.id) return;
+      if (!text.trim() || !currentUserId) {
+        console.error("❌ Error: Intentando enviar sin User ID válido", {
+          currentUserId,
+        });
+        return;
+      }
 
-      // A. Optimistic Update (CORREGIDO ERROR 1)
       const tempId = `temp-${Date.now()}`;
+
       const optimisticMsg: ChatMessage = {
         id: tempId,
         conversationId: conversationId,
@@ -82,34 +68,29 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         isMine: true,
         isRead: false,
         type: "text",
-        // ✅ CORRECCIÓN: Envolvemos en 'data' según la interfaz TextMessage
-        data: {
-          text: text,
-        },
+        data: { text: text },
       };
 
-      setMessages((prev) => [...prev, optimisticMsg]);
+      setMessages((prev: ChatMessage[]) => [...prev, optimisticMsg]);
 
-      // B. Envío real a Supabase
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: user.id,
-        receiver_id: professionalId,
-        type: "text",
-        content: text,
-        payload: {}, // Payload vacío para texto
-      });
+      try {
+        console.log("🚀 Enviando mensaje con ID REAL:", currentUserId); // Ahora sí coincidirá
 
-      if (error) {
+        await MessageService.sendTextMessage(
+          conversationId,
+          currentUserId,
+          professionalId,
+          text
+        );
+      } catch (error) {
         console.error("Error sending message:", error);
-        // Rollback si falla (filtrar el optimista)
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      } else {
-        // Refrescar para obtener el ID real (o reemplazar in-place)
-        fetchMessages();
+        setMessages((prev: ChatMessage[]) =>
+          prev.filter((m: ChatMessage) => m.id !== tempId)
+        );
+        alert("No se pudo enviar el mensaje.");
       }
     },
-    [conversationId, professionalId, fetchMessages]
+    [conversationId, professionalId, currentUserId]
   );
 
   return {

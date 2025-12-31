@@ -4,8 +4,12 @@ import { mapMessageDTOToDomain } from "../Mapper/MessageMapper";
 
 export const MessageService = {
   /**
-   * 1. OBTENER HISTORIAL DE MENSAJES
-   * Trae todos los mensajes de una conversación ordenados cronológicamente.
+   * Obtiene el historial completo de mensajes de una conversación.
+   * Los resultados se ordenan cronológicamente de forma ascendente.
+   *
+   * @param conversationId ID de la conversación a consultar.
+   * @param currentUserId ID del usuario actual para el mapeo de dominio.
+   * @returns Array de objetos ChatMessage.
    */
   getMessages: async (
     conversationId: string,
@@ -15,7 +19,7 @@ export const MessageService = {
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true }); // Del más viejo al más nuevo
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Error fetching messages:", error);
@@ -24,26 +28,27 @@ export const MessageService = {
 
     if (!data) return [];
 
-    // Mapeamos DTO -> Domain para que la UI los consuma
     return data.map((dto) =>
       mapMessageDTOToDomain(dto as MessageDTO, currentUserId)
     );
   },
 
   /**
-   * 2. ENVIAR MENSAJE DE TEXTO
-   * Inserta el mensaje y actualiza la conversación para que suba en el Inbox.
+   * Envía un mensaje de texto y actualiza la metadata de la conversación (Inbox).
+   *
+   * @param conversationId ID de la conversación.
+   * @param senderId ID del remitente.
+   * @param receiverId ID del destinatario.
+   * @param content Contenido del mensaje.
+   * @returns El objeto MessageDTO del mensaje creado.
    */
-  // 2. ENVIAR MENSAJE DE TEXTO (Ahora retorna el mensaje creado)
   sendTextMessage: async (
     conversationId: string,
     senderId: string,
     receiverId: string,
     content: string
   ): Promise<MessageDTO> => {
-    // 👈 Cambiamos void por MessageDTO
-
-    // A. Insertamos y pedimos que nos devuelva el registro (.select().single())
+    // 1. Inserción del mensaje y recuperación del registro creado.
     const { data, error } = await supabase
       .from("messages")
       .insert({
@@ -55,12 +60,12 @@ export const MessageService = {
         payload: {},
         is_read: false,
       })
-      .select("*") // 👈 IMPORTANTE: Traer el dato insertado
+      .select("*")
       .single();
 
     if (error) throw error;
 
-    // B. Actualizar la 'conversation' (Inbox Cache)
+    // 2. Actualización de la conversación (Cache para el Inbox).
     await supabase
       .from("conversations")
       .update({
@@ -70,12 +75,16 @@ export const MessageService = {
       })
       .eq("id", conversationId);
 
-    return data as MessageDTO; // 👈 Retornamos el DTO real
+    return data as MessageDTO;
   },
 
   /**
-   * 3. ENVIAR PRESUPUESTO (Budget Proposal)
-   * Crea un mensaje especial con los datos estructurados del presupuesto.
+   * Envía una propuesta de presupuesto con una carga útil estructurada (JSONB).
+   *
+   * @param conversationId ID de la conversación.
+   * @param senderId ID del profesional (remitente).
+   * @param receiverId ID del cliente (destinatario).
+   * @param budgetData Datos estructurados del presupuesto.
    */
   sendBudgetProposal: async (
     conversationId: string,
@@ -83,15 +92,14 @@ export const MessageService = {
     receiverId: string,
     budgetData: BudgetPayload
   ): Promise<void> => {
-    // Validamos que el payload sea serializable
     const safePayload = JSON.parse(JSON.stringify(budgetData));
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: senderId,
       receiver_id: receiverId,
-      type: "budget", // Requiere el FIX SQL de arriba
-      content: "Propuesta de Presupuesto", // Texto fallback para notificaciones push
+      type: "budget",
+      content: "Propuesta de Presupuesto", // Texto fallback para notificaciones/preview
       payload: safePayload,
       is_read: false,
     });
@@ -101,7 +109,6 @@ export const MessageService = {
       throw new Error(error.message);
     }
 
-    // Opcional: Actualizar la conversación para mostrar "Te ha enviado un presupuesto..."
     await supabase
       .from("conversations")
       .update({
@@ -112,44 +119,47 @@ export const MessageService = {
   },
 
   /**
-   * 4. SUSCRIPCIÓN REALTIME (Live Chat)
-   * Escucha nuevos mensajes y los devuelve mapeados al instante.
-   * @param onNewMessage Callback que recibe el ChatMessage ya procesado
+   * Establece una suscripción Realtime para escuchar nuevos mensajes en una conversación.
+   * Mapea automáticamente los eventos entrantes a entidades de dominio.
+   *
+   * @param conversationId ID de la conversación a escuchar.
+   * @param currentUserId ID del usuario actual.
+   * @param onNewMessage Callback ejecutado al recibir un nuevo mensaje.
+   * @returns Instancia del canal de Realtime.
    */
   subscribeToConversation: (
     conversationId: string,
     currentUserId: string,
     onNewMessage: (msg: ChatMessage) => void
   ) => {
-    // Creamos el canal de escucha para ESTA conversación específica
     const channel = supabase
       .channel(`chat_room:${conversationId}`)
       .on(
         "postgres_changes",
         {
-          event: "INSERT", // Solo nos interesa cuando llegan nuevos
+          event: "INSERT",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          // El payload.new es el registro crudo (MessageDTO)
           const newMsgDTO = payload.new as MessageDTO;
-
-          // Lo mapeamos inmediatamente a Domain Entity
           const domainMsg = mapMessageDTOToDomain(newMsgDTO, currentUserId);
-
-          // Se lo entregamos a la UI
           onNewMessage(domainMsg);
         }
       )
       .subscribe();
 
-    // Retornamos el canal para poder hacer .unsubscribe() al salir
     return channel;
   },
 };
 
+/**
+ * Obtiene el estado actual de un presupuesto extrayendo datos del payload JSONB.
+ *
+ * @param messageId ID del mensaje que contiene el presupuesto.
+ * @returns Estado del presupuesto (string) o null si falla.
+ */
 export const getBudgetStatusService = async (
   messageId: string
 ): Promise<string | null> => {
@@ -162,7 +172,7 @@ export const getBudgetStatusService = async (
 
     if (error) throw error;
     console.log("RETURNING getBudgetStatusService:", data?.payload);
-    // Accedemos al JSONB payload y extraemos el status
+
     return data?.payload?.status || null;
   } catch (error) {
     console.error("Error fetching budget status:", error);
@@ -170,11 +180,15 @@ export const getBudgetStatusService = async (
   }
 };
 
-// ... imports
-
-// ... imports
-
-// Función Modificada para usar RPC (Bypass de Seguridad)
+/**
+ * Actualiza el payload de un mensaje utilizando una función RPC.
+ * Esta aproximación permite eludir restricciones de RLS (Row Level Security)
+ * del lado del cliente para actualizaciones específicas de estado.
+ *
+ * @param messageId ID del mensaje a actualizar.
+ * @param fullPayload Nuevo objeto payload completo.
+ * @returns Booleano indicando el éxito de la operación.
+ */
 export const updateBudgetMessageStatusService = async (
   messageId: string,
   fullPayload: any
@@ -185,8 +199,7 @@ export const updateBudgetMessageStatusService = async (
   console.log(`${DEBUG_TAG}    ID Mensaje:`, messageId);
 
   try {
-    // ✅ CAMBIO CRÍTICO: Usamos .rpc en lugar de .from().update()
-    // Esto llama a la función SQL que acabamos de crear con permisos de admin.
+    // Ejecución de procedimiento almacenado para actualización segura/privilegiada
     const { data, error } = await supabase.rpc(
       "update_message_payload_bypass",
       {
