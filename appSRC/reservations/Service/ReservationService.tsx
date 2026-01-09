@@ -1,5 +1,6 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
 import {
+  CreatePaidReservationPayload,
   Reservation,
   ReservationDTO,
   ReservationPayload,
@@ -12,6 +13,62 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 // MARK: - SHARED / CORE SERVICES
 // (Funcionalidad genérica utilizada por ambos roles)
 // ============================================================================
+
+/**
+ * CREAR RESERVA PAGADA (Flow Principal - Instant)
+ * Llama a la Edge Function. Maneja Pago + Reserva en una sola transacción atómica.
+ */
+export const createPaidReservation = async (
+  payload: CreatePaidReservationPayload
+) => {
+  console.log(
+    "[ReservationService] 📡 Invocando Edge Function: process-payment-reservation función"
+  );
+
+  const { data, error } = await supabase.functions.invoke(
+    "process-payment-reservation",
+    {
+      body: payload,
+    }
+  );
+
+  if (error) {
+    console.error("[ReservationService] 💥 Error de Red/Función:", error);
+    throw error;
+  }
+
+  // La función puede responder 200 OK pero con success: false en el JSON lógico
+  if (!data.success) {
+    console.error("[ReservationService] ⛔ Rechazo de Negocio:", data.error);
+    throw new Error(data.error || "No se pudo procesar el pago o la reserva.");
+  }
+
+  return data.data; // Retorna { reservation_id, payment_id, status }
+};
+
+/**
+ * Esto rechaza y devuelve el dinero del usuario.
+ * Se añade 'triggeredBy' para que la DB sepa quién canceló.
+ */
+export const rejectReservationWithRefund = async (
+  reservationId: string,
+  reason: string,
+  triggeredBy: "professional" | "user" = "professional" // Por defecto pro, pero flexible
+) => {
+  const { data, error } = await supabase.functions.invoke(
+    "cancel-reservation-refund",
+    {
+      body: {
+        reservation_id: reservationId,
+        reason,
+        triggered_by: triggeredBy,
+      },
+    }
+  );
+
+  if (error || !data.success) throw new Error("Error procesando el reembolso.");
+  return data;
+};
 
 /**
  * Crea una nueva reserva utilizando una función RPC segura.

@@ -83,3 +83,27 @@ export interface ReservationPayload {
   // platform_fee es opcional en payload si quieres
   platform_fee?: number;
 }
+
+// 3. PAYLOAD DE EDGE FUNCTION (NUEVO E IMPORTANTE)
+// Este es el tipo que usaremos para enviar datos a la función 'process-payment-reservation'
+export interface CreatePaidReservationPayload {
+  // Datos de Pago
+  card_token: string;
+  amount: number;
+  payer_email: string;
+  payment_method_id: string;
+
+  // Datos de Reserva (Planos, para que la Edge Func los formatee)
+  user_id: string; // maps to client_id
+  professional_id: string;
+  service_category: string;
+  service_modality: "instant" | "quote" | "urgent";
+  start_date: string; // ISO String
+  end_date: string; // ISO String
+  address_display: string;
+  coordinates: {
+    // Objeto limpio para enviar
+    latitude: number;
+    longitude: number;
+  };
+}

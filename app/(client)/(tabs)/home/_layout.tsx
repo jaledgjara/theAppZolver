@@ -10,6 +10,8 @@ export default function HomeLayout() {
       <Stack.Screen name="CategoryDetailsView/[id]" />
       <Stack.Screen name="ProfessionalDetails/[id]" />
       <Stack.Screen name="ReservationRequestScreen" />
+      <Stack.Screen name="PaymentScreen" />
+      <Stack.Screen name="PaymentFormScreen" />
     </Stack>
   );
 }

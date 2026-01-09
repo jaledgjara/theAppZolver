@@ -1,32 +1,29 @@
-import { Payment, PaymentDTO } from "../Type/PaymentType";
+import { Payment, PaymentDTO, PaymentStatusUI } from "../Type/PaymentType";
 
-// Helper function (Colocar en PaymentService o Utils)
+// Función auxiliar para calcular estado visual
+const getStatusUI = (status: string): PaymentStatusUI => {
+  if (status === "approved") return "paid";
+  if (status === "rejected" || status === "refunded") return "failed";
+  return "pending";
+};
+
 export const mapPaymentDTOToEntity = (dto: PaymentDTO): Payment => {
   return {
     id: dto.id,
     reservationId: dto.reservation_id,
-    clientId: dto.client_id,
-    professionalId: dto.professional_id,
-    clientName: dto.client?.legal_name,
-    professionalName: dto.professional?.legal_name,
+    payerId: dto.payer_id,
 
     financials: {
-      amount: dto.amount,
+      amount: Number(dto.amount),
       currency: dto.currency,
-      method: dto.method,
+      method: dto.payment_method,
     },
 
     status: dto.status,
-    statusUI:
-      dto.status === "completed"
-        ? "paid"
-        : dto.status === "failed"
-        ? "failed"
-        : "pending",
+    statusUI: getStatusUI(dto.status),
 
     meta: {
-      transactionId: dto.external_transaction_id || undefined,
-      proofUrl: dto.proof_of_payment_url || undefined,
+      providerId: dto.provider_payment_id || undefined,
     },
 
     timestamps: {

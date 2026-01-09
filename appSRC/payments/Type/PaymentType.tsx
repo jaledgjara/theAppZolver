@@ -1,104 +1,49 @@
-// --- 0. STATUS & METHOD DEFINITIONS ---
-// Igual que en la DB (Postgres Enum match)
-export type PaymentStatusDTO =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "refunded";
+// ============================================================================
+// ARCHIVO: appSRC/types/PaymentType.tsx
+// PROPÓSITO: Definición de tipos para LEER el historial de pagos.
+// NOTA: No hay 'Payload' de escritura porque la Edge Function maneja la creación.
+// ============================================================================
+// 1. ENUMS (Basados en tus Constraints SQL)
+export type PaymentStatusDTO = "pending" | "approved" | "rejected" | "refunded";
 
-export type PaymentMethodDTO =
-  | "cash"
-  | "transfer_alias"
-  | "credit_card"
-  | "platform_credit";
-
+// Tipos visuales para la UI
 export type PaymentStatusUI = "pending" | "paid" | "failed";
 
+// 2. DTO (Data Transfer Object - Lo que viene DIRECTO de Supabase al hacer un select)
 export interface PaymentDTO {
-  id: string;
-  reservation_id: string;
-  client_id: string; // UUID del pagador
-  professional_id: string; // UUID del cobrador
-  amount: number;
-  currency: string;
-  method: PaymentMethodDTO;
-  status: PaymentStatusDTO;
-
-  // Datos opcionales de trazabilidad
-  external_transaction_id?: string | null;
-  proof_of_payment_url?: string | null;
-
-  created_at: string;
-  updated_at: string;
-
-  // Relaciones expandidas (Joins opcionales de Supabase)
-  client?: {
-    legal_name: string;
-    avatar_url?: string;
-  };
-  professional?: {
-    legal_name: string;
-    avatar_url?: string;
-  };
+  id: string; // uuid
+  reservation_id: string; // uuid fk -> reservations
+  payer_id: string; // uuid fk -> user_accounts
+  amount: number; // numeric(12,2)
+  currency: string; // text default 'ARS'
+  status: PaymentStatusDTO; // text
+  payment_method: string; // text default 'credit_card'
+  provider_payment_id: string | null; // text (ID de MercadoPago)
+  created_at: string; // timestamptz
+  updated_at: string; // timestamptz
 }
 
+// 3. ENTIDAD (Para uso interno en la UI, mapeo limpio)
 export interface Payment {
   id: string;
   reservationId: string;
+  payerId: string;
 
-  // Roles involucrados (Abstracción limpia)
-  clientId: string;
-  professionalId: string;
-  clientName?: string;
-  professionalName?: string;
-
-  // Agrupación financiera (Similar a tu Reservation Entity)
   financials: {
     amount: number;
     currency: string;
-    method: PaymentMethodDTO; // Mantenemos el literal string para lógica
+    method: string;
   };
 
-  // Detalles de estado y transacción
-  status: PaymentStatusDTO; // Estado técnico
-  statusUI: PaymentStatusUI; // Estado visual (ej: Color de badge)
+  status: PaymentStatusDTO;
+  statusUI: PaymentStatusUI; // 'paid' | 'pending' | 'failed'
 
   meta: {
-    transactionId?: string; // ID externo (MP, Stripe, Hash)
-    proofUrl?: string; // Foto del comprobante
+    providerId?: string; // ID externo (MP)
   };
 
   timestamps: {
     createdAt: Date;
     updatedAt: Date;
   };
-}
-
-// --- 3. PAYLOADS (Inputs para la API) ---
-
-/**
- * Payload para CREAR un nuevo registro de pago.
- * Se usa cuando el usuario da click en "Pagar" o "Informar Transferencia".
- */
-export interface CreatePaymentPayload {
-  reservation_id: string;
-  client_id: string;
-  professional_id: string;
-  amount: number;
-  currency?: string; // Default 'ARS'
-  method: PaymentMethodDTO;
-  // Nota: status se omite porque la DB lo pone en 'pending' por defecto
-}
-
-/**
- * Payload para ACTUALIZAR un pago existente.
- * Se usa para:
- * 1. Subir la foto del comprobante (Client)
- * 2. Confirmar que se recibió el dinero (Professional)
- */
-export interface UpdatePaymentPayload {
-  status?: PaymentStatusDTO;
-  external_transaction_id?: string;
-  proof_of_payment_url?: string;
 }
