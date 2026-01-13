@@ -5,13 +5,16 @@ export default function ProfileLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
 
+      {/* MAIN CATEGORIES*/}
       <Stack.Screen name="payment-methods" />
       <Stack.Screen name="locations" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="privacy" />
       <Stack.Screen name="app-settings" />
 
+      {/* SUB CATEGORIES*/}
       <Stack.Screen name="AddLocationScreen" />
+      <Stack.Screen name="ProfilePaymentFormScreen" />
     </Stack>
   );
 }

@@ -58,65 +58,68 @@ const Home = () => {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      {/* HEADER FIJO: Se queda arriba porque está fuera del ScrollView */}
       <ToolBarHome />
 
-      <View>
-        <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
-          <LargeButton
-            title="Ver dirección en Mapa"
-            onPress={() => openMapMenu("Av. San Martin 123, Mendoza")}
-            iconName="map-outline"
-            backgroundColor={COLORS.tertiary}
-          />
-        </View>
-        <SearchBar
-          value={""}
-          placeholder="¿Qué servicio necesitas hoy?"
-          onPress={() => router.push("(client)/(tabs)/home/SearchScreen")}
-        />
-
-        <MoreCategoryTitle
-          title="Categorías"
-          onLinkPress={() => console.log("Ver todas")}
-        />
-
-        <View style={styles.listContainer}>
-          {loadingCategories ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
-            </View>
-          ) : (
-            <FlatList
-              data={categories}
-              renderItem={renderCategoryItem}
-              keyExtractor={(item) => item.id}
-              numColumns={3}
-              contentContainerStyle={styles.listContentContainer}
-              scrollEnabled={false}
-              // 3. Manejo de Estados (Vacío / Error)
-              ListEmptyComponent={
-                <View style={{ marginTop: 20 }}>
-                  <StatusPlaceholder
-                    icon={
-                      error ? "alert-circle-outline" : "folder-open-outline"
-                    }
-                    title={error ? "Error de conexión" : "Sin Categorías"}
-                    subtitle={
-                      error
-                        ? "No pudimos cargar los servicios. Revisa tu conexión."
-                        : "No hay servicios disponibles en este momento."
-                    }
-                    buttonTitle={error ? "Reintentar" : undefined}
-                    onButtonPress={error ? fetchCategories : undefined}
-                  />
-                </View>
-              }
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View>
+          <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+            <LargeButton
+              title="Ver dirección en Mapa"
+              onPress={() => openMapMenu("Av. San Martin 123, Mendoza")}
+              iconName="map-outline"
+              backgroundColor={COLORS.tertiary}
             />
-          )}
+          </View>
+          <SearchBar
+            value={""}
+            placeholder="¿Qué servicio necesitas hoy?"
+            onPress={() => router.push("(client)/(tabs)/home/SearchScreen")}
+          />
+
+          <MoreCategoryTitle
+            title="Categorías"
+            onLinkPress={() => console.log("Ver todas")}
+          />
+
+          <View style={styles.listContainer}>
+            {loadingCategories ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={categories}
+                renderItem={renderCategoryItem}
+                keyExtractor={(item) => item.id}
+                numColumns={3}
+                contentContainerStyle={styles.listContentContainer}
+                scrollEnabled={false}
+                // 3. Manejo de Estados (Vacío / Error)
+                ListEmptyComponent={
+                  <View style={{ marginTop: 20 }}>
+                    <StatusPlaceholder
+                      icon={
+                        error ? "alert-circle-outline" : "folder-open-outline"
+                      }
+                      title={error ? "Error de conexión" : "Sin Categorías"}
+                      subtitle={
+                        error
+                          ? "No pudimos cargar los servicios. Revisa tu conexión."
+                          : "No hay servicios disponibles en este momento."
+                      }
+                      buttonTitle={error ? "Reintentar" : undefined}
+                      onButtonPress={error ? fetchCategories : undefined}
+                    />
+                  </View>
+                }
+              />
+            )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -129,7 +132,7 @@ const styles = StyleSheet.create({
   },
   listContentContainer: {
     alignItems: "flex-start",
-    paddingHorizontal: 5,
+    marginRight: 5,
     paddingBottom: 40,
   },
   listContainer: {

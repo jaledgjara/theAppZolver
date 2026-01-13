@@ -1,18 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import PaymentMethodListScreen from "@/appSRC/paymentMethod/Screens/PaymentMethodListScreen";
 
-export default function PaymentMethodsScreen() {
-  return (
-    <View style={styles.container}>
-      <ToolBarTitle titleText="Métodos de Pago" showBackButton={true} />
-      <View style={styles.content}>
-        <Text>Aquí irán las tarjetas y cuentas bancarias.</Text>
-      </View>
-    </View>
-  );
+export default function ProfilePaymentScreen() {
+  return <PaymentMethodListScreen mode="profile" />;
 }
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
-  content: { padding: 20 },
-});

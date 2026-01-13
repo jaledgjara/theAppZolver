@@ -16,8 +16,8 @@ import { PaymentTypeSelector } from "@/appSRC/payments/Screens/PaymentTypeSelect
 import { useCreatePaymentMethod } from "@/appSRC/paymentMethod/Hooks/useCreatePaymentMethod";
 import { PaymentMethodType } from "@/appSRC/paymentMethod/Type/PaymentMethodType";
 
-const PaymentFormScreen = () => {
-  // 1. ESTADOS DEL FORMULARIO
+export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
+  // 2. ESTADOS DEL FORMULARIO
   const [newMethodType, setNewMethodType] =
     useState<PaymentMethodType>("credit_card");
 
@@ -26,35 +26,34 @@ const PaymentFormScreen = () => {
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
   const [holderName, setHolderName] = useState("");
-  const [identification, setIdentification] = useState(""); // [NUEVO] DNI para MercadoPago
+  const [identification, setIdentification] = useState("");
 
-  // 2. HOOK DE LÓGICA
+  // 3. HOOK DE LÓGICA (Feature-Based)
   const { createMethod, loading } = useCreatePaymentMethod();
+
+  const isCheckout = mode === "checkout";
 
   // Helper para formatear fecha MM/AA automáticamente
   const handleExpiryChange = (text: string) => {
-    // Eliminar todo lo que no sea número
     const clean = text.replace(/[^0-9]/g, "");
     if (clean.length >= 2) {
-      // Agregar la barra después del mes
       setExpiry(clean.slice(0, 2) + "/" + clean.slice(2, 4));
     } else {
       setExpiry(clean);
     }
   };
 
-  const handleSave = () => {
-    // Aquí ya estás pasando todo lo que el nuevo Hook necesita
-    createMethod(newMethodType, {
-      number: cardNumber, // El Hook usará esto para detectar la Marca/Issuer
+  const handleSave = async () => {
+    const success = await createMethod(newMethodType, {
+      number: cardNumber,
       expiry,
       cvc,
       holder: holderName,
-      dni: identification, // El Hook usará esto para el Token
+      dni: identification,
     });
   };
 
-  // Validación visual para deshabilitar botón
+  // Validación visual
   const isValid =
     newMethodType === "platform_credit" ||
     (cardNumber.length >= 15 &&
@@ -66,9 +65,13 @@ const PaymentFormScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: "white" }}>
+      style={styles.screen}>
       <View style={styles.container}>
-        <ToolBarTitle titleText="Nuevo Método" showBackButton={true} />
+        {/* Título dinámico según el contexto */}
+        <ToolBarTitle
+          titleText={isCheckout ? "Confirmar y Pagar" : "Nuevo Método"}
+          showBackButton={true}
+        />
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* 1. SELECTOR DE TIPO */}
@@ -83,7 +86,6 @@ const PaymentFormScreen = () => {
               <View style={styles.inputsWrapper}>
                 <Text style={styles.label}>Datos de la tarjeta</Text>
 
-                {/* NÚMERO DE TARJETA */}
                 <TextInput
                   placeholder="Número de Tarjeta"
                   placeholderTextColor="#999"
@@ -94,7 +96,6 @@ const PaymentFormScreen = () => {
                   onChangeText={setCardNumber}
                 />
 
-                {/* FECHA Y CVC */}
                 <View style={styles.row}>
                   <TextInput
                     placeholder="MM/AA"
@@ -102,7 +103,7 @@ const PaymentFormScreen = () => {
                     style={[styles.input, { flex: 1, marginRight: 10 }]}
                     maxLength={5}
                     value={expiry}
-                    onChangeText={handleExpiryChange} // Usamos el helper con máscara
+                    onChangeText={handleExpiryChange}
                     keyboardType="numeric"
                   />
                   <TextInput
@@ -117,7 +118,6 @@ const PaymentFormScreen = () => {
                   />
                 </View>
 
-                {/* NOMBRE TITULAR */}
                 <TextInput
                   placeholder="Nombre del Titular (Como figura en tarjeta)"
                   placeholderTextColor="#999"
@@ -127,7 +127,6 @@ const PaymentFormScreen = () => {
                   autoCapitalize="characters"
                 />
 
-                {/* [CRÍTICO] DNI DEL TITULAR */}
                 <TextInput
                   placeholder="DNI / Cédula del Titular"
                   placeholderTextColor="#999"
@@ -140,7 +139,7 @@ const PaymentFormScreen = () => {
 
                 {newMethodType === "credit_card" && (
                   <View style={styles.installmentBox}>
-                    <Text style={{ color: "#666", fontSize: 13 }}>
+                    <Text style={styles.helperText}>
                       Las cuotas se seleccionan al momento de pagar.
                     </Text>
                   </View>
@@ -157,29 +156,31 @@ const PaymentFormScreen = () => {
               </View>
             )}
           </View>
+
           <LargeButton
-            title={loading ? "Procesando..." : "Guardar Método"}
+            title={
+              loading
+                ? "Procesando..."
+                : isCheckout
+                ? "Pagar ahora"
+                : "Guardar Método"
+            }
             onPress={handleSave}
             disabled={loading || !isValid}
           />
         </ScrollView>
-
-        {/* FOOTER */}
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-export default PaymentFormScreen;
-
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "white" },
   container: { flex: 1 },
   scrollContent: { padding: 20 },
-
   formContainer: { marginVertical: 10 },
   inputsWrapper: { gap: 15 },
   label: { fontSize: 14, fontWeight: "bold", color: "#333", marginBottom: 5 },
-
   input: {
     backgroundColor: "#F9F9F9",
     borderWidth: 1,
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     alignItems: "center",
   },
-
+  helperText: { color: "#666", fontSize: 13 },
   walletInfo: {
     alignItems: "center",
     padding: 30,
@@ -213,12 +214,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   walletSub: { fontSize: 13, color: "#999", marginTop: 5, textAlign: "center" },
-
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderColor: "#EEE",
-    // Fix para teclados en iOS/Android que tapan el botón
-    marginBottom: Platform.OS === "ios" ? 10 : 0,
-  },
 });
+
+export default PaymentFormScreen;

@@ -1,4 +1,4 @@
-import { Platform, Linking } from "react-native";
+import { Platform } from "react-native";
 
 export type SupportedPlatform = "ios" | "android" | "both";
 
