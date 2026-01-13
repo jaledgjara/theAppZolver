@@ -11,7 +11,7 @@ export interface ReservationCardProps {
   serviceName: string;
   date: string;
   time: string;
-  status: ReservationStatusUI; // Usa el tipo compartido
+  status: ReservationStatusUI;
   price: string;
   avatar: any;
   onPress?: () => void;

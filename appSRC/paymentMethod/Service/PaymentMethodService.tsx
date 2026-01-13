@@ -12,19 +12,43 @@ export const PaymentMethodsService = {
    * Nombre anterior: getAll
    */
   fetchPaymentMethodsByUser: async (userId: string): Promise<UISavedCard[]> => {
+    console.log("📡 [Service] Iniciando fetch para User ID:", userId);
+
     const { data, error } = await supabase
       .from("user_payment_methods")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
+    // [DEBUGGING]
     if (error) {
-      console.error("[PaymentService] Error fetching cards:", error);
+      console.error("❌ [Service] Error CRÍTICO en Supabase:", error);
       throw new Error("No se pudieron cargar tus métodos de pago.");
     }
 
-    // Usamos el Mapper Helper para convertir DTO -> UI limpiamente
-    return ((data as PaymentMethodDTO[]) || []).map(mapDtoToUi);
+    if (!data) {
+      console.warn("⚠️ [Service] Data es null/undefined.");
+      return [];
+    }
+
+    console.log(`📦 [Service] Supabase devolvió ${data.length} filas.`);
+
+    // Si data tiene 0 elementos, imprimirlo claramente
+    if (data.length === 0) {
+      console.log(
+        "⚠️ [Service] El array está vacío. Posibles causas: RLS o UserID incorrecto."
+      );
+    }
+
+    // Usamos el Mapper
+    try {
+      const mappedCards = (data as PaymentMethodDTO[]).map(mapDtoToUi);
+      console.log("✅ [Service] Mapeo finalizado con éxito.");
+      return mappedCards;
+    } catch (mapError) {
+      console.error("❌ [Service] Error en el Mapper:", mapError);
+      return [];
+    }
   },
 
   /**
@@ -37,10 +61,15 @@ export const PaymentMethodsService = {
   ): Promise<UISavedCard> => {
     console.log("[PaymentService] Guardando tarjeta vía Edge Function...");
 
+    console.log(
+      "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀[PaymentService] Payload saliendo hacia Edge Function:",
+      JSON.stringify(payload)
+    );
+    console.log("📦 PAYLOAD FINAL:", JSON.stringify(payload));
     const { data, error } = await supabase.functions.invoke(
       "save-payment-method",
       {
-        body: payload, // { user_id, email, token }
+        body: payload,
       }
     );
 

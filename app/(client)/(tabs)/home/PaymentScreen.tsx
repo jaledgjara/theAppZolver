@@ -81,6 +81,7 @@ const PaymentScreen = () => {
               card={card}
               isSelected={selectedCardId === card.id}
               onPress={() => setSelectedCardId(card.id)}
+              onDelete={deleteCard.bind(this, card.id)}
             />
           ))
         ) : (

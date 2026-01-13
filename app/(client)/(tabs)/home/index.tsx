@@ -18,6 +18,8 @@ import { COLORS } from "@/appASSETS/theme";
 import { useServiceSelection } from "@/appSRC/categories/Hooks/useServiceCatalog";
 import { getCategoryVectorIcon } from "@/appSRC/categories/Screens/CategoryIcons";
 import { useLocation } from "@/appSRC/location/Hooks/useLocation";
+import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { openMapMenu } from "@/appSRC/maps/Hooks/openMapMenu";
 
 const Home = () => {
   const router = useRouter();
@@ -60,6 +62,14 @@ const Home = () => {
       <ToolBarHome />
 
       <View>
+        <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+          <LargeButton
+            title="Ver dirección en Mapa"
+            onPress={() => openMapMenu("Av. San Martin 123, Mendoza")}
+            iconName="map-outline"
+            backgroundColor={COLORS.tertiary}
+          />
+        </View>
         <SearchBar
           value={""}
           placeholder="¿Qué servicio necesitas hoy?"

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Alert } from "react-native";
-import { useAuthStore } from "@/appSRC/auth/Store/AuthStore"; // Adjust if path differs
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { UISavedCard } from "../Type/PaymentMethodType";
 import { PaymentMethodsService } from "../Service/PaymentMethodService";
 
 export const usePaymentMethods = () => {
-  const { user } = useAuthStore(); // We need the Logged User ID
+  // Debug del Store de Auth
+  const { user } = useAuthStore();
+
   const [cards, setCards] = useState<UISavedCard[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,23 +16,38 @@ export const usePaymentMethods = () => {
    * 1. FETCHING (Load Cards)
    */
   const loadMethods = useCallback(async () => {
-    // If no user is logged in, we can't fetch. Stop loading.
-    if (!user?.uid) {
+    console.log("🪝 [Hook] loadMethods disparado.");
+
+    // Chequeo de seguridad del usuario
+    if (!user) {
+      console.warn("⚠️ [Hook] Usuario es null en AuthStore.");
+      setLoading(false);
+      return;
+    }
+
+    if (!user.uid) {
+      console.warn("⚠️ [Hook] user.uid es undefined.", user);
       setLoading(false);
       return;
     }
 
     const userId = user.uid;
+    console.log("👤 [Hook] Usuario detectado:", userId);
 
     try {
       setLoading(true);
       setError(null);
+
       const data = await PaymentMethodsService.fetchPaymentMethodsByUser(
         userId
       );
+
+      console.log(
+        `✅ [Hook] Datos recibidos en el componente: ${data.length} tarjetas.`
+      );
       setCards(data);
     } catch (err: any) {
-      console.error("[usePaymentMethods] Error loading:", err);
+      console.error("❌ [Hook] Error loading:", err);
       setError("No se pudieron cargar tus métodos de pago.");
     } finally {
       setLoading(false);
@@ -51,16 +68,13 @@ export const usePaymentMethods = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              // Optimistic Update: Remove from UI immediately for speed perception
               const previousCards = [...cards];
               setCards((prev) => prev.filter((c) => c.id !== cardId));
-
               await PaymentMethodsService.deletePaymentMethod(cardId);
             } catch (err) {
-              // Rollback if fails
               console.error("[usePaymentMethods] Delete failed", err);
               Alert.alert("Error", "No se pudo eliminar la tarjeta.");
-              loadMethods(); // Revert to server state
+              loadMethods();
             }
           },
         },

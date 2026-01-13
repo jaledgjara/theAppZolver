@@ -59,7 +59,7 @@ export const mapReservationFromDTO = (
     roleAvatar: require("@/appASSETS/RawImages/avatar-0.jpg"), // Placeholder
 
     createdAt,
-    scheduledStart, // Puede ser null si falló el parseo
+    scheduledStart,
     address: dto.address_display || "Ubicación a coordinar",
     statusDTO: dto.status as ReservationStatusDTO,
     statusUI: convertStatusToUI(dto.status as ReservationStatusDTO),
@@ -69,6 +69,7 @@ export const mapReservationFromDTO = (
 
     financials: {
       price: dto.price_estimated || 0,
+      platformFee: dto.platform_fee || 0,
       currency: "ARS",
     },
   };

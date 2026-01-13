@@ -20,108 +20,31 @@ import {
   mapStatusToUI,
 } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import { COLORS } from "@/appASSETS/theme";
 
 const ReservationDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const reservationId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
 
-  // 1. Data Fetching
-  const { reservation, isLoading, isError, refetch } =
-    useReservationDetail(reservationId);
+  const { displayData, isLoading, isError, refetch } = useReservationDetail(
+    reservationId,
+    "client"
+  );
 
-  // 2. Data Preparation (Igual que en Professional Screen)
-  const displayData = useMemo(() => {
-    if (!reservation) return null;
+  if (isLoading) return <MiniLoaderScreen />;
 
-    // DEBUG: Descomenta esto para ver qué llega exactamente en la fecha
-    // console.log("SCHEDULE DATA:", reservation.schedule);
-
-    // A. Fechas
-    const dateObj =
-      reservation.schedule.startDate instanceof Date &&
-      !isNaN(reservation.schedule.startDate.getTime())
-        ? reservation.schedule.startDate
-        : new Date(); // Fallback if invalid
-
-    const dateStr = dateObj.toLocaleDateString("es-AR", {
-      day: "numeric",
-      month: "long",
-    });
-
-    const timeStr = dateObj.toLocaleTimeString("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    // B. Professional Info
-    // Buscamos legalName, luego name, luego fallback
-    const proName =
-      reservation.professional?.name ||
-      reservation.professional?.name ||
-      "Profesional Zolver";
-
-    const proAvatar = reservation.professional?.avatar
-      ? { uri: reservation.professional.avatar }
-      : require("@/appASSETS/RawImages/avatar-0.jpg");
-
-    // C. Status & Styles
-    const uiStatus = mapStatusToUI(reservation.status);
-    const statusStyle = getStatusConfig(uiStatus);
-
-    // D. Financials
-    const priceService = reservation.financials?.priceEstimated || 0;
-    const platformFee = reservation.financials?.platformFee || 0;
-    const totalAmount =
-      reservation.financials?.priceFinal || priceService + platformFee;
-
-    return {
-      // Info Principal
-      proName: proName,
-      proAvatar: proAvatar,
-
-      // Detalles Servicio
-      serviceTitle: reservation.title || "Servicio Solicitado",
-      description: reservation.description,
-
-      // Fechas
-      dateFormatted: dateStr,
-      timeFormatted: `${timeStr}`,
-
-      // Status Visuals
-      statusText: statusStyle.text,
-      statusBg: statusStyle.bg,
-      statusColor: statusStyle.color,
-
-      // Ubicación
-      address: reservation.location?.street || "Ubicación a coordinar",
-
-      // Dinero
-      priceService: `$${priceService.toLocaleString("es-AR")}`,
-      platformFee: `$${platformFee.toLocaleString("es-AR")}`,
-      totalAmount: `$${totalAmount.toLocaleString("es-AR")}`,
-
-      // Lógica de visualización
-      showContact: uiStatus === "in_progress" || uiStatus === "confirmed",
-    };
-  }, [reservation]);
-
-  // 3. Loading State
-  if (isLoading) {
-    return <MiniLoaderScreen />;
-  }
-
-  // 4. Error State
   if (isError || !displayData) {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
-        <Text style={styles.errorTitle}>Error al cargar</Text>
-        <Text style={styles.errorText}>No pudimos encontrar esta reserva.</Text>
+        <Text style={styles.errorTitle}>Reserva no encontrada</Text>
         <LargeButton title="Volver" onPress={() => router.back()} />
       </View>
     );
   }
+
+  const { header, service, time, location, finance, actions } = displayData;
 
   return (
     <View style={styles.container}>
@@ -132,59 +55,56 @@ const ReservationDetailScreen = () => {
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={refetch} />
         }>
-        {/* SECCIÓN 1: Profesional & Estado */}
+        {/* 1. Contraparte & Estado */}
         <ReservationDetailsCard
-          type="professional"
-          name={displayData.proName}
-          avatar={displayData.proAvatar}
-          statusText={displayData.statusText}
-          statusBg={displayData.statusBg}
-          statusColor={displayData.statusColor}
+          type="professional" // Podríamos renombrar esta prop a "profile" en el componente base
+          name={header.title}
+          avatar={header.avatar}
+          statusText={header.status.text}
+          statusBg={header.status.bg}
+          statusColor={header.status.color}
         />
 
-        {/* Título del Servicio */}
-        <ReservationDetailsCard type="title" title={displayData.serviceTitle} />
+        {/* 2. Servicio */}
+        <ReservationDetailsCard type="title" title={service.title} />
 
-        {/* SECCIÓN 2: Fecha y Hora */}
+        {/* 3. Tiempo */}
         <ReservationDetailsCard
           type="date"
-          date={displayData.dateFormatted}
-          time={displayData.timeFormatted}
+          date={time.dateString}
+          time={time.timeString}
         />
 
-        {/* SECCIÓN 3: Ubicación */}
-        <ReservationDetailsCard
-          type="location"
-          location={displayData.address}
-        />
+        {/* 4. Ubicación */}
+        <ReservationDetailsCard type="location" location={location} />
 
-        {/* SECCIÓN 4: Descripción */}
-        {displayData.description ? (
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.sectionHeader}>Nota del servicio</Text>
-            <Text style={styles.descriptionText}>
-              {displayData.description}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* SECCIÓN 5: Desglose de Pago */}
+        {/* 5. Finanzas */}
         <ReservationDetailsCard
           type="payment"
-          priceService={displayData.priceService}
-          platformFee={displayData.platformFee}
-          totalAmount={displayData.totalAmount}
+          priceService={finance.service}
+          platformFee={finance.fee}
+          totalAmount={finance.total}
         />
 
-        {displayData.showContact && (
-          <View style={styles.footerAction}>
+        {/* 6. Acciones Dinámicas */}
+        <View style={styles.footerAction}>
+          {actions.canChat && (
             <LargeButton
-              title="Contactar Profesional"
+              title={`Chat con ${header.title}`}
               iconName="chatbubble-outline"
-              onPress={() => console.log("Ir al chat")}
+              onPress={() => console.log("Navegar a Chat", displayData.raw.id)}
             />
-          </View>
-        )}
+          )}
+
+          {/* Ejemplo de extensibilidad futura */}
+          {actions.canQuote && (
+            <LargeButton
+              title="Enviar Cotización"
+              backgroundColor={COLORS.primary}
+              onPress={() => console.log("Abrir modal cotización")}
+            />
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -217,7 +137,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: "#6B7280",
+    color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 24,
   },

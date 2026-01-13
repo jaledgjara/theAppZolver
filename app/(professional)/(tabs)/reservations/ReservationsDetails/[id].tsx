@@ -1,109 +1,43 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
   View,
   ScrollView,
   RefreshControl,
+  StyleSheet,
+  Text,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { format, isValid } from "date-fns";
-import { es } from "date-fns/locale";
 
 // Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-
-// Hooks & Utils
-import { useReservationDetailsForProfessional } from "@/appSRC/reservations/Hooks/useReservationDetailsForProfessional";
-import {
-  getStatusConfig,
-  mapStatusToUI,
-} from "@/appSRC/reservations/Helper/MapStatusToUIClient"; // Assuming shared helper or similar logic
-import ReservationDetailsCard from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard";
+import ReservationDetailsCard from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard"; // Reutilizamos la misma Card
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import { useReservationDetail } from "@/appSRC/reservations/Hooks/useClientReservationDetail";
+import { COLORS } from "@/appASSETS/theme";
+
+// ✅ HOOK UNIFICADO (El mismo que usa el Cliente)
 
 const ReservationsDetailsScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams();
+  const reservationId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
 
-  // 1. Data Fetching (Professional Hook)
-  const { reservation, isLoading, error, refresh } =
-    useReservationDetailsForProfessional(id);
+  // 1. Data Fetching UNIFICADO
+  // Simplemente le decimos: "Soy un profesional"
+  const { displayData, isLoading, isError, refetch } = useReservationDetail(
+    reservationId,
+    "professional"
+  );
 
-  // 2. Data Preparation
-  const displayData = useMemo(() => {
-    if (!reservation) return null;
-
-    // Date Safety
-    const dateObj =
-      reservation.schedule.startDate instanceof Date &&
-      !isNaN(reservation.schedule.startDate.getTime())
-        ? reservation.schedule.startDate
-        : new Date(); // Fallback if invalid
-
-    const dateStr = dateObj.toLocaleDateString("es-AR", {
-      day: "numeric",
-      month: "long",
-    });
-
-    const timeStr = dateObj.toLocaleTimeString("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const title = reservation.title || "Servicio";
-
-    // UI Status
-    const uiStatus = mapStatusToUI(reservation.status);
-    const statusStyle = getStatusConfig(uiStatus);
-
-    return {
-      // Client Info (For the professional view)
-      clientName: reservation.client?.name || "Cliente",
-      clientAvatar: reservation.client?.avatar
-        ? { uri: reservation.client.avatar }
-        : require("@/appASSETS/RawImages/avatar-0.jpg"), // Fallback
-
-      serviceTitle: title,
-      description: reservation.description,
-
-      // Status Styles
-      statusText: statusStyle.text,
-      statusBg: statusStyle.bg,
-      statusColor: statusStyle.color,
-
-      // Formatting
-      dateFormatted: dateStr,
-      timeFormatted: timeStr,
-
-      // Location
-      address: reservation.location?.street || "Dirección no disponible",
-
-      // Financials (Add fallbacks/safe access)
-      priceService: reservation.financials?.priceEstimated || 0,
-      platformFee: reservation.financials?.platformFee || 0,
-      totalAmount:
-        reservation.financials?.priceFinal ||
-        (reservation.financials?.priceEstimated || 0) +
-          (reservation.financials?.platformFee || 0),
-
-      showContact: uiStatus === "in_progress" || uiStatus === "confirmed",
-    };
-  }, [reservation]);
-
-  // 3. Loading State
+  // 2. Loading State
   if (isLoading) {
-    return (
-      <View style={styles.centerContainer}>
-        <MiniLoaderScreen />
-      </View>
-    );
+    return <MiniLoaderScreen />;
   }
 
-  // 4. Error State
-  if (error || !displayData) {
+  // 3. Error State
+  if (isError || !displayData) {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
@@ -116,6 +50,9 @@ const ReservationsDetailsScreen = () => {
     );
   }
 
+  // Desestructuramos para limpieza en el JSX
+  const { header, service, time, location, finance, actions } = displayData;
+
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Detalles del Trabajo" showBackButton={true} />
@@ -123,63 +60,73 @@ const ReservationsDetailsScreen = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
         }>
-        {/* SECTION 1: Client Info & Status */}
+        {/* SECCIÓN 1: Info del CLIENTE (El hook ya trajo el avatar/nombre del cliente) */}
         <ReservationDetailsCard
-          type="professional"
-          name={displayData.clientName}
-          avatar={displayData.clientAvatar}
-          statusText={displayData.statusText}
-          statusBg={displayData.statusBg}
-          statusColor={displayData.statusColor}
+          type="professional" // Mantenemos el tipo visual
+          name={header.title} // Aquí vendrá el nombre del Cliente
+          avatar={header.avatar}
+          statusText={header.status.text}
+          statusBg={header.status.bg}
+          statusColor={header.status.color}
         />
-        {/* SECTION 2: Work title */}
-        <ReservationDetailsCard type="title" title={displayData.serviceTitle} />
 
-        {/* SECTION 2: Date & Time */}
+        {/* SECCIÓN 2: Título del Servicio */}
+        <ReservationDetailsCard type="title" title={service.title} />
+
+        {/* SECCIÓN 3: Fecha y Hora (Ya corregido por TimeEngine) */}
         <ReservationDetailsCard
           type="date"
-          date={displayData.dateFormatted}
-          time={displayData.timeFormatted}
+          date={time.dateString}
+          time={time.timeString}
         />
 
-        {/* SECTION 3: Location */}
+        {/* SECCIÓN 4: Ubicación */}
         <ReservationDetailsCard
           type="location"
-          location={displayData.address}
-          // Optional: Add onPress to open maps if supported in your Card
-          onPress={() => console.log("Open Maps Logic")}
+          location={location}
+          onPress={() => console.log("Abrir mapa...")}
         />
 
-        {/* SECTION 4: Description (Context) */}
-        {displayData.description ? (
+        {/* SECCIÓN 5: Descripción */}
+        {service.description ? (
           <View style={styles.descriptionContainer}>
             <Text style={styles.sectionHeader}>Nota del cliente</Text>
             <Text style={styles.descriptionText}>
-              {displayData.description}
+              {/* Nota: En el hook unificado quizás quieras ajustar qué descripción mostramos */}
+              {service.description}
             </Text>
           </View>
         ) : null}
 
-        {/* SECTION 5: Payment Details */}
+        {/* SECCIÓN 6: Desglose de Pago */}
         <ReservationDetailsCard
           type="payment"
-          priceService={`$${displayData.priceService.toLocaleString("es-AR")}`}
-          platformFee={`$${displayData.platformFee.toLocaleString("es-AR")}`}
-          totalAmount={`$${displayData.totalAmount.toLocaleString("es-AR")}`}
+          priceService={finance.service}
+          platformFee={finance.fee}
+          totalAmount={finance.total}
         />
 
-        {/* Actions */}
-        {displayData.showContact && (
-          <View style={styles.footerAction}>
+        {/* ACCIONES */}
+        <View style={styles.footerAction}>
+          {actions.canChat && (
             <LargeButton
               title="Contactar Cliente"
               iconName="chatbubble-outline"
-              onPress={() => console.log("Navigate to Chat")}
+              onPress={() => console.log("Ir al chat con", header.title)}
             />
-          </View>
-        )}
+          )}
+
+          {/* Acción exclusiva de Profesional: Cotizar */}
+          {actions.canQuote && (
+            <LargeButton
+              title="Enviar Cotización"
+              backgroundColor={COLORS.primary}
+              onPress={() => console.log("Abrir modal de cotización")}
+            />
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -190,7 +137,7 @@ export default ReservationsDetailsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white", // Matches the clean look
+    backgroundColor: "white",
   },
   scrollContent: {
     padding: 16,
@@ -202,11 +149,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FAFAFA",
     padding: 20,
-  },
-  loadingText: {
-    marginTop: 12,
-    color: "#6B7280",
-    fontSize: 16,
   },
   errorTitle: {
     fontSize: 20,
@@ -220,28 +162,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
   },
-  // Description Box Styles
   descriptionContainer: {
     backgroundColor: "white",
     padding: 16,
-    borderRadius: 14, // Consistent with Card radius
+    borderRadius: 12,
     marginBottom: 16,
-    marginHorizontal: 18, // Aligned with Card margins if Card has internal margin, otherwise remove this
-    marginTop: 12,
     borderWidth: 1,
     borderColor: "#F3F4F6",
+    // Sombras sutiles
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 2,
     elevation: 2,
   },
   sectionHeader: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     color: "#9CA3AF",
     marginBottom: 8,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   descriptionText: {
     fontSize: 15,
@@ -249,6 +190,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   footerAction: {
-    marginTop: 20,
+    marginTop: 10,
+    gap: 12,
   },
 });

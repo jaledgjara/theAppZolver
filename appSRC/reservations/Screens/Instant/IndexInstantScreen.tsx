@@ -24,6 +24,7 @@ import { useRejectByProfessional } from "../../Hooks/useRejectByProfessional";
 import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
 import { ActiveJobControlCard } from "@/appCOMP/cards/ActiveJobControlCard";
 import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
+import { openMapMenu } from "@/appSRC/maps/Hooks/openMapMenu";
 
 const IndexInstantScreen = () => {
   // 1. Trabajo Activo
@@ -90,6 +91,17 @@ const IndexInstantScreen = () => {
             onJobCompleted={refreshActiveJob}
           />
           <Text style={styles.hintText}>Desliza para actualizar</Text>
+
+          {/* --- NUEVO BOTÓN PARA MAPAS --- */}
+          <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+            <LargeButton
+              title="Ver dirección en Mapa"
+              onPress={() => openMapMenu(currentJob.address)}
+              iconName="map-outline"
+              backgroundColor={COLORS.tertiary}
+            />
+          </View>
+          {/* ----------------------------- */}
         </ScrollView>
       </View>
     );

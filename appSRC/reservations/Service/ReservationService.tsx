@@ -107,12 +107,17 @@ export const createReservationService = async (payload: ReservationPayload) => {
 };
 
 /**
- * Recupera el detalle completo de una reserva por su ID.
- * (Vista CLIENTE: Trae datos del profesional)
+ * Recupera el detalle completo de una reserva.
+ * Trae relaciones de Profesional y Cliente para permitir la reutilización en ambos roles.
  */
 export const fetchReservationById = async (
-  reservationId: string
+  reservationId: string,
+  viewRole: "client" | "professional"
 ): Promise<Reservation> => {
+  console.log(
+    `🔍 [SERVICE] Fetching ID: ${reservationId} for Role: ${viewRole}`
+  );
+
   const { data, error } = await supabase
     .from("reservations")
     .select(
@@ -121,7 +126,15 @@ export const fetchReservationById = async (
       professional:professional_profiles!reservations_to_pro_profile_fkey (
         legal_name,
         photo_url,
-        biography
+        biography,
+        user_id
+      ),
+      client:user_accounts!reservations_client_id_fkey (
+        id, 
+        legal_name, 
+        email, 
+        phone,
+        auth_uid
       )
     `
     )
@@ -129,12 +142,33 @@ export const fetchReservationById = async (
     .single();
 
   if (error) {
-    console.error("Error fetching reservation details:", error);
+    console.error("❌ [SERVICE] Error fetching:", error);
     throw new Error(`Error al cargar reserva: ${error.message}`);
   }
 
-  // ✅ FIX: Pasamos "client" porque esta función trae datos del Pro
-  return mapReservationFromDTO(data as any, "client");
+  // 1. LOG CRÍTICO: ¿Qué string EXACTO viene de la base de datos?
+  // Aquí esperamos ver algo como: '["2024-01-20 15:30:00+00","2024-01-20..."]'
+  console.log(
+    "📦 [SERVICE] DATA CRUDO (Scheduled Range):",
+    data?.scheduled_range
+  );
+
+  // 2. TRANSFORMACIÓN
+  const result = mapReservationFromDTO(data as any, viewRole);
+
+  // 3. LOG CRÍTICO: ¿Cómo quedó la fecha después del Mapper?
+  // Si aquí ves "Date { NaN }", significa que mapReservationFromDTO (y TimeBuilder) mataron la fecha.
+  console.log("🛠️ [SERVICE] MAPPED DATE:", result.scheduledStart);
+
+  if (result.scheduledStart && isNaN(result.scheduledStart.getTime())) {
+    console.error(
+      "🚨 [SERVICE] ERROR FATAL: La fecha se corrompió dentro del Mapper."
+    );
+  } else {
+    console.log("✅ [SERVICE] Fecha procesada correctamente.");
+  }
+
+  return result;
 };
 
 // ============================================================================
@@ -659,10 +693,25 @@ export const subscribeToIncomingRequestsService = (
   onUpdate: () => void,
   onConnectionError: (status: string, error?: any) => void
 ): RealtimeChannel => {
+  const channelName = `room_orders_${professionalId}`;
   console.log(`Service - Realtime Handshake for Pro: ${professionalId}`);
 
+  // 1. PASO CRÍTICO: Limpieza Preventiva
+  // Verificar si el cliente de Supabase ya tiene este canal registrado en memoria.
+  // Si existe, lo removemos forzosamente antes de crear uno nuevo para evitar conflictos.
+  const allChannels = supabase.getChannels();
+  const staleChannel = allChannels.find(
+    (ch) => ch.topic === `realtime:${channelName}`
+  );
+
+  if (staleChannel) {
+    console.log("Service - Limpiando canal huérfano antes de suscribir...");
+    supabase.removeChannel(staleChannel);
+  }
+
+  // 2. Creación del Canal
   const channel = supabase
-    .channel(`room_orders_${professionalId}`)
+    .channel(channelName)
     .on(
       "postgres_changes",
       {
@@ -677,18 +726,40 @@ export const subscribeToIncomingRequestsService = (
       }
     )
     .subscribe((status, err) => {
+      if (status === "SUBSCRIBED") {
+        console.log("Service - Conexión Realtime Establecida.");
+      }
+
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        console.error(`Realtime Error (${status}):`, err);
-        onConnectionError(status, err);
+        // Validación para evitar loguear 'undefined'
+        const errorDetail =
+          err || "Error de conexión desconocido o conflicto de canal";
+        console.error(`Realtime Error (${status}):`, errorDetail);
+
+        // Notificar al hook para que maneje el reintento
+        onConnectionError(status, errorDetail);
       }
     });
 
   return channel;
 };
 
-export const unsubscribeFromChannel = async (channel: RealtimeChannel) => {
-  if (channel && channel.state !== "closed") {
-    console.log("Service - Closing channel safely.");
-    await supabase.removeChannel(channel);
+export const unsubscribeFromChannel = async (
+  channel: RealtimeChannel | null
+) => {
+  if (!channel) return;
+
+  // Intentar encontrar el canal actual en el cliente para asegurar que lo tenemos referenciado
+  const currentChannel = supabase
+    .getChannels()
+    .find((ch) => ch.topic === channel.topic);
+
+  if (currentChannel && currentChannel.state !== "closed") {
+    console.log(`Service - Closing channel ${currentChannel.topic} safely.`);
+    try {
+      await supabase.removeChannel(currentChannel);
+    } catch (e) {
+      console.warn("Service - Advertencia al remover canal:", e);
+    }
   }
 };

@@ -44,12 +44,13 @@ const PaymentFormScreen = () => {
   };
 
   const handleSave = () => {
+    // Aquí ya estás pasando todo lo que el nuevo Hook necesita
     createMethod(newMethodType, {
-      number: cardNumber,
+      number: cardNumber, // El Hook usará esto para detectar la Marca/Issuer
       expiry,
       cvc,
       holder: holderName,
-      dni: identification, // [NUEVO] Pasamos el DNI al hook
+      dni: identification, // El Hook usará esto para el Token
     });
   };
 
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 20 },
 
-  formContainer: { marginTop: 10 },
+  formContainer: { marginVertical: 10 },
   inputsWrapper: { gap: 15 },
   label: { fontSize: 14, fontWeight: "bold", color: "#333", marginBottom: 5 },
 

@@ -19,7 +19,8 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": ["applinks:thezolverapp.web.app"],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze", "maps"]
       }
     },
     "android": {

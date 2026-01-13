@@ -72,9 +72,9 @@ const ReservationRequestScreen = () => {
     }
   };
 
-  const handlePreSend = () => {
-    router.push("(client)/(tabs)/home/PaymentScreen");
-  };
+  // const handlePreSend = () => {
+  //   router.push("(client)/(tabs)/home/PaymentScreen");
+  // };
 
   const handleSend = () => {
     if (!user?.uid) return Alert.alert("Error", "Sesión inválida.");
@@ -241,7 +241,7 @@ const ReservationRequestScreen = () => {
               { backgroundColor: isInstant ? COLORS.primary : COLORS.tertiary },
               submitting && { opacity: 0.5 },
             ]}
-            onPress={handlePreSend}
+            onPress={handleSend}
             disabled={submitting}>
             {submitting ? (
               <ActivityIndicator color="white" />

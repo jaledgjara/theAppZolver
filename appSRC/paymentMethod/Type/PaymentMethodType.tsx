@@ -33,8 +33,10 @@ export interface PaymentMethodDTO {
 export interface SavePaymentMethodPayload {
   user_id: string;
   email: string;
-  token: string; // Token temporal de MercadoPago
+  token: string;
   dni: string;
+  payment_method_id: string;
+  issuer_id?: number | string | null;
 }
 
 // =============================================================================

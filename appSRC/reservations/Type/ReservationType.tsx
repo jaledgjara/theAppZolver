@@ -60,6 +60,7 @@ export interface Reservation {
   financials: {
     price: number;
     currency: string;
+    platformFee: number;
   };
 }
 
@@ -80,8 +81,7 @@ export interface ReservationPayload {
   price_estimated: number;
   price_final: number;
   status: string;
-  // platform_fee es opcional en payload si quieres
-  platform_fee?: number;
+  platform_fee?: string;
 }
 
 // 3. PAYLOAD DE EDGE FUNCTION (NUEVO E IMPORTANTE)

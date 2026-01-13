@@ -1,5 +1,5 @@
 // @ts-nocheck
-// path: supabase/functions/save-payment-method/index.ts
+// UBICACIÓN: supabase/functions/save-payment-method/index.ts
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,131 +11,109 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Manejo de CORS Preflight
-  if (req.method === "OPTIONS") {
+  if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
-  }
 
   try {
-    // 1. Configuración "Admin Mode" (Sin headers de usuario para saltar RLS)
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
 
-    // Parseamos el body
-    const { user_id, token, email, dni } = await req.json();
+    // [DEBUG] Ver qué llega
+    const body = await req.json();
+    console.log("📍 [Backend] Payload Recibido:", JSON.stringify(body));
 
-    if (!token || !user_id || !email) {
-      throw new Error("Faltan datos obligatorios (token, user_id, email).");
-    }
+    const { user_id, token, email, dni } = body;
 
-    console.log(`[SaveCard] 1. Iniciando proceso para: ${email}`);
+    // 1. GESTIÓN DE CUSTOMER (Buscar o Crear)
+    let customerId;
+    console.log(`🔎 [Backend] Buscando Customer: ${email}`);
 
-    // 2. Lógica de Cliente MercadoPago (Customer)
-    // Buscamos si ya tiene customer_id en nuestra DB
-    const { data: existingUser } = await supabase
-      .from("user_payment_methods")
-      .select("provider_customer_id")
-      .eq("user_id", user_id)
-      .limit(1)
-      .maybeSingle(); // Usamos maybeSingle para evitar errores si está vacío
+    const searchRes = await fetch(
+      `https://api.mercadopago.com/v1/customers/search?email=${email}`,
+      { headers: { Authorization: `Bearer ${mpAccessToken}` } }
+    );
+    const searchData = await searchRes.json();
 
-    let customerId = existingUser?.provider_customer_id;
-
-    // Si no tiene, buscamos/creamos en MercadoPago
-    if (!customerId) {
-      console.log(`[SaveCard] 2. Buscando Customer en MP...`);
-      const searchRes = await fetch(
-        `https://api.mercadopago.com/v1/customers/search?email=${email}`,
+    if (searchData.results?.[0]) {
+      customerId = searchData.results[0].id;
+      console.log(`✅ Customer encontrado: ${customerId}`);
+    } else {
+      console.log(`🆕 Creando Customer nuevo...`);
+      const createRes = await fetch(
+        "https://api.mercadopago.com/v1/customers",
         {
-          headers: { Authorization: `Bearer ${mpAccessToken}` },
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${mpAccessToken}`,
+          },
+          body: JSON.stringify({ email }),
         }
       );
-
-      const searchData = await searchRes.json();
-
-      if (searchData.results && searchData.results.length > 0) {
-        customerId = searchData.results[0].id;
-        console.log(`[SaveCard] Customer encontrado: ${customerId}`);
-      } else {
-        console.log(`[SaveCard] 2b. Creando Customer MP nuevo...`);
-        const createRes = await fetch(
-          "https://api.mercadopago.com/v1/customers",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${mpAccessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: email }),
-          }
-        );
-        const createData = await createRes.json();
-        if (!createData.id) throw new Error("Fallo al crear Customer en MP");
-        customerId = createData.id;
-      }
+      const newCust = await createRes.json();
+      customerId = newCust.id;
+      console.log(`✅ Nuevo Customer ID: ${customerId}`);
     }
 
-    // 3. Guardar la Tarjeta (Token -> Card)
-    console.log(`[SaveCard] 3. Guardando tarjeta en Customer ${customerId}`);
-    const saveCardRes = await fetch(
+    // 2. GUARDADO DE TARJETA (ESTRATEGIA "TOKEN-ONLY")
+    // Como el frontend ya inyectó el issuer/brand en el token, aquí solo enviamos el token.
+    console.log(`📤 [Backend] Guardando tarjeta en MP...`);
+
+    const saveRes = await fetch(
       `https://api.mercadopago.com/v1/customers/${customerId}/cards`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${mpAccessToken}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${mpAccessToken}`,
         },
-        body: JSON.stringify({ token: token }),
+        body: JSON.stringify({ token: token }), // <--- SOLO TOKEN
       }
     );
 
-    const cardData = await saveCardRes.json();
+    const cardData = await saveRes.json();
 
-    if (!saveCardRes.ok) {
-      // Manejo detallado de errores de MP
-      console.error("Error MP Save Card:", JSON.stringify(cardData));
-      throw new Error(
-        cardData.message || "La tarjeta fue rechazada por Mercado Pago."
-      );
+    if (!saveRes.ok) {
+      console.error("🛑 [Error MP]:", JSON.stringify(cardData));
+      throw new Error(cardData.message || "Mercado Pago rechazó la tarjeta");
     }
 
-    // 4. Persistir en Supabase
-    console.log(`[SaveCard] 4. Guardando en DB...`);
-    const payload = {
-      user_id: user_id,
-      provider_card_id: cardData.id,
-      provider_customer_id: customerId,
-      brand: cardData.payment_method.id,
-      last_four_digits: cardData.last_four_digits,
-      identification_number: dni || null, // Aseguramos que no sea undefined
-      expiry_month: cardData.expiration_month,
-      expiry_year: cardData.expiration_year,
-      is_default: false,
-    };
+    console.log("✅ [Backend] Tarjeta guardada en MP:", cardData.id);
 
-    const { data: savedRecord, error: dbError } = await supabase
+    // 3. BASE DE DATOS SUPABASE
+    console.log("💾 [Backend] Guardando en DB...");
+    const { data, error } = await supabase
       .from("user_payment_methods")
-      .insert(payload)
+      .insert({
+        user_id,
+        provider_card_id: cardData.id,
+        provider_customer_id: customerId,
+        brand: cardData.payment_method.id, // MP nos confirma la marca real aquí
+        last_four_digits: cardData.last_four_digits,
+        identification_number: dni,
+        expiry_month: cardData.expiration_month,
+        expiry_year: cardData.expiration_year,
+        is_default: false,
+      })
       .select()
       .single();
 
-    if (dbError) {
-      console.error("🛑 Error DB Insert:", dbError);
-      throw new Error(`Error base de datos: ${dbError.message}`);
+    if (error) {
+      console.error("🛑 Error Supabase:", error);
+      throw error;
     }
 
-    console.log("[SaveCard] ✅ Éxito.");
+    console.log("🎉 [Backend] Éxito Total.");
 
-    return new Response(JSON.stringify({ success: true, data: savedRecord }), {
+    return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error(`[SaveCard] Excepción:`, error);
+    console.error("💥 [Backend Exception]:", error.message);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
