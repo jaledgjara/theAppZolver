@@ -1,3 +1,4 @@
+import { id } from "date-fns/locale";
 import { MenuItem } from "../Type/ProfileType";
 
 export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [
@@ -10,7 +11,7 @@ export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "2",
-    icon: "construct-outline", // Icono ajustado para Servicios
+    icon: "construct-outline",
     title: "Servicios",
     subtitle: "Define tus tipos de servicios, extras y precios.",
     route: "/(professional)/(tabs)/profile/services",
@@ -31,6 +32,13 @@ export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "5",
+    icon: "headset-outline",
+    title: "Soporte al cliente",
+    subtitle: "Contactemos con soporte técnico para dudas.",
+    route: "/(professional)/(tabs)/profile/help-center",
+  },
+  {
+    id: "6",
     icon: "settings-outline",
     title: "Configuración de la App",
     subtitle: "Ajustes generales, idioma y más.",
@@ -69,6 +77,13 @@ export const CLIENT_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "5",
+    icon: "headset-outline",
+    title: "Soporte al cliente",
+    subtitle: "Contactemos con soporte técnico para dudas.",
+    route: "/(client)/(tabs)/profile/help-center",
+  },
+  {
+    id: "6",
     icon: "settings-outline",
     title: "Configuración de la App",
     subtitle: "Ajustes generales, idioma y más.",

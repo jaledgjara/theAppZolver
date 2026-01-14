@@ -1,14 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import UserDataScreen from "@/appSRC/users/Screens/UserDataScreen";
 
-const ProfessionalProfileScreen = () => {
-  return (
-    <View>
-      <Text>privacy</Text>
-    </View>
-  );
-};
-
-export default ProfessionalProfileScreen;
-
-const styles = StyleSheet.create({});
+export default function ProfessionalPrivacyScreen() {
+  return <UserDataScreen />;
+}

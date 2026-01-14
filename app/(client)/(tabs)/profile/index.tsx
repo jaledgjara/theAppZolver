@@ -11,10 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import ProfileCard from "@/appSRC/profile/Screens/ProfileCard";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { useRouter } from "expo-router";
-import {
-  CLIENT_MENU_ITEMS,
-  PROFESSIONAL_MENU_ITEMS,
-} from "@/appSRC/profile/Type/ProfileData";
+import { CLIENT_MENU_ITEMS } from "@/appSRC/profile/Type/ProfileData";
 import { COLORS } from "@/appASSETS/theme";
 
 const Profile = () => {

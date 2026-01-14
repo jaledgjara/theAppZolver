@@ -2,7 +2,10 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme"; // Asegúrate de que esta ruta sea correcta
-import { PaymentMethodType, PaymentMethodUI } from "../Type/PaymentType";
+import {
+  PaymentMethodType,
+  PaymentMethodUI,
+} from "@/appSRC/paymentMethod/Type/PaymentMethodType";
 
 export const PAYMENT_METHODS_CONFIG: PaymentMethodUI[] = [
   {

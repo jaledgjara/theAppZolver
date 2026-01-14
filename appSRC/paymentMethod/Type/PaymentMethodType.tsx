@@ -8,6 +8,17 @@ export type PaymentMethodType =
   | "debit_card"
   | "platform_credit";
 
+/**
+ * Definición de la interfaz para la UI del selector.
+ * Esto resuelve el error "Cannot find name 'PaymentMethodUI'".
+ */
+export interface PaymentMethodUI {
+  id: PaymentMethodType;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  description: string;
+}
+
 export type CardBrand = "visa" | "mastercard" | "amex" | "unknown";
 
 // =============================================================================

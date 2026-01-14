@@ -20,7 +20,12 @@
       "associatedDomains": ["applinks:thezolverapp.web.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze", "maps"]
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps",
+          "waze",
+          "maps",
+          "whatsapp"
+        ]
       }
     },
     "android": {

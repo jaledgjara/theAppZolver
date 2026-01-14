@@ -4,8 +4,9 @@ import {
   StyleSheet,
   View,
   ActivityIndicator,
+  Linking,
 } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 
 // Componentes UI
@@ -17,108 +18,94 @@ import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 import { COLORS } from "@/appASSETS/theme";
 import { useServiceSelection } from "@/appSRC/categories/Hooks/useServiceCatalog";
 import { getCategoryVectorIcon } from "@/appSRC/categories/Screens/CategoryIcons";
-import { useLocation } from "@/appSRC/location/Hooks/useLocation";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { openMapMenu } from "@/appSRC/maps/Hooks/openMapMenu";
+
+// Maps Custom Logic
+import { MapSelectionMenu } from "@/appSRC/maps/Screen/MapSelectionMenu";
+import { MapAppOption } from "@/appSRC/maps/Type/MapsType";
+import { useMapNavigation } from "@/appSRC/maps/Hooks/openMapMenu";
 
 const Home = () => {
   const router = useRouter();
-  // Hook de la capa de dominio
   const { categories, loadingCategories, fetchCategories, error } =
     useServiceSelection();
 
-  // Carga inicial
+  // Hook personalizado para mapas
+  const { mapMenuVisible, availableMaps, setMapMenuVisible, handleOpenMap } =
+    useMapNavigation();
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Renderizado de cada item
-  const renderCategoryItem = ({ item }: { item: any }) => {
-    // 1. Usamos el mapper de Vectores
-    // Aumentamos un poco el 'size' del icono interno para que balancee con el cuadrado grande
-    const iconComponent = getCategoryVectorIcon(
-      item.icon_slug,
-      40,
-      COLORS.primary
-    );
-
-    return (
-      <CategoryItem
-        name={item.name}
-        icon={iconComponent}
-        size={110} // 2. Cuadrados grandes como solicitaste
-        onPress={() =>
-          router.push({
-            pathname: "/(client)/(tabs)/home/CategoryDetailsView/[id]",
-            params: { id: item.id, name: item.name },
-          })
-        }
-      />
-    );
-  };
+  const renderCategoryItem = ({ item }: { item: any }) => (
+    <CategoryItem
+      name={item.name}
+      icon={getCategoryVectorIcon(item.icon_slug, 40, COLORS.primary)}
+      size={110}
+      onPress={() =>
+        router.push({
+          pathname: "/(client)/(tabs)/home/CategoryDetailsView/[id]",
+          params: { id: item.id, name: item.name },
+        })
+      }
+    />
+  );
 
   return (
     <View style={styles.container}>
-      {/* HEADER FIJO: Se queda arriba porque está fuera del ScrollView */}
       <ToolBarHome />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+          <LargeButton
+            title="Ver dirección en Mapa"
+            onPress={() => handleOpenMap("Av. San Martin 123, Mendoza")}
+            iconName="map-outline"
+            backgroundColor={COLORS.tertiary}
+          />
+        </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View>
-          <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
-            <LargeButton
-              title="Ver dirección en Mapa"
-              onPress={() => openMapMenu("Av. San Martin 123, Mendoza")}
-              iconName="map-outline"
-              backgroundColor={COLORS.tertiary}
+        <SearchBar
+          value={""}
+          placeholder="¿Qué servicio necesitas hoy?"
+          onPress={() => router.push("(client)/(tabs)/home/SearchScreen")}
+        />
+
+        <MoreCategoryTitle title="Categorías" onLinkPress={() => {}} />
+
+        <View style={styles.listContainer}>
+          {loadingCategories ? (
+            <ActivityIndicator
+              size="large"
+              color={COLORS.primary}
+              style={{ marginTop: 50 }}
             />
-          </View>
-          <SearchBar
-            value={""}
-            placeholder="¿Qué servicio necesitas hoy?"
-            onPress={() => router.push("(client)/(tabs)/home/SearchScreen")}
-          />
-
-          <MoreCategoryTitle
-            title="Categorías"
-            onLinkPress={() => console.log("Ver todas")}
-          />
-
-          <View style={styles.listContainer}>
-            {loadingCategories ? (
-              <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
-              </View>
-            ) : (
-              <FlatList
-                data={categories}
-                renderItem={renderCategoryItem}
-                keyExtractor={(item) => item.id}
-                numColumns={3}
-                contentContainerStyle={styles.listContentContainer}
-                scrollEnabled={false}
-                // 3. Manejo de Estados (Vacío / Error)
-                ListEmptyComponent={
-                  <View style={{ marginTop: 20 }}>
-                    <StatusPlaceholder
-                      icon={
-                        error ? "alert-circle-outline" : "folder-open-outline"
-                      }
-                      title={error ? "Error de conexión" : "Sin Categorías"}
-                      subtitle={
-                        error
-                          ? "No pudimos cargar los servicios. Revisa tu conexión."
-                          : "No hay servicios disponibles en este momento."
-                      }
-                      buttonTitle={error ? "Reintentar" : undefined}
-                      onButtonPress={error ? fetchCategories : undefined}
-                    />
-                  </View>
-                }
-              />
-            )}
-          </View>
+          ) : (
+            <FlatList
+              data={categories}
+              renderItem={renderCategoryItem}
+              keyExtractor={(item) => item.id}
+              numColumns={3}
+              scrollEnabled={false}
+              ListEmptyComponent={
+                <StatusPlaceholder
+                  icon={error ? "alert-circle-outline" : "folder-open-outline"}
+                  title={error ? "Error de conexión" : "Sin Categorías"}
+                  subtitle={""}
+                />
+              }
+            />
+          )}
         </View>
       </ScrollView>
+
+      {/* El menú se renderiza al final, controlado por el hook */}
+      <MapSelectionMenu
+        isVisible={mapMenuVisible}
+        options={availableMaps}
+        onClose={() => setMapMenuVisible(false)}
+        onSelect={(url) => Linking.openURL(url)}
+      />
     </View>
   );
 };
@@ -126,21 +113,12 @@ const Home = () => {
 export default Home;
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "white",
-    flex: 1,
-  },
+  container: { backgroundColor: "white", flex: 1 },
   listContentContainer: {
     alignItems: "flex-start",
     marginRight: 5,
     paddingBottom: 40,
   },
-  listContainer: {
-    paddingTop: 15,
-    paddingHorizontal: 0,
-  },
-  loaderContainer: {
-    marginTop: 50,
-    alignItems: "center",
-  },
+  listContainer: { paddingTop: 15, paddingHorizontal: 0 },
+  loaderContainer: { marginTop: 50, alignItems: "center" },
 });
