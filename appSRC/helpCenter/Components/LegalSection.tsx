@@ -60,10 +60,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   sectionTitle: {
-    ...FONTS.h3, // Roboto-Bold 18px
+    ...FONTS.h3,
     marginBottom: 15,
     color: COLORS.textSecondary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   cardBubble: {
     flexDirection: "row",

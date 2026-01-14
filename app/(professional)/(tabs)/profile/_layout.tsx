@@ -12,6 +12,9 @@ export default function ProfileLayout() {
       <Stack.Screen name="app-settings" />
       <Stack.Screen name="help-center" />
 
+      {/*Payment*/}
+      {/* <Stack.Screen name="ProfilePaymentFormScreen" /> */}
+
       {/*Legal*/}
       <Stack.Screen name="terms-conditions" />
       <Stack.Screen name="privacy-policy" />

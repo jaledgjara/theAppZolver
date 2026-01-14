@@ -13,11 +13,11 @@ export default function ProfileLayout() {
       <Stack.Screen name="app-settings" />
       <Stack.Screen name="help-center" />
 
-      {/*Location*/}
-      <Stack.Screen name="AddLocationScreen" />
-
       {/*Payment*/}
       <Stack.Screen name="ProfilePaymentFormScreen" />
+
+      {/*Location*/}
+      <Stack.Screen name="AddLocationScreen" />
 
       {/*Legal*/}
       <Stack.Screen name="terms-conditions" />

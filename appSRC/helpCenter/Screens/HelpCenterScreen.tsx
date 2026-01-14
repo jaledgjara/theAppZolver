@@ -57,6 +57,6 @@ const styles = StyleSheet.create({
     ...FONTS.h3,
     marginBottom: 15,
     color: COLORS.textSecondary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });
