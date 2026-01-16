@@ -30,10 +30,6 @@ const Home = () => {
   const { categories, loadingCategories, fetchCategories, error } =
     useServiceSelection();
 
-  // Hook personalizado para mapas
-  const { mapMenuVisible, availableMaps, setMapMenuVisible, handleOpenMap } =
-    useMapNavigation();
-
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
@@ -56,15 +52,6 @@ const Home = () => {
     <View style={styles.container}>
       <ToolBarHome />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
-          <LargeButton
-            title="Ver dirección en Mapa"
-            onPress={() => handleOpenMap("Av. San Martin 123, Mendoza")}
-            iconName="map-outline"
-            backgroundColor={COLORS.tertiary}
-          />
-        </View>
-
         <SearchBar
           value={""}
           placeholder="¿Qué servicio necesitas hoy?"
@@ -98,14 +85,6 @@ const Home = () => {
           )}
         </View>
       </ScrollView>
-
-      {/* El menú se renderiza al final, controlado por el hook */}
-      <MapSelectionMenu
-        isVisible={mapMenuVisible}
-        options={availableMaps}
-        onClose={() => setMapMenuVisible(false)}
-        onSelect={(url) => Linking.openURL(url)}
-      />
     </View>
   );
 };
@@ -119,6 +98,6 @@ const styles = StyleSheet.create({
     marginRight: 5,
     paddingBottom: 40,
   },
-  listContainer: { paddingTop: 15, paddingHorizontal: 0 },
+  listContainer: { paddingTop: 15 },
   loaderContainer: { marginTop: 50, alignItems: "center" },
 });

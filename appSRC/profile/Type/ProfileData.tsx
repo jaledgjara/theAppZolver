@@ -12,7 +12,7 @@ export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [
   {
     id: "2",
     icon: "construct-outline",
-    title: "Servicios",
+    title: "Administrar Servicios",
     subtitle: "Define tus tipos de servicios, extras y precios.",
     route: "/(professional)/(tabs)/profile/services",
   },
@@ -40,8 +40,8 @@ export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [
   {
     id: "6",
     icon: "settings-outline",
-    title: "Configuración de la App",
-    subtitle: "Ajustes generales, idioma y más.",
+    title: "Configuración de la App|",
+    subtitle: "Cerrar sesión y más opciones.",
     route: "/(professional)/(tabs)/profile/app-settings",
   },
 ];
@@ -86,7 +86,31 @@ export const CLIENT_MENU_ITEMS: MenuItem[] = [
     id: "6",
     icon: "settings-outline",
     title: "Configuración de la App",
-    subtitle: "Ajustes generales, idioma y más.",
+    subtitle: "Cerrar sesión y más opciones.",
     route: "/(client)/(tabs)/profile/app-settings",
+  },
+];
+
+export const PROFESSIONAL_EDIT_OPTIONS = [
+  {
+    id: "1",
+    icon: "person-outline",
+    title: "Perfil Público",
+    subtitle: "Foto, Bio, Especialidad y Portfolio",
+    route: "/(professional)/profile-edit/person-outline",
+  },
+  {
+    id: "2",
+    icon: "briefcase-outline",
+    title: "Configuración de Trabajo",
+    subtitle: "Precio y Tipo de Trabajo (Instant/Quote)",
+    route: "/(professional)/profile-edit/briefcase-outline",
+  },
+  {
+    id: "3",
+    icon: "map-outline",
+    title: "Área de Servicio",
+    subtitle: "Mapa y Radio de Cobertura",
+    route: "/(professional)/profile-edit/map-outline",
   },
 ];

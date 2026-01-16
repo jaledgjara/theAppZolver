@@ -149,8 +149,9 @@ serve(async (req: Request) => {
       {
         aud: "authenticated",
         role: "authenticated",
-        sub: shadowUUID, // 👈 Ahora usamos el UUID real que existe en auth.users
-        auth_uid: firebaseUid, // 👈 AQUÍ: Usaste 'auth_uid' como nombre de la clave        email: email,
+        sub: shadowUUID, // Esto mantiene feliz a Supabase (es un UUID)
+        firebase_uid: firebaseUid, // 👈 AGREGAMOS ESTO: Es la clave para el RLS
+        email: email,
         exp: getNumericDate(60 * 60 * 24),
       },
       key

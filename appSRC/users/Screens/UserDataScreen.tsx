@@ -10,6 +10,7 @@ import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { useUserProfile } from "@/appSRC/users/Client/Hooks/useClientProfile";
 import { DataBox } from "@/appCOMP/inputs/Screens/DataBox";
+import { TypeDataProps } from "../Model/UserDataType";
 
 export default function PrivacyScreen() {
   const { userData, handleNameEditPress, handleLockedFieldPress } =
@@ -43,7 +44,7 @@ export default function PrivacyScreen() {
           value={userData.email || "No disponible"}
           iconName="shield-checkmark"
           iconColor={COLORS.tertiary}
-          onPress={() => handleLockedFieldPress("Email")}
+          onPress={() => handleLockedFieldPress}
         />
 
         <DataBox
@@ -51,7 +52,7 @@ export default function PrivacyScreen() {
           value={userData.phone || "No disponible"}
           iconName="shield-checkmark"
           iconColor={COLORS.tertiary}
-          onPress={() => handleLockedFieldPress("Teléfono")}
+          onPress={() => handleLockedFieldPress}
         />
         <Text style={styles.footerNote}>
           Tu cuenta está protegida por políticas de seguridad de identidad.

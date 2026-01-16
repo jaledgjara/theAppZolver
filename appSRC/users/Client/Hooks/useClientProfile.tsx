@@ -16,22 +16,16 @@ export const useUserProfile = () => {
   const handleNameEditPress = () => {
     Alert.alert(
       "Información Protegida",
-      "Por seguridad y cumplimiento legal, tu nombre vinculado al DNI no puede ser cambiado. Si hay un error, contacta a Soporte.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Ir a Soporte",
-          onPress: () => router.push("/(professional)/profile/support"), // O la ruta de soporte
-        },
-      ]
+      "Por seguridad y cumplimiento legal, tu nombre vinculado al DNI no puede ser cambiado. Si hay un error, contacta a Soporte",
+      [{ text: "Cancelar", style: "cancel" }]
     );
   };
 
-  const handleLockedFieldPress = (fieldName: string) => {
+  const handleLockedFieldPress = () => {
     Alert.alert(
-      `Editar ${fieldName}`,
-      `Por seguridad, el ${fieldName.toLowerCase()} es inmutable. Contacta a Soporte desde el menú Perfil para solicitar un cambio.`,
-      [{ text: "Entendido" }]
+      "Información Protegida",
+      "Por seguridad y cumplimiento legal, tu nombre vinculado al DNI no puede ser cambiado. Si hay un error, contacta a Perfil -> Soporte",
+      [{ text: "Cancelar", style: "cancel" }]
     );
   };
 

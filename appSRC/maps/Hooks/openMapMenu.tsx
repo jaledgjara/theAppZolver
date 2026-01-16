@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Linking, Platform } from "react-native";
 import { getMapOptions, MapAppOption } from "../Type/MapsType";
 
-export const useMapNavigation = () => {
+export const useMapNavigation = (address: string) => {
   const [mapMenuVisible, setMapMenuVisible] = useState(false);
   const [availableMaps, setAvailableMaps] = useState<MapAppOption[]>([]);
 

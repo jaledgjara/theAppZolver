@@ -5,6 +5,7 @@ export default function ProfessionalLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="messages" options={{ headerShown: false }} />
+      <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
     </Stack>
   );
 }

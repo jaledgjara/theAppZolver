@@ -14,7 +14,6 @@ import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
 // --- HOOKS ---
-import { useIsActive } from "@/appSRC/users/Professional/Hooks/useIsActive";
 import { useConfirmInstantReservation } from "../../Hooks/useConfirmInstantReservation";
 import { useProIncomingRequests } from "../../Hooks/useProIncomingRequests";
 import { useCurrentActiveJob } from "../../Hooks/useCurrentActiveJob";
@@ -24,7 +23,8 @@ import { useRejectByProfessional } from "../../Hooks/useRejectByProfessional";
 import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
 import { ActiveJobControlCard } from "@/appCOMP/cards/ActiveJobControlCard";
 import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
-import { openMapMenu } from "@/appSRC/maps/Hooks/openMapMenu";
+import { useIsActive } from "@/appSRC/users/Professional/General/Hooks/useIsActive";
+import { useMapNavigation } from "@/appSRC/maps/Hooks/openMapMenu";
 
 const IndexInstantScreen = () => {
   // 1. Trabajo Activo
@@ -96,7 +96,7 @@ const IndexInstantScreen = () => {
           <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
             <LargeButton
               title="Ver dirección en Mapa"
-              onPress={() => openMapMenu(currentJob.address)}
+              onPress={() => useMapNavigation(currentJob.address)}
               iconName="map-outline"
               backgroundColor={COLORS.tertiary}
             />

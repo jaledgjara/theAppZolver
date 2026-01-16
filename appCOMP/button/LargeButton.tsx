@@ -65,8 +65,7 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
         styles.buttonContainer,
         { backgroundColor: isDisabled ? "#CFCFCF" : backgroundColor },
         mergedStyle, // THIS handles the default + override logic
-      ]}
-    >
+      ]}>
       {loading ? (
         <ActivityIndicator size="small" color={loaderColor || textColor} />
       ) : (
@@ -80,9 +79,7 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
             />
           )}
 
-          <Text style={[styles.buttonText, { color: textColor }]}>
-            {title}
-          </Text>
+          <Text style={[styles.buttonText, { color: textColor }]}>{title}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -120,31 +117,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-
-
-// const styles = StyleSheet.create({
-//     buttonContainer: {
-//         flexDirection: 'row',
-//         justifyContent: 'center',
-//         alignItems: 'center',
-//         width: '100%',
-//         marginVertical: 30,
-//         paddingVertical: 15,
-//         paddingHorizontal: 20, 
-//         borderRadius: 50,
-//         marginHorizontal: 16,
-//         shadowColor: '#000',
-//         shadowOffset: { width: 0, height: 4 },
-//         shadowOpacity: 0.3,
-//         shadowRadius: 5,
-//         elevation: 6,
-//     },
-//     buttonText: {
-//         ...FONTS.h3,
-//         textAlign: 'center',
-//         fontWeight: 'bold'
-//     },
-//     iconStyle: {
-//         marginRight: 8,
-//     },
-// });

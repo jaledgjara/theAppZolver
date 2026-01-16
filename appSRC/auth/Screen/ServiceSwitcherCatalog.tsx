@@ -5,9 +5,9 @@ import { COLORS } from "@/appASSETS/theme"; // Asegúrate que la ruta sea correc
 import { ServiceMode } from "@/appSRC/users/Model/ServiceMode";
 
 interface Props {
-  modes: string[];
-  isDisabled: boolean;
-  onToggle: (mode: ServiceMode) => void;
+  modes: string[]; // ['instant'] | ['quote'] | ['instant', 'quote']
+  isDisabled?: boolean;
+  onToggle: (mode: "instant" | "quote") => void;
 }
 
 export const ServiceSwitcherCatalog: React.FC<Props> = ({
@@ -16,82 +16,78 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
   onToggle,
 }) => {
   const getModeDescriptionText = () => {
-    // 1. CORRECCIÓN: Usamos 'isDisabled' y 'modes' (las props)
-    const hasZolverYa = !isDisabled && modes.includes("zolver_ya");
-    const hasPresupuesto = modes.includes("presupuesto");
+    const hasInstant = modes.includes("instant");
+    const hasQuote = modes.includes("quote");
 
-    if (hasZolverYa && hasPresupuesto) {
-      return "Ideal para emergencias y trabajos rápidos con tarifas base predefinidas. También para proyectos a medida que requieren evaluación y cotización detallada.";
+    if (hasInstant && hasQuote) {
+      return "Ideal para emergencias con tarifas base y proyectos a medida que requieren una cotización detallada previa.";
     }
-
-    if (hasZolverYa) {
-      return "Ideal para emergencias y trabajos rápidos. Los clientes te contratan al instante con tarifas base predefinidas.";
+    if (hasInstant) {
+      return "Los clientes te contratan al instante para emergencias o tareas rápidas con tarifas predefinidas.";
     }
-
-    return "Para proyectos a medida que requieren evaluación. Tú envías una cotización detallada al cliente antes de comenzar.";
+    return "Recibes solicitudes detalladas, evalúas el trabajo y envías tu presupuesto antes de ser contratado.";
   };
 
   return (
     <View>
       <View style={styles.switcherContainer}>
-        {/* --- BOTÓN 1: ZOLVER YA --- */}
+        {/* BOTÓN: ZOLVER YA (INSTANT) */}
         <TouchableOpacity
           style={[
             styles.switchButton,
-            modes.includes("zolver_ya") && styles.switchButtonActive,
+            modes.includes("instant") && styles.switchButtonActive,
             isDisabled && styles.switchButtonDisabled,
           ]}
-          onPress={() => onToggle("zolver_ya")}
+          onPress={() => !isDisabled && onToggle("instant")}
           activeOpacity={isDisabled ? 1 : 0.8}>
-          {modes.includes("zolver_ya") && (
+          {modes.includes("instant") && (
             <Ionicons
               name="flash"
               size={16}
               color={COLORS.primary}
-              style={{ marginRight: 6 }}
+              style={styles.icon}
             />
           )}
           <Text
             style={[
               styles.switchText,
-              modes.includes("zolver_ya") && styles.switchTextActive,
+              modes.includes("instant") && styles.switchTextActive,
               isDisabled && { color: "#CCC" },
             ]}>
             Zolver Ya
           </Text>
         </TouchableOpacity>
 
-        {/* --- BOTÓN 2: PRESUPUESTO --- */}
+        {/* BOTÓN: PRESUPUESTO (QUOTE) */}
         <TouchableOpacity
           style={[
             styles.switchButton,
-            modes.includes("presupuesto") && styles.switchButtonActive,
+            modes.includes("quote") && styles.switchButtonActive,
           ]}
-          onPress={() => onToggle("presupuesto")}
+          onPress={() => onToggle("quote")}
           activeOpacity={0.8}>
-          {modes.includes("presupuesto") && (
+          {modes.includes("quote") && (
             <Ionicons
               name="document-text"
               size={16}
               color={COLORS.primary}
-              style={{ marginRight: 6 }}
+              style={styles.icon}
             />
           )}
           <Text
             style={[
               styles.switchText,
-              modes.includes("presupuesto") && styles.switchTextActive,
+              modes.includes("quote") && styles.switchTextActive,
             ]}>
             Presupuesto
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* --- DESCRIPCIÓN --- */}
       <View style={styles.infoBox}>
         <Ionicons
           name="information-circle-outline"
-          size={22}
+          size={20}
           color={COLORS.primary}
         />
         <Text style={styles.infoText}>{getModeDescriptionText()}</Text>
@@ -107,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
     height: 55,
-    marginBottom: 12,
+    marginBottom: 20,
   },
   switchButton: {
     flex: 1,
@@ -129,6 +125,7 @@ const styles = StyleSheet.create({
   switchButtonDisabled: {
     opacity: 0.5,
   },
+  icon: { marginRight: 6 },
   switchText: {
     fontSize: 14,
     fontWeight: "500",

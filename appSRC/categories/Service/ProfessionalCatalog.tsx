@@ -18,6 +18,14 @@ export interface ServiceTag {
   estimated_minutes: number;
 }
 
+export interface ProfessionalTemplate {
+  id: string;
+  label: string;
+  price: number;
+  estimatedMinutes: number;
+  isUrgent: boolean;
+}
+
 export const MasterDataService = {
   // ✅ 1. NUEVA FUNCIÓN AGREGADA (La que faltaba)
   async getCategories(): Promise<ServiceCategory[]> {

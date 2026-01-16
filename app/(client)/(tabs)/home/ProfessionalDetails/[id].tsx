@@ -42,7 +42,7 @@ const ProfessionalDetailsView = () => {
       router.push({
         pathname: "/(client)/(tabs)/home/ReservationRequestScreen",
         params: {
-          id: profile.user_id,
+          professionalId: profile.user_id,
           name: profile.legal_name,
           categoryId: profile.category_id,
           category: profile.category_name || "General",

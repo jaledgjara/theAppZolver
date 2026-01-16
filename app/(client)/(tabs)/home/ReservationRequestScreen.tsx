@@ -1,5 +1,5 @@
-// appSRC/reservations/Screens/ReservationRequestScreen.tsx
-import React, { useState } from "react";
+// app/(client)/(tabs)/home/ReservationRequestScreen.tsx
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -25,46 +25,41 @@ import { LargeButton } from "@/appCOMP/button/LargeButton";
 // Hooks & Estilos
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { useReservationPricing } from "@/appSRC/reservations/Hooks/useReservationPricing";
-import { useServiceMetadata } from "@/appSRC/searchable/Hooks/useServiceMetadata";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
-import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
+import { ProfessionalTemplate } from "@/appSRC/templates/Type/TemplateType";
+import { useProfessionalServices } from "@/appSRC/templates/Hooks/useProfessionalServices";
 
 const ReservationRequestScreen = () => {
   const params = useLocalSearchParams();
   const router = useRouter();
   const activeAddress = useLocationStore((state) => state.activeAddress);
 
-  // Params
+  // Sincronización de Identidad: professionalId (UID de Firebase)
+  const professionalId = params.professionalId as string;
   const professionalName = (params.name as string) || "Profesional";
-  const categoryIdParam = params.categoryId as string;
-  const categoryName = (params.category as string) || "General";
   const mode = (params.mode as any) || "quote";
-  const pricePerHourParam = params.price
-    ? parseFloat(params.price as string)
-    : 0;
   const isInstant = mode === "instant";
 
-  // Lógica de Metadatos
-  const { tags: availableTags, loading: loadingTags } = useServiceMetadata(
-    categoryIdParam,
-    categoryName
-  );
+  // Lógica de Servicios
+  const { services: availableServices, loading: loadingServices } =
+    useProfessionalServices(professionalId);
 
-  const [selectedTags, setSelectedTags] = useState<ServiceTag[]>([]);
+  const [selectedServices, setSelectedServices] = useState<
+    ProfessionalTemplate[]
+  >([]);
   const [description, setDescription] = useState("");
 
-  // Cálculos dinámicos de precio y tiempo
-  const estimates = useReservationPricing(
-    selectedTags,
-    pricePerHourParam,
-    isInstant
-  );
+  const estimates = useReservationPricing(selectedServices, isInstant);
+
+  useEffect(() => {
+    console.log("🛠 [ReservationRequestScreen] ID:", professionalId);
+  }, [professionalId]);
 
   const handlePreSend = () => {
+    if (selectedServices.length === 0) return;
     router.push("/(client)/(tabs)/home/PaymentScreen");
   };
 
-  // Alerta de Ubicación
   const handleLocationPress = () => {
     Alert.alert(
       "Ubicación",
@@ -73,161 +68,169 @@ const ReservationRequestScreen = () => {
     );
   };
 
+  const onToggleService = useCallback((item: ProfessionalTemplate) => {
+    setSelectedServices((prev) =>
+      prev.find((s) => s.id === item.id)
+        ? prev.filter((s) => s.id !== item.id)
+        : [...prev, item]
+    );
+  }, []);
+
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={styles.container}>
-        <ToolBarTitle
-          titleText={isInstant ? "Nueva Reserva" : "Solicitud de Presupuesto"}
-          showBackButton={true}
-        />
+    <View style={styles.container}>
+      <ToolBarTitle
+        titleText={isInstant ? "Nueva Reserva" : "Solicitud de Presupuesto"}
+        showBackButton={true}
+      />
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-          style={{ flex: 1 }}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            decelerationRate="normal">
-            {/* 1. Header de Profesional Organico */}
-            <View style={styles.headerInfo}>
-              <Text style={styles.proLabel}>Estás solicitando a:</Text>
-              <Text style={styles.proName}>{professionalName}</Text>
-              <View
-                style={[
-                  styles.typeBadge,
-                  {
-                    backgroundColor: isInstant
-                      ? COLORS.primary + "15"
-                      : "#FFF3E0",
-                  },
-                ]}>
-                <Ionicons
-                  name={isInstant ? "flash" : "document-text"}
-                  size={14}
-                  color={isInstant ? COLORS.primary : "#F57C00"}
-                />
-                <Text
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        style={styles.flex1}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          decelerationRate="fast"
+          bounces={true}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View>
+              {/* Header de Profesional */}
+              <View style={styles.headerInfo}>
+                <Text style={styles.proLabel}>Estás solicitando a:</Text>
+                <Text style={styles.proName}>{professionalName}</Text>
+                <View
                   style={[
-                    styles.typeBadgeText,
-                    { color: isInstant ? COLORS.primary : "#F57C00" },
+                    styles.typeBadge,
+                    {
+                      backgroundColor: isInstant
+                        ? COLORS.primary + "15"
+                        : "#FFF3E0",
+                    },
                   ]}>
-                  {isInstant ? "Servicio Inmediato" : "Cotización previa"}
-                </Text>
+                  <Ionicons
+                    name={isInstant ? "flash" : "document-text"}
+                    size={14}
+                    color={isInstant ? COLORS.primary : "#F57C00"}
+                  />
+                  <Text
+                    style={[
+                      styles.typeBadgeText,
+                      { color: isInstant ? COLORS.primary : "#F57C00" },
+                    ]}>
+                    {isInstant ? "Servicio Inmediato" : "Cotización previa"}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            {/* 2. Tags de Selección con lógica de objeto completo */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>¿Qué necesitas realizar?</Text>
-              {loadingTags ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              ) : (
-                <QuickChips
-                  items={availableTags}
-                  selectedIds={selectedTags.map((t) => t.id)}
-                  onToggle={(tag: ServiceTag) => {
-                    const exists = selectedTags.find((t) => t.id === tag.id);
-                    if (exists) {
-                      setSelectedTags(
-                        selectedTags.filter((t) => t.id !== tag.id)
-                      );
-                    } else {
-                      setSelectedTags([...selectedTags, tag]);
-                    }
-                  }}
+              {/* SECCIÓN: QuickChips */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  ¿Qué necesitas realizar?
+                </Text>
+                {loadingServices ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <QuickChips
+                    items={availableServices}
+                    selectedIds={selectedServices.map((s) => s.id)}
+                    onToggle={onToggleService}
+                  />
+                )}
+              </View>
+
+              {/* Notas */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Notas para el Zolver</Text>
+                <TextInput
+                  style={styles.textArea}
+                  placeholder="Ej: El timbre no funciona..."
+                  placeholderTextColor="#999"
+                  multiline
+                  value={description}
+                  onChangeText={setDescription}
+                  scrollEnabled={false}
                 />
-              )}
-            </View>
+              </View>
 
-            {/* 3. Notas */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Notas para el Zolver</Text>
-              <TextInput
-                style={styles.textArea}
-                placeholder="Ej: El timbre no funciona, traer herramientas especiales..."
-                placeholderTextColor="#999"
-                multiline
-                value={description}
-                onChangeText={setDescription}
-                blurOnSubmit={true}
-              />
-            </View>
+              {/* Ubicación */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Dirección del servicio</Text>
+                <TouchableOpacity
+                  style={styles.locationCard}
+                  onPress={handleLocationPress}>
+                  <View style={styles.locationIcon}>
+                    <Ionicons
+                      name="location"
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                  </View>
+                  <View style={styles.flex1}>
+                    <Text style={styles.locTitle}>
+                      {activeAddress?.label || "Seleccionar dirección"}
+                    </Text>
+                    <Text style={styles.locSub}>
+                      {activeAddress
+                        ? `${activeAddress.address_street} ${activeAddress.address_number}`
+                        : "Configura tu ubicación"}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#CCC" />
+                </TouchableOpacity>
+              </View>
 
-            {/* 4. Ubicación con Alerta */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Dirección del servicio</Text>
-              <TouchableOpacity
-                style={styles.locationCard}
-                onPress={handleLocationPress}>
-                <View style={styles.locationIcon}>
-                  <Ionicons name="location" size={20} color={COLORS.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.locTitle}>
-                    {activeAddress?.label || "Seleccionar dirección"}
+              {/* Summary Box */}
+              <View style={styles.summaryBox}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Tiempo estimado</Text>
+                  <Text style={styles.summaryValue}>
+                    {estimates.hoursLabel} hs
                   </Text>
-                  <Text style={styles.locSub}>
-                    {activeAddress
-                      ? `${activeAddress.address_street} ${activeAddress.address_number}`
-                      : "Configura tu ubicación"}
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.priceRow}>
+                  <View>
+                    <Text style={styles.totalLabel}>Total Estimado</Text>
+                    <Text style={styles.subtext}>
+                      Sujeto a cambios del profesional
+                    </Text>
+                  </View>
+                  <Text style={styles.totalValue}>
+                    ${estimates.finalPrice.toLocaleString()}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#CCC" />
-              </TouchableOpacity>
-            </View>
 
-            {/* 5. Summary Box Orgánico y Dinámico */}
-            <View style={styles.summaryBox}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tiempo estimado</Text>
-                <Text style={styles.summaryValue}>
-                  {estimates.hoursLabel} hs
+                <LargeButton
+                  title={isInstant ? "Ir a Pagar" : "Enviar Solicitud"}
+                  onPress={handlePreSend}
+                  disabled={selectedServices.length === 0}
+                />
+
+                <Text style={styles.disclaimer}>
+                  No se realizará ningún cargo hasta que confirmes el método de
+                  pago.
                 </Text>
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.priceRow}>
-                <View>
-                  <Text style={styles.totalLabel}>Total Estimado</Text>
-                  <Text style={styles.subtext}>
-                    Sujeto a cambios del profesional
-                  </Text>
-                </View>
-                <Text style={styles.totalValue}>
-                  ${estimates.finalPrice.toLocaleString()}
-                </Text>
-              </View>
-
-              <LargeButton
-                title={isInstant ? "Ir a Pagar" : "Enviar Solicitud"}
-                onPress={handlePreSend}
-                disabled={selectedTags.length === 0}
-              />
-
-              <Text style={styles.disclaimer}>
-                No se realizará ningún cargo hasta que confirmes el método de
-                pago en el siguiente paso.
-              </Text>
+              <View style={{ height: 60 }} />
             </View>
-
-            <View style={{ height: 40 }} />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
-    </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
+  flex1: { flex: 1 },
   scrollContent: {
     padding: 20,
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === "ios" ? 40 : 20,
   },
   headerInfo: { marginBottom: 30, alignItems: "center" },
   proLabel: { fontSize: 13, color: "#999", marginBottom: 4 },
@@ -262,7 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F7F9",
     borderRadius: 12,
     padding: 15,
-    height: 100,
+    minHeight: 120,
     fontSize: 15,
     color: "#333",
     textAlignVertical: "top",
@@ -297,7 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 15,
-  },
+  }, // CORREGIDO: justifyContent
   summaryLabel: { fontSize: 14, color: "#666" },
   summaryValue: { fontSize: 15, fontWeight: "600", color: "#333" },
   divider: { height: 1, backgroundColor: "#EEE", marginBottom: 20 },
@@ -306,14 +309,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 25,
-  },
+  }, // CORREGIDO: justifyContent
   totalLabel: { fontSize: 14, fontWeight: "700", color: "#333" },
   subtext: { fontSize: 11, color: "#999", marginTop: 2 },
-  totalValue: {
-    fontSize: SIZES.h2,
-    fontWeight: "800",
-    color: COLORS.primary,
-  },
+  totalValue: { fontSize: SIZES.h2, fontWeight: "800", color: COLORS.primary },
   disclaimer: {
     fontSize: 12,
     color: "#AAA",

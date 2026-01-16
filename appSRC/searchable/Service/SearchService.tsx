@@ -99,7 +99,7 @@ export const SearchService = {
       user_lat: safeLat,
       user_lng: safeLng,
       search_mode: mode,
-      filter_category_id: categoryId, // ✅ Filtro estricto por categoría
+      filter_category_id: categoryId,
     });
 
     if (error) {

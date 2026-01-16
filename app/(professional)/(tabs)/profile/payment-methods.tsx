@@ -12,10 +12,10 @@ import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { COLORS } from "@/appASSETS/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useProfessionalPayout } from "@/appSRC/users/Professional/Hooks/useProfessionalPayout";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
+import { useProfessionalPayout } from "@/appSRC/users/Professional/General/Hooks/useProfessionalPayout";
 
 export default function ProfessionalPayoutConfigScreen() {
   // 1. Hooks de Capa de Dominio
