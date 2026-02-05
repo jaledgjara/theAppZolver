@@ -1,65 +1,87 @@
 import React from "react";
-import { View, StyleSheet, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Animated,
+} from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { useProfessionalOnboardingStore } from "@/appSRC/auth/Type/ProfessionalAuthUser"; //
+import { COLORS, FONTS } from "@/appASSETS/theme";
 
-// Importamos las pantallas correspondientes
+// Pantallas
 import IndexInstantScreen from "@/appSRC/reservations/Screens/Instant/IndexInstantScreen";
 import IndexQuoteScreen from "@/appSRC/reservations/Screens/Quote/IndexQuoteScreen";
-import { useRejectByProfessional } from "@/appSRC/reservations/Hooks/useRejectByProfessional";
+import { useWorkMode } from "@/appSRC/users/Professional/General/Hooks/useWorkMode";
 
 const ProfessionalHomeScreen = () => {
-  // 1. Obtenemos el tipo de trabajo del Store Global
-  const { typeWork } = useProfessionalOnboardingStore();
-
-  // 2. Definimos la lógica de visualización (Clean Code)
-  const isInstant = typeWork === "instant";
-  const isQuote = typeWork === "quote";
-  const isHybrid = typeWork === "all";
+  const { typeWork, activeTab, switchTab, isHybrid } = useWorkMode();
 
   return (
     <View style={styles.container}>
-      {/* El título se adapta al contexto del profesional */}
-      <ToolBarTitle titleText={isQuote ? "Presupuestos" : "Inicio"} />
+      {/* ToolBar con Switcher integrado */}
+      <ToolBarTitle
+        titleText={typeWork === "quote" ? "Presupuestos" : "Inicio"}
+        isHybrid={isHybrid}
+        activeTab={activeTab}
+        onTabChange={switchTab}
+      />
 
-      <View style={styles.contentContainer}>
-        {/* CASO 1: Profesional de Servicio Inmediato (Uber-like) */}
-        {(isInstant || isHybrid) && (
-          // Aquí renderizamos la pantalla de Radar/Mapa
+      <View style={styles.content}>
+        {/* Renderizado Condicional */}
+        {activeTab === "instant" ? (
           <IndexInstantScreen />
-        )}
-
-        {/* CASO 2: Profesional de Presupuestos (Habitissimo-like) */}
-        {isQuote && (
-          // Aquí renderizamos la pantalla de Bandeja de Entrada
+        ) : (
           <IndexQuoteScreen />
         )}
-
-        {/* DEBUG: Si solicitaste ver un texto específico para validar */}
-        {/* {typeWork === 'instant' && (
-          <View style={styles.debugContainer}>
-            <Text>Modo Instantáneo Activo</Text>
-          </View>
-        )} 
-        */}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
+  container: { flex: 1, backgroundColor: COLORS.white },
+  header: {
+    backgroundColor: COLORS.white,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F2F2F2",
   },
-  contentContainer: {
-    flex: 1,
+  switcherContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F5F5F7",
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 12,
+    padding: 4,
+    height: 48,
   },
-  debugContainer: {
-    padding: 20,
-    alignItems: "center",
+  tab: {
+    flex: 1,
     justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
   },
+  activeTab: {
+    backgroundColor: COLORS.white,
+    // Sombra suave para efecto de elevación "Apple-style"
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabText: {
+    ...FONTS.body4,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  activeTabText: {
+    color: COLORS.primary,
+    fontWeight: "800",
+  },
+  content: { flex: 1 },
 });
 
 export default ProfessionalHomeScreen;

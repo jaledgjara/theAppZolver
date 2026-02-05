@@ -5,144 +5,172 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import IconButton from "@/appCOMP/button/IconButton";
-import { useRouter } from "expo-router";
 
 interface MessageInputProps {
   onQuotePress?: () => void;
-  // 👇 1. NUEVA PROP: Función para enviar el texto al padre
-  onSendText?: (text: string) => void;
+  onSendText?: (text: string, imageUri?: string) => void; // 💡 Firma actualizada
+  onImagePress?: () => void;
+  placeholderName?: string;
+  selectedImageUri?: string | null; // 💡 Nueva Prop
+  onClearImage?: () => void; // 💡 Para remover el adjunto
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   onQuotePress,
   onSendText,
+  onImagePress,
+  placeholderName = "Marcus",
+  selectedImageUri,
+  onClearImage,
 }) => {
   const [message, setMessage] = useState("");
-  const router = useRouter();
-
-  // Obtener el Rol del Usuario desde el Store
   const user = useAuthStore((state) => state.user);
 
   if (!user) return null;
 
   const isProfessional = user.role === "professional";
-
-  // 2. Lógica Principal del Botón
-  const handleActionPress = () => {
-    const textToSend = message.trim();
-
-    if (textToSend) {
-      // --- CASO A: HAY TEXTO (ENVIAR) ---
-      if (onSendText) {
-        onSendText(textToSend); // 🚀 Disparamos el envío a Supabase
-      }
-      setMessage(""); // Limpiamos el input inmediatamente
-    } else {
-      // --- CASO B: INPUT VACÍO (ACCIONES EXTRA) ---
-      if (isProfessional) {
-        // Acción de Presupuesto (Solo Pros)
-        if (onQuotePress) {
-          onQuotePress();
-        } else {
-          router.push("/(professional)/messages/ReservationRequestScreen");
-        }
-      } else {
-        // Acción de Audio (Clientes - Placeholder por ahora)
-        Alert.alert(
-          "Próximamente",
-          "El envío de audio estará disponible pronto."
-        );
-      }
-    }
-  };
-
-  // 3. Determinar qué icono mostrar
-  const getIconName = () => {
-    if (message.trim()) return "send"; // Siempre avión si hay texto
-    if (isProfessional) return "add"; // '+' si es profesional y está vacío
-    return "mic"; // Micrófono para clientes vacíos
-  };
-
-  // Color dinámico
-  const getButtonColor = () => {
-    // Si es Pro y está vacío (modo agregar), usamos color terciario/acento
-    if (!message.trim() && isProfessional) return COLORS.tertiary;
-    return COLORS.primary;
+  const hasContent = message.trim().length > 0 || !!selectedImageUri;
+  const handleSend = () => {
+    onSendText?.(message, selectedImageUri || undefined);
+    setMessage("");
+    onClearImage?.(); // Limpiar tras enviar
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-      style={styles.avoidingView}>
-      <View style={styles.outerContainer}>
-        <View style={styles.inputContainer}>
+    <View style={styles.footerContainer}>
+      {/* 💡 Indicador de archivos adjuntos (Silly View Logic) */}
+      {selectedImageUri && (
+        <View style={styles.attachmentPreview}>
+          <Ionicons name="attach" size={16} color={COLORS.primary} />
+          <TextInput editable={false} style={styles.attachmentText}>
+            1 file attached
+          </TextInput>
+          <TouchableOpacity onPress={onClearImage}>
+            <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.maxContainer}>
+        <TouchableOpacity
+          style={styles.actionCircle}
+          onPress={isProfessional ? onQuotePress : onImagePress}
+          activeOpacity={0.7}>
+          <Ionicons
+            name={isProfessional ? "add" : "camera-outline"}
+            size={24}
+            color={selectedImageUri ? COLORS.primary : "#6B7280"}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
             value={message}
             onChangeText={setMessage}
             placeholder={
-              isProfessional
-                ? "Escribe o envía un presupuesto..."
-                : "Escribe un mensaje..."
+              selectedImageUri
+                ? "Add a caption..."
+                : `Message ${placeholderName}...`
             }
-            placeholderTextColor={COLORS.textSecondary}
-            multiline={true}
+            placeholderTextColor="#9CA3AF"
+            multiline
             maxLength={500}
-            // Importante para la experiencia de usuario en chat
-            blurOnSubmit={false}
           />
         </View>
 
-        <IconButton
-          size={50}
-          backgroundColor={getButtonColor()}
-          onPress={handleActionPress}
-          icon={<Ionicons name={getIconName() as any} size={24} color="#fff" />}
-          style={styles.sendButton}
-        />
+        <TouchableOpacity
+          style={[styles.sendCircle, !hasContent && styles.disabledSend]}
+          onPress={handleSend}
+          disabled={!hasContent}>
+          <Ionicons
+            name="send"
+            size={18}
+            color="#fff"
+            style={{ marginLeft: 2 }}
+          />
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  avoidingView: {
-    width: "100%",
+  keyboardContainer: { backgroundColor: "#fff" },
+  footerContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    paddingTop: 20,
+    paddingBottom: Platform.OS === "ios" ? 25 : 12,
+    paddingHorizontal: 16,
+    backgroundColor: "#fff", // 🔥 Added background
   },
-  outerContainer: {
+  maxContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    padding: 10,
-    paddingBottom: Platform.OS === "ios" ? 30 : 10,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
   },
-  inputContainer: {
-    flex: 1,
-    backgroundColor: "#F2F2F7",
+  actionCircle: {
+    height: 40,
+    width: 40,
     borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginRight: 10,
-    minHeight: 40,
-    maxHeight: 100, // Límite de crecimiento vertical
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
+  inputWrapper: {
+    flex: 1,
+    backgroundColor: "#F9FAFB", // bg-gray-50 de Stitch
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 10 : 6,
+    marginHorizontal: 8,
   },
   input: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    paddingTop: 0, // Alineación vertical en Android
-    maxHeight: 90,
+    fontSize: 15,
+    color: "#111827",
+    maxHeight: 120,
+    padding: 0,
   },
-  sendButton: {
-    elevation: 2,
-    marginBottom: 2, // Ajuste visual menor
+  sendCircle: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  disabledSend: { backgroundColor: "#D1D5DB", elevation: 0, shadowOpacity: 0 },
+  attachmentPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 8,
+    marginLeft: 48, // Alineado con el input
+  },
+  attachmentText: {
+    fontSize: 13,
+    color: "#374151",
+    marginHorizontal: 8,
+    fontWeight: "500",
   },
 });

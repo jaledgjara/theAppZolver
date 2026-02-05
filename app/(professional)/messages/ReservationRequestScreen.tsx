@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS } from "@/appASSETS/theme";
 import { useSendBudget } from "@/appSRC/messages/Hooks/useSendBudget";
+import { LargeButton } from "@/appCOMP/button/LargeButton";
 
 const ReservationRequestScreen = () => {
   const params = useLocalSearchParams();
@@ -81,20 +82,18 @@ const ReservationRequestScreen = () => {
             placeholder="Describe qué incluye el precio..."
             placeholderTextColor="#9CA3AF"
           />
-        </ScrollView>
 
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.submitButton}
+          <LargeButton
+            title={loading ? "Enviando..." : "Enviar propuesta"}
             onPress={() => sendBudget(title, price, description)}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitButtonText}>ENVIAR PROPUESTA</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            loading={loading}
+            disabled={!title || !price}
+            backgroundColor={COLORS.primary}
+            textColor={COLORS.white}
+            iconName="send-outline"
+            iconSize={20}
+          />
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -105,14 +104,14 @@ export default ReservationRequestScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   infoBox: {
-    backgroundColor: "#F0F9FF",
+    backgroundColor: COLORS.primaryBackground,
     padding: 12,
     borderRadius: 8,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#BAE6FD",
+    borderColor: COLORS.primary,
   },
-  infoText: { color: "#0369A1", fontSize: 13 },
+  infoText: { color: COLORS.textSecondary, fontSize: 13 },
   label: {
     fontSize: 14,
     fontWeight: "600",

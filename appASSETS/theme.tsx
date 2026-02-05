@@ -6,6 +6,8 @@ export const COLORS = {
   // --- Fondos y Superficies ---
   backgroundLight: "#F9FAFB", // Un fondo de color blanco roto.
   backgroundInput: "#EBEBEB", // El fondo blanco puro para campos de texto.
+  primaryBackground: "#f3db91ff",
+
   white: "#FFFFFF",
 
   // --- Texto ---

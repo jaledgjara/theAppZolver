@@ -77,6 +77,7 @@ export const ProfessionalDataService = {
 
     if (error) throw error;
   },
+
   fetchPublicProfile: async (userId: string) => {
     const { data, error } = await supabase
       .from("professional_profiles")
@@ -158,5 +159,26 @@ export const ProfessionalDataService = {
     }
 
     console.log("✅ [SERVICE] Actualización REAL confirmada:", data[0]);
+  },
+
+  /**
+   * Actualiza la modalidad de trabajo del profesional.
+   * Valores permitidos: 'instant' | 'quote' | 'all'
+   */
+  updateWorkMode: async (
+    userId: string,
+    mode: "instant" | "quote" | "hybrid"
+  ) => {
+    const { data, error } = await supabase
+      .from("professional_profiles")
+      .update({
+        type_work: mode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .select();
+
+    if (error) throw error;
+    return data;
   },
 };

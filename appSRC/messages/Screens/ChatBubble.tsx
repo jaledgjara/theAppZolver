@@ -23,7 +23,7 @@ export const ChatBubble = ({ message, isMine }: ChatBubbleProps) => {
   } else if (type === "image") {
     content = "📷 Imagen";
   } else {
-    content = "Formato no soportado";
+    content = "Formato no soportado"; // ❌ Caía aquí
   }
 
   return (

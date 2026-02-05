@@ -40,7 +40,7 @@ export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [
   {
     id: "6",
     icon: "settings-outline",
-    title: "Configuración de la App|",
+    title: "Configuración de la App",
     subtitle: "Cerrar sesión y más opciones.",
     route: "/(professional)/(tabs)/profile/app-settings",
   },

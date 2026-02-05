@@ -1,12 +1,5 @@
-import { MessageDTO, ChatMessage, BudgetPayload } from "../Type/MessageType";
+import { MessageDTO, ChatMessage } from "../Type/MessageType";
 
-/**
- * mapMessageDTOToDomain
- * Convierte un mensaje crudo de Supabase (DTO) en una entidad polimórfica (Domain).
- * * @param dto - El registro directo de la tabla 'messages'.
- * @param currentUserId - ID del usuario logueado (para calcular 'isMine').
- * @returns ChatMessage (TextMessage | ImageMessage | BudgetMessage)
- */
 export const mapMessageDTOToDomain = (
   dto: MessageDTO,
   currentUserId: string
@@ -17,36 +10,33 @@ export const mapMessageDTOToDomain = (
     conversationId: dto.conversation_id,
     createdAt: new Date(dto.created_at),
     isMine,
-    isRead: dto.is_read,
+    isRead: dto.is_read || false,
   };
 
-  // Mapeo según el tipo (ahora todos usan 'budget' y 'data')
   switch (dto.type) {
     case "budget":
-      return {
-        ...base,
-        type: "budget",
-        data: dto.payload as any, // TypeScript confía en que el payload es BudgetPayload
-      };
+      return { ...base, type: "budget", data: dto.payload as any };
 
     case "image":
+      // 💡 EXTRAEMOS DE PAYLOAD: Aquí es donde vive la URL real de Supabase
+      const imgPayload = dto.payload as { imageUrl?: string };
       return {
         ...base,
         type: "image",
         data: {
-          imageUrl: dto.content || "", // Asumiendo URL en content o payload
-          caption: "",
+          imageUrl: imgPayload?.imageUrl || "", // ✅ URL Real
+          caption:
+            dto.content && dto.content !== "📷 Imagen"
+              ? dto.content
+              : undefined,
         },
       };
 
-    case "text":
     default:
       return {
         ...base,
         type: "text",
-        data: {
-          text: dto.content || "", // ✅ Mapeamos content a data.text
-        },
+        data: { text: dto.content || "" },
       };
   }
 };

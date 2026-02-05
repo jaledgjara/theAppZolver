@@ -1,5 +1,13 @@
-import React, { useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import React, { useRef, useEffect, useCallback, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+} from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 
 // UI Components
@@ -8,16 +16,17 @@ import { COLORS } from "@/appASSETS/theme";
 import { MessageInput } from "@/appSRC/messages/Screens/InputTextMessage";
 import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
 import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 
 // Logic
 import { useMessages } from "@/appSRC/messages/Hooks/useMessage";
 import { ChatMessage, BudgetPayload } from "@/appSRC/messages/Type/MessageType";
+import { useMessageImagePicker } from "@/appSRC/messages/Hooks/useMessageImagePicker";
 
 const MessagesDetailsClientScreen = () => {
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const { id, name, conversationId } = useLocalSearchParams();
   const router = useRouter();
-
-  // Asegúrate de haber actualizado useMessages para exponer 'refreshMessages'
   const { messages, loading, sendMessage, refreshMessages } = useMessages(
     conversationId as string,
     id as string
@@ -25,79 +34,86 @@ const MessagesDetailsClientScreen = () => {
 
   const flatListRef = useRef<FlatList>(null);
 
-  // ✅ CRÍTICO: Recargar mensajes al volver de la confirmación
+  const { pickImage } = useMessageImagePicker((uri) => {
+    setPendingImage(uri); // 💡 Guardamos la URI localmente en la vista
+  });
+
+  // 💡 LOGICA CORREGIDA: La vista ya no decide, solo envía.
+  const handleSendMessage = async (text: string) => {
+    // Pasamos el texto y la imagen (si existe) al hook
+    sendMessage(text, pendingImage || undefined);
+    setPendingImage(null); // Limpiamos el draft
+  };
+
   useFocusEffect(
     useCallback(() => {
-      if (refreshMessages) {
-        refreshMessages();
-      }
+      refreshMessages?.();
     }, [refreshMessages])
   );
 
-  // Auto-scroll al recibir mensajes
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      setTimeout(
+        () => flatListRef.current?.scrollToEnd({ animated: true }),
+        100
+      );
     }
   }, [messages]);
 
   const handleBudgetPress = (payload: BudgetPayload, messageId: string) => {
-    // ✅ Validar estado 'pending_approval'
     if (payload.status !== "pending_approval") return;
-
     router.push({
       pathname: "/(client)/messages/ConfirmBudgetScreen",
       params: {
         professionalId: id,
         budgetPrice: payload.price.toString(),
         budgetTitle: payload.serviceName,
-        budgetNotes: payload.notes || "",
-        messageId: messageId,
-        conversationId: conversationId,
+        messageId,
+        conversationId,
       },
     });
   };
 
   const renderMessageItem = ({ item }: { item: ChatMessage }) => {
-    switch (item.type) {
-      case "budget":
-        return (
+    return (
+      <View
+        style={[
+          styles.bubbleWrapper,
+          item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
+        ]}>
+        {item.type === "budget" ? (
           <ChatBudgetCard
             message={item}
             onPress={() => handleBudgetPress(item.data, item.id)}
           />
-        );
-      case "image":
-        return (
-          <ChatBubble
-            message={{
-              ...item,
-              type: "text",
-              data: { text: "📷 Imagen enviada" },
-            }}
-          />
-        );
-      case "text":
-        return <ChatBubble message={item} isMine={item.isMine} />;
-      default:
-        return null;
-    }
+        ) : item.type === "image" ? (
+          <View style={styles.imageCard}>
+            <Image
+              source={{ uri: item.data.imageUrl }}
+              style={styles.chatImage}
+              resizeMode="cover"
+            />
+          </View>
+        ) : (
+          <ChatBubble message={item} isMine={item.isMine} />
+        )}
+      </View>
+    );
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}>
       <ToolBarTitle
-        titleText={(name as string) || "Soporte / Profesional"}
-        showBackButton={true}
+        titleText={(name as string) || "Profesional"}
+        showBackButton
       />
 
       <View style={styles.chatArea}>
         {loading && messages.length === 0 ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
+          <MiniLoaderScreen />
         ) : (
           <FlatList
             ref={flatListRef}
@@ -105,22 +121,51 @@ const MessagesDetailsClientScreen = () => {
             keyExtractor={(item) => item.id}
             renderItem={renderMessageItem}
             contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => {
+              if (messages.length > 0) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
           />
         )}
       </View>
 
-      <MessageInput onSendText={sendMessage} />
-    </View>
+      <MessageInput
+        placeholderName={name as string}
+        onSendText={handleSendMessage}
+        onImagePress={pickImage}
+        selectedImageUri={pendingImage}
+        onClearImage={() => setPendingImage(null)}
+      />
+    </KeyboardAvoidingView>
   );
 };
 
 export default MessagesDetailsClientScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F4F6F8" },
-  chatArea: { flex: 1, paddingHorizontal: 12 },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  listContent: { paddingVertical: 16, paddingBottom: 10 },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  chatArea: { flex: 1 },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+    flexGrow: 1, // 🔥 Changed this
+  },
+  bubbleWrapper: {
+    marginVertical: 6,
+    maxWidth: "85%",
+  },
+  myBubbleWrapper: { alignSelf: "flex-end" },
+  theirBubbleWrapper: { alignSelf: "flex-start" },
+  imageCard: {
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  chatImage: { width: 220, height: 160 },
 });

@@ -1,102 +1,114 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/appSRC/services/supabaseClient";
 import { ChatMessage } from "../Type/MessageType";
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { MessageService } from "../Service/MessageService";
-import { useAuthStore } from "@/appSRC/auth/Store/AuthStore"; // 👈 IMPORTANTE
+import { StorageService } from "../Service/StorageService";
 
 export const useMessages = (conversationId: string, professionalId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // 1. OBTENER EL ID CORRECTO (FIREBASE UID) DESDE EL STORE GLOBAL
-  // Ya no usamos supabase.auth.getUser() porque da un ID diferente.
   const user = useAuthStore((s) => s.user);
   const currentUserId = user?.uid || null;
 
-  // 2. Fetch de Mensajes usando el SERVICIO
   const fetchMessages = useCallback(async () => {
     if (!currentUserId) return;
-
     try {
       const data = await MessageService.getMessages(
         conversationId,
         currentUserId
       );
       setMessages(data);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
     } finally {
       setLoading(false);
     }
   }, [conversationId, currentUserId]);
 
-  // 3. Suscripción Realtime
   useEffect(() => {
     if (!currentUserId) return;
-
     fetchMessages();
 
     const channel = MessageService.subscribeToConversation(
       conversationId,
       currentUserId,
-      (newMsg: ChatMessage) => {
-        setMessages((prev: ChatMessage[]) => [...prev, newMsg]);
+      (newMsg) => {
+        setMessages((prev) => {
+          // 💡 RECONCILIACIÓN: Evita duplicados eliminando el optimista 'temp-'
+          if (newMsg.isMine) {
+            return [...prev.filter((m) => !m.id.startsWith("temp-")), newMsg];
+          }
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
       }
     );
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchMessages, conversationId, currentUserId]);
+  }, [conversationId, currentUserId, fetchMessages]);
 
-  // 4. Enviar Mensaje
   const sendMessage = useCallback(
-    async (text: string) => {
-      if (!text.trim() || !currentUserId) {
-        console.error("❌ Error: Intentando enviar sin User ID válido", {
-          currentUserId,
-        });
-        return;
-      }
+    async (text: string, imageUri?: string) => {
+      if (!text.trim() && !imageUri) return;
+      if (!currentUserId) return;
 
       const tempId = `temp-${Date.now()}`;
+      const isImage = !!imageUri;
 
-      const optimisticMsg: ChatMessage = {
-        id: tempId,
-        conversationId: conversationId,
-        createdAt: new Date(),
-        isMine: true,
-        isRead: false,
-        type: "text",
-        data: { text: text },
-      };
+      // 1. Mensaje Optimista (Usa la URI local temporal)
+      const optimisticMsg: ChatMessage = isImage
+        ? ({
+            id: tempId,
+            conversationId,
+            createdAt: new Date(),
+            isMine: true,
+            isRead: false,
+            type: "image",
+            data: { imageUrl: imageUri!, text },
+          } as ChatMessage)
+        : ({
+            id: tempId,
+            conversationId,
+            createdAt: new Date(),
+            isMine: true,
+            isRead: false,
+            type: "text",
+            data: { text },
+          } as ChatMessage);
 
-      setMessages((prev: ChatMessage[]) => [...prev, optimisticMsg]);
+      setMessages((prev) => [...prev, optimisticMsg]);
 
       try {
-        console.log("🚀 Enviando mensaje con ID REAL:", currentUserId); // Ahora sí coincidirá
+        if (isImage) {
+          // 💡 PASO PRODUCTIVO: Subimos el archivo a la nube y obtenemos URL real
+          const publicUrl = await StorageService.uploadMessageImage(
+            imageUri!,
+            conversationId
+          );
 
-        await MessageService.sendTextMessage(
-          conversationId,
-          currentUserId,
-          professionalId,
-          text
-        );
+          await MessageService.sendImageMessage(
+            conversationId,
+            currentUserId,
+            professionalId,
+            publicUrl,
+            text
+          );
+        } else {
+          await MessageService.sendTextMessage(
+            conversationId,
+            currentUserId,
+            professionalId,
+            text
+          );
+        }
       } catch (error) {
-        console.error("Error sending message:", error);
-        setMessages((prev: ChatMessage[]) =>
-          prev.filter((m: ChatMessage) => m.id !== tempId)
-        );
-        alert("No se pudo enviar el mensaje.");
+        console.error("❌ Error en flujo de envío:", error);
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
       }
     },
     [conversationId, professionalId, currentUserId]
   );
 
-  return {
-    messages,
-    loading,
-    sendMessage,
-    refreshMessages: fetchMessages,
-  };
+  return { messages, loading, sendMessage, refreshMessages: fetchMessages };
 };
