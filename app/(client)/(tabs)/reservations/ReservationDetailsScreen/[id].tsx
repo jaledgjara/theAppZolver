@@ -88,14 +88,6 @@ const ReservationDetailScreen = () => {
 
         {/* 6. Acciones Dinámicas */}
         <View style={styles.footerAction}>
-          {actions.canChat && (
-            <LargeButton
-              title={`Chat con ${header.title}`}
-              iconName="chatbubble-outline"
-              onPress={() => console.log("Navegar a Chat", displayData.raw.id)}
-            />
-          )}
-
           {/* Ejemplo de extensibilidad futura */}
           {actions.canQuote && (
             <LargeButton

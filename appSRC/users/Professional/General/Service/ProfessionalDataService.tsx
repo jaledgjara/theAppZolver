@@ -90,6 +90,39 @@ export const ProfessionalDataService = {
   },
 
   /**
+   * Obtiene el nombre de la categoría principal desde la tabla service_categories
+   */
+  // ProfessionalDataService.ts
+  fetchProfessionalCategory: async (userId: string): Promise<string> => {
+    const { data, error } = await supabase
+      .from("professional_profiles")
+      .select(
+        `
+      main_category_id,
+      service_categories (
+        name
+      )
+    `
+      )
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error al obtener categoría:", error);
+      return "General";
+    }
+
+    // CORRECCIÓN TS: Supabase a veces retorna un array en joins aunque sea 1:1
+    const categoryData = data?.service_categories;
+
+    if (Array.isArray(categoryData)) {
+      return categoryData[0]?.name || "General";
+    }
+
+    return (categoryData as any)?.name || "General";
+  },
+
+  /**
    * Actualiza los datos públicos del perfil
    */
   updatePublicProfile: async (userId: string, data: any) => {

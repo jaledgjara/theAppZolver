@@ -56,8 +56,8 @@ export const mapReservationFromDTO = (
     id: dto.id,
     roleId,
     roleName,
-    roleAvatar: require("@/appASSETS/RawImages/avatar-0.jpg"), // Placeholder
-
+    roleAvatar: require("@/appASSETS/RawImages/avatar-0.jpg"),
+    description: dto.description || "No hay descripción.",
     createdAt,
     scheduledStart,
     address: dto.address_display || "Ubicación a coordinar",

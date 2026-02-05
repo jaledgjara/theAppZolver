@@ -56,6 +56,7 @@ export interface Reservation {
   statusUI: ReservationStatusUI;
   address: string; // Dirección formateada
   serviceTitle: string;
+  description: string;
   modality: "instant" | "quote";
   financials: {
     price: number;

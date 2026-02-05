@@ -117,15 +117,6 @@ const ReservationsDetailsScreen = () => {
               onPress={() => console.log("Ir al chat con", header.title)}
             />
           )}
-
-          {/* Acción exclusiva de Profesional: Cotizar */}
-          {actions.canQuote && (
-            <LargeButton
-              title="Enviar Cotización"
-              backgroundColor={COLORS.primary}
-              onPress={() => console.log("Abrir modal de cotización")}
-            />
-          )}
         </View>
       </ScrollView>
     </View>

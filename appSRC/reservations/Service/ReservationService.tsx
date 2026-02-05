@@ -564,6 +564,7 @@ export const fetchActiveProfessionalReservation = async (
     `
     )
     .eq("professional_id", professionalId)
+    .eq("service_modality", "instant")
     .in("status", ["confirmed", "on_route", "in_progress"])
     .limit(1)
     .maybeSingle();

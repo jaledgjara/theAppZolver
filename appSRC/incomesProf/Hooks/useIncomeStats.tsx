@@ -2,46 +2,47 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { getIncomeStats } from "../Service/IncomesService";
 import { IncomePayload } from "../Type/IncomesType";
+import { ProfessionalDataService } from "@/appSRC/users/Professional/General/Service/ProfessionalDataService";
+
+// Extendemos el tipo localmente para incluir la categoría
+export type ExtendedIncomeStats = IncomePayload & {
+  categoryName: string;
+};
 
 export const useIncomeStats = () => {
   const { user } = useAuthStore();
-  const [stats, setStats] = useState<IncomePayload | null>(null);
+  const [stats, setStats] = useState<ExtendedIncomeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = useCallback(async () => {
-    // [DEBUG] Verificar si tenemos usuario
-    console.log("---- [useIncomeStats] Inicio de fetchStats ----");
     if (!user?.uid) {
-      console.warn("---- [useIncomeStats] No hay User ID disponible ----");
       setLoading(false);
       return;
     }
 
     try {
-      console.log(
-        `---- [useIncomeStats] Solicitando stats para UID: ${user.uid} ----`
-      );
+      console.log(`---- [useIncomeStats] Fetching data for: ${user.uid} ----`);
 
-      const data = await getIncomeStats(user.uid);
+      // Ejecución paralela (Serverless-First optimization)
+      const [incomeData, categoryName] = await Promise.all([
+        getIncomeStats(user.uid),
+        ProfessionalDataService.fetchProfessionalCategory(user.uid),
+      ]);
 
-      // [DEBUG] Ver qué devuelve exactamente la DB
-      console.log(
-        "---- [useIncomeStats] Datos crudos recibidos de RPC:",
-        JSON.stringify(data, null, 2)
-      );
-
-      if (data) {
-        setStats(data);
-      } else {
-        console.warn("---- [useIncomeStats] La data llegó nula ----");
+      if (incomeData) {
+        setStats({
+          ...incomeData,
+          // Forzamos el mapeo de incomeToday para evitar el 0 persistente si el RPC devuelve null
+          incomeToday: incomeData.incomeToday ?? 0,
+          categoryName: categoryName,
+        });
       }
     } catch (error) {
-      console.error("---- [useIncomeStats] Error capturado:", error);
+      console.error("---- [useIncomeStats] Error fatal:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
-      console.log("---- [useIncomeStats] Fin de carga (loading: false) ----");
     }
   }, [user]);
 
@@ -50,7 +51,6 @@ export const useIncomeStats = () => {
   }, [fetchStats]);
 
   const onRefresh = () => {
-    console.log("---- [useIncomeStats] Refrescando manualmente... ----");
     setRefreshing(true);
     fetchStats();
   };

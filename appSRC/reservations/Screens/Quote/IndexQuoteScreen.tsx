@@ -27,7 +27,7 @@ const IndexQuoteScreen = () => {
 
   const handlePressWork = (reservationId: string) => {
     router.push(
-      `/(professional)/(tabs)/reservations/ReservationsDetails/${reservationId}`
+      `/(professional)/(tabs)/home/ReservationsDetails/${reservationId}`
     );
   };
 

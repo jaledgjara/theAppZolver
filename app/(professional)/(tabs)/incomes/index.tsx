@@ -74,22 +74,13 @@ const IncomesScreen = () => {
               width="full"
             />
 
-            {/* Por cobrar (Viene del RPC como 'totalPending') */}
+            {/* Categoría Profesional Real */}
             <IncomeCard
-              title="Por cobrar"
-              value={stats?.pendingPayment?.toString() || "0"}
-              valueType="money"
-              titleVariant="h3"
-              width="half"
-            />
-
-            {/* Servicio Top (Viene del RPC) */}
-            <IncomeCard
-              title="Mi Servicio"
-              value={stats?.topService || "General"}
+              title="Categoría"
+              value={stats?.categoryName || "General"}
               valueType="text"
               titleVariant="h3"
-              width="half"
+              width="full"
             />
           </IncomeCardsContainer>
 
