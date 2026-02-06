@@ -1,13 +1,5 @@
-// app/(client)/professionalDetails/[id].tsx
 import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  StyleSheet,
-  Image,
-} from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,17 +7,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import {
-  AboutCard,
-  FeatureListCard,
-} from "@/appSRC/searchable/Screen/ProfileHeaderCard";
 import PortfolioCard from "@/appSRC/searchable/Screen/PortfolioCard";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import UserAvatar from "@/appCOMP/avatar/UserAvatar";
 
 // Hooks
 import { useProfessionalDetails } from "@/appSRC/searchable/Hooks/useProfessionalDetails";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useStartConversation } from "@/appSRC/conversation/Hooks/useStartConversation";
-import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 
 const ProfessionalDetailsView = () => {
   const router = useRouter();
@@ -76,90 +65,102 @@ const ProfessionalDetailsView = () => {
   return (
     <View style={mainStyles.container}>
       <ToolBarTitle
-        titleText={isInstant ? "Zolver Ya" : "Perfil"}
+        titleText={isInstant ? "Zolver Ya" : "Perfil del Profesional"}
         showBackButton
       />
 
       <ScrollView
         contentContainerStyle={mainStyles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {/* 1. CABECERA VERTICAL (Productiva) */}
-        <View style={mainStyles.headerVertical}>
-          <Image
-            source={{
-              uri: "https://via.placeholder.com/150",
-            }}
-            style={mainStyles.profileAvatar}
-          />
-          <Text style={mainStyles.proName}>{profile.legal_name}</Text>
-          <Text style={mainStyles.proCategory}>
-            {profile.category_name || "Profesional"}
-          </Text>
-
-          <View style={mainStyles.ratingRow}>
-            <Ionicons name="star" size={14} color={COLORS.primary} />
-            <Text style={mainStyles.ratingText}>{profile.rating || 0}</Text>
-            <View style={mainStyles.dotSeparator} />
-            <Ionicons
-              name="shield-checkmark"
-              size={14}
-              color={COLORS.textSecondary}
+        {/* 1. CABECERA UNIFICADA (Con fondo gris y alineación corregida) */}
+        <View style={mainStyles.sectionCard}>
+          <View style={mainStyles.headerRow}>
+            <UserAvatar
+              path={profile.photo_url}
+              name={profile.legal_name || "Z"}
+              size={80}
+              style={mainStyles.avatarShadow}
             />
-            <Text style={mainStyles.verifiedText}>Verificado</Text>
+            <View style={mainStyles.infoContainer}>
+              <Text style={mainStyles.proName} numberOfLines={1}>
+                {profile.legal_name}
+              </Text>
+              <Text style={mainStyles.proCategory}>
+                {profile.category_name || "Profesional"}
+              </Text>
+
+              <View style={mainStyles.ratingRow}>
+                <Ionicons name="star" size={14} color={COLORS.primary} />
+                <Text style={mainStyles.ratingText}>
+                  {profile.rating > 0 ? profile.rating.toFixed(1) : "Nuevo"}
+                </Text>
+                <View style={mainStyles.dotSeparator} />
+                <Ionicons
+                  name="shield-checkmark"
+                  size={14}
+                  color={COLORS.primary}
+                />
+                <Text style={mainStyles.verifiedText}>Verificado</Text>
+              </View>
+            </View>
           </View>
 
+          {/* Badge de Modo de Servicio integrado en la card */}
           <View
             style={[
               mainStyles.typeBadge,
               {
-                backgroundColor: isInstant ? COLORS.primary + "10" : "#FFF3E0",
+                backgroundColor: isInstant ? COLORS.primary + "15" : "#FFF3E0",
               },
             ]}>
             <Ionicons
               name={isInstant ? "flash" : "document-text"}
               size={12}
-              color={isInstant ? COLORS.primary : "#F57C00"}
+              color={COLORS.primary}
             />
-            <Text
-              style={[
-                mainStyles.typeBadgeText,
-                { color: isInstant ? COLORS.primary : "#F57C00" },
-              ]}>
-              {isInstant ? "Servicio Inmediato" : "Cotización previa"}
+            <Text style={[mainStyles.typeBadgeText, { color: COLORS.primary }]}>
+              {isInstant
+                ? "Servicio de Respuesta Inmediata"
+                : "Servicio de Presupuesto "}
             </Text>
           </View>
         </View>
 
-        {/* 2. SOBRE MÍ (Limpio y sin superposiciones) */}
-        <View style={mainStyles.aboutSection}>
+        {/* 2. SOBRE MÍ */}
+        <View style={mainStyles.sectionCard}>
           <Text style={mainStyles.sectionLabel}>Sobre el profesional</Text>
           <Text style={mainStyles.aboutText}>
-            {profile.biography || "Sin descripción disponible."}
+            {profile.biography ||
+              "El profesional no ha proporcionado una descripción todavía."}
           </Text>
         </View>
 
-        {/* 3. PORTFOLIO */}
-        <View style={mainStyles.miniSection}>
+        {/* 3. PORTFOLIO UNIFICADO (Mismo fondo y título) */}
+        <View style={mainStyles.sectionCard}>
+          <Text style={mainStyles.sectionLabel}>Portafolio de trabajos</Text>
           <PortfolioCard images={profile.portfolio_photos || []} />
         </View>
 
-        {/* 4. CREDENCIALES */}
-        {profile.enrollment_number && (
-          <View style={mainStyles.miniSection}>
-            <FeatureListCard
-              items={[`Matrícula Profesional: ${profile.enrollment_number}`]}
-            />
-          </View>
-        )}
+        {/* 4. ACCIÓN PRINCIPAL */}
 
-        {/* 5. ACTION BOX (Final de Scroll) */}
-        <View style={mainStyles.actionCard}>
-          <Text style={mainStyles.footerLabel}>Cobertura</Text>
-          <Text style={mainStyles.footerValue}>
-            {profile.coverage_radius_km || "-"} km a la redonda
-          </Text>
+        <View style={mainStyles.actionContainer}>
+          {/* Lógica: Solo mostramos cobertura si es Instant (Zolver Ya) */}
+          {isInstant && (
+            <View style={mainStyles.coverageRow}>
+              <Ionicons
+                name="location"
+                size={16}
+                color={COLORS.textSecondary}
+              />
+              <Text style={mainStyles.footerLabel}>Cobertura: </Text>
+              <Text style={mainStyles.footerValue}>
+                {profile.coverage_radius_km || "10"} km a la redonda
+              </Text>
+            </View>
+          )}
+
           <LargeButton
-            title={isInstant ? "RESERVAR AHORA" : "CONTACTAR PROFESIONAL"}
+            title={isInstant ? "SOLICITAR ZOLVER YA" : "ENVIAR MENSAJE"}
             onPress={handlePrimaryAction}
             loading={isCreatingChat}
           />
@@ -172,97 +173,130 @@ const ProfessionalDetailsView = () => {
 const mainStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scrollContent: { padding: 20 },
+  scrollContent: { padding: 20, gap: 16 },
 
-  // Cabecera
-  headerVertical: { alignItems: "center", marginBottom: 25 },
-  profileAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    marginBottom: 12,
-    backgroundColor: "#F5F5F5",
+  // Bloque Base para todas las secciones (ESTANDARIZACIÓN)
+  sectionCard: {
+    backgroundColor: COLORS.backgroundLight || "#F8F9FA",
+    borderRadius: 20,
+    padding: 16,
+    width: "100%",
   },
-  proName: { fontSize: 20, fontWeight: "800", color: COLORS.textPrimary },
-  proCategory: {
-    fontSize: 14,
+
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
     color: COLORS.textSecondary,
-    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 12,
+    letterSpacing: 1,
+  },
+
+  // Cabecera Row
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  avatarShadow: {
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+
+  infoContainer: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: "center",
+  },
+
+  proName: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: COLORS.textPrimary,
+  },
+
+  proCategory: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: "700",
     textTransform: "uppercase",
     marginTop: 2,
   },
 
-  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
-  ratingText: { fontSize: 13, color: "#888", marginLeft: 4 },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+
+  ratingText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    marginLeft: 4,
+  },
+
   dotSeparator: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: "#DDD",
+    backgroundColor: "#CCC",
     marginHorizontal: 8,
   },
+
   verifiedText: {
     fontSize: 13,
     color: COLORS.textSecondary,
     marginLeft: 4,
   },
 
+  // Badges y Otros
   typeBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginTop: 12,
-    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginTop: 16,
+    gap: 6,
+    alignSelf: "flex-start",
   },
+
   typeBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
-    textTransform: "uppercase",
   },
 
-  // Seccion Sobre Mi Limpia
-  aboutSection: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: 16,
+  aboutText: {
+    fontSize: 15,
+    color: "#4A4A4A",
+    lineHeight: 22,
   },
-  sectionLabel: {
-    fontSize: SIZES.body3,
-    fontWeight: "600",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    marginBottom: 8,
-  },
-  aboutText: { fontSize: 14, color: "#444", lineHeight: 20 },
 
-  miniSection: { marginBottom: 15 },
-
-  // Action Footer Orgánico
-  actionCard: {
-    padding: 20,
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: 24,
-    marginTop: 10,
+  // Footer / Action
+  actionContainer: {
+    marginTop: 8,
+    gap: 12,
   },
-  actionRow: {
+  coverageRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "center",
+    marginBottom: 4,
   },
   footerLabel: {
-    fontSize: 11,
-    color: "#999",
-    fontWeight: "600",
-    textTransform: "uppercase",
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginLeft: 4,
   },
-  footerValue: { fontSize: 14, color: "#333", fontWeight: "700" },
-  priceInfo: { alignItems: "flex-end" },
-  priceText: { fontSize: 22, fontWeight: "800", color: COLORS.primary },
-  priceUnit: { fontSize: 12, color: "#999", fontWeight: "400" },
+  footerValue: {
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+  },
 });
 
 export default ProfessionalDetailsView;

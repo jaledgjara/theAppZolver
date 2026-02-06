@@ -80,12 +80,13 @@ const ReservationsDetailsScreen = () => {
           <RefreshControl refreshing={false} onRefresh={refresh} />
         }>
         <ReservationDetailsCard
-          type="professional"
+          type="identity"
           name={displayData.clientName}
           avatar={displayData.clientAvatar}
           statusText={displayData.statusText}
           statusBg={displayData.statusBg}
           statusColor={displayData.statusColor}
+          viewRole={"professional"}
         />
 
         <ReservationDetailsCard type="title" title={displayData.serviceTitle} />
@@ -93,6 +94,7 @@ const ReservationsDetailsScreen = () => {
           type="date"
           date={displayData.dateFormatted}
           time={displayData.timeFormatted}
+          viewRole={"professional"}
         />
         <ReservationDetailsCard
           type="location"
@@ -126,8 +128,7 @@ const ReservationsDetailsScreen = () => {
               />
               <Text style={styles.finishedText}>TRABAJO FINALIZADO</Text>
             </View>
-          ) : displayData.isCanceled ? // 2. SI ESTÁ CANCELADO: No mostrar controlador
-          null : (
+          ) : displayData.isCanceled ? null : ( // 2. SI ESTÁ CANCELADO: No mostrar controlador
             // 3. SI ESTÁ ACTIVO: Mostrar el controlador de Quote
             <QuoteJobControlCard job={reservation} onJobCompleted={refresh} />
           )}

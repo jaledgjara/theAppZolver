@@ -3,6 +3,8 @@ import { View, Text, Image, StyleSheet } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
+import { useAvatar } from "@/appSRC/users/Professional/General/Hooks/useAvatar";
+import UserAvatar from "@/appCOMP/avatar/UserAvatar";
 
 interface ProfessionalCardProps {
   avatar: string | null;
@@ -32,20 +34,17 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
       ? `${(distance / 1000).toFixed(1)} km`
       : `${Math.round(distance)} m`
     : null;
+  const { url, showFallback, onError } = useAvatar(avatar, "avatars");
 
   return (
     <BaseCard onPress={onPress}>
       <View style={styles.row}>
         {/* 1. Avatar */}
-        <Image
-          source={{
-            uri:
-              !imageError && avatar
-                ? avatar
-                : "https://ui-avatars.com/api/?background=random&name=" + name,
-          }}
-          style={styles.avatar}
-          onError={() => setImageError(true)}
+        <UserAvatar
+          path={avatar}
+          name={name}
+          size={56}
+          style={styles.avatar} // Mantienes tus márgenes de la Card
         />
 
         {/* 2. Info Central */}

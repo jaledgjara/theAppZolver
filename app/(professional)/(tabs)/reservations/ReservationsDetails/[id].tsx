@@ -64,7 +64,8 @@ const ReservationsDetailsScreen = () => {
         }>
         {/* SECCIÓN 1: Info del CLIENTE (El hook ya trajo el avatar/nombre del cliente) */}
         <ReservationDetailsCard
-          type="professional" // Mantenemos el tipo visual
+          type="identity" // Mantenemos el tipo visual
+          viewRole="professional"
           name={header.title} // Aquí vendrá el nombre del Cliente
           avatar={header.avatar}
           statusText={header.status.text}

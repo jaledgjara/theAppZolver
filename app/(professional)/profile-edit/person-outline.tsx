@@ -18,56 +18,58 @@ import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { PortfolioManager } from "@/appSRC/auth/Screen/PortofolioManager";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { useProfessionalProfile } from "@/appSRC/users/Professional/General/Hooks/useProfessionalProfile";
+import { MediaService } from "@/appSRC/users/Professional/General/Service/MediaService";
+import UserAvatar from "@/appCOMP/avatar/UserAvatar";
 
 const ProfessionalPublicProfileScreen = () => {
   const {
     profile,
-    setProfile,
     loading,
     saving,
     updateProfile,
     handleEditPhoto,
     handleAddImage,
     handleRemoveImage,
+    handleUpdateField,
   } = useProfessionalProfile();
 
+  // El MediaService ahora sí detecta file:// y muestra el preview
+  const displayPhoto = MediaService.resolveUrl(profile.photoUrl, "avatars");
+  const resolvedPortfolio = profile.portfolioUrls.map(
+    (path) => MediaService.resolveUrl(path, "portfolio") || ""
+  );
   if (loading) return <MiniLoaderScreen />;
 
   return (
-    <KeyboardAvoidingView style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ToolBarTitle titleText="Editar Perfil" showBackButton={true} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* FOTO DE PERFIL */}
         <View style={styles.imageSection}>
           <View style={styles.imageContainer}>
-            <Image
-              source={{
-                uri: profile.photoUrl || "https://via.placeholder.com/150",
-              }}
-              style={styles.profileImage}
-            />
-
-            {/* BOTÓN DE CÁMARA (BADGE) */}
+            {displayPhoto ? (
+              <Image
+                source={{ uri: displayPhoto }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <UserAvatar name={profile.specialty || "U"} size={120} />
+            )}
             <TouchableOpacity
               style={styles.editBadge}
-              onPress={handleEditPhoto} // Dispara el picker
-              activeOpacity={0.8}>
+              onPress={handleEditPhoto}>
               <Ionicons name="camera" size={25} color="white" />
             </TouchableOpacity>
           </View>
-
-          <Text style={styles.imageInstruction}>
-            Usa una foto profesional para generar confianza
-          </Text>
         </View>
 
-        {/* DATOS COMERCIALES */}
         <View style={styles.formContainer}>
           <Text style={styles.label}>Especialidad Profesional</Text>
           <TextInput
             style={styles.input}
             value={profile.specialty}
-            onChangeText={(val) => setProfile({ ...profile, specialty: val })}
+            onChangeText={(val) => handleUpdateField("specialty", val)}
           />
 
           <Text style={styles.label}>Biografía</Text>
@@ -75,22 +77,21 @@ const ProfessionalPublicProfileScreen = () => {
             style={[styles.input, styles.textArea]}
             multiline
             value={profile.bio}
-            onChangeText={(val) => setProfile({ ...profile, bio: val })}
+            onChangeText={(val) => handleUpdateField("bio", val)}
           />
         </View>
 
         <View style={styles.divider} />
 
-        {/* COMPONENTE DE PORTFOLIO */}
         <PortfolioManager
-          images={profile.portfolioUrls}
+          images={resolvedPortfolio}
           onAdd={handleAddImage}
           onRemove={handleRemoveImage}
         />
 
         <LargeButton
           title={saving ? "Guardando..." : "Guardar Cambios"}
-          onPress={() => updateProfile(profile)}
+          onPress={updateProfile}
           disabled={saving}
         />
       </ScrollView>

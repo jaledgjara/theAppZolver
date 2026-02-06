@@ -8,7 +8,12 @@ import {
   Platform,
   Keyboard,
 } from "react-native";
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+  useFocusEffect,
+  router,
+} from "expo-router";
 
 // UI Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -26,108 +31,89 @@ import { useMessageImagePicker } from "@/appSRC/messages/Hooks/useMessageImagePi
 const MessagesDetailsClientScreen = () => {
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const { id, name, conversationId } = useLocalSearchParams();
-  const router = useRouter();
-  const { messages, loading, sendMessage, refreshMessages } = useMessages(
-    conversationId as string,
-    id as string
-  );
 
-  const flatListRef = useRef<FlatList>(null);
+  const {
+    messages,
+    loading,
+    loadingMore,
+    loadMore,
+    sendMessage,
+    refreshMessages,
+  } = useMessages(conversationId as string, id as string);
 
-  const { pickImage } = useMessageImagePicker((uri) => {
-    setPendingImage(uri); // 💡 Guardamos la URI localmente en la vista
-  });
+  const { pickImage } = useMessageImagePicker((uri) => setPendingImage(uri));
 
-  // 💡 LOGICA CORREGIDA: La vista ya no decide, solo envía.
   const handleSendMessage = async (text: string) => {
-    // Pasamos el texto y la imagen (si existe) al hook
     sendMessage(text, pendingImage || undefined);
-    setPendingImage(null); // Limpiamos el draft
+    setPendingImage(null);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      refreshMessages?.();
-    }, [refreshMessages])
-  );
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100
-      );
-    }
-  }, [messages]);
-
   const handleBudgetPress = (payload: BudgetPayload, messageId: string) => {
-    if (payload.status !== "pending_approval") return;
     router.push({
       pathname: "/(client)/messages/ConfirmBudgetScreen",
       params: {
-        professionalId: id,
+        professionalId: id, // ID del experto con el que estamos hablando
         budgetPrice: payload.price.toString(),
         budgetTitle: payload.serviceName,
-        messageId,
-        conversationId,
+        messageId: messageId,
+        conversationId: conversationId as string,
       },
     });
   };
 
-  const renderMessageItem = ({ item }: { item: ChatMessage }) => {
-    return (
-      <View
-        style={[
-          styles.bubbleWrapper,
-          item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
-        ]}>
-        {item.type === "budget" ? (
-          <ChatBudgetCard
-            message={item}
-            onPress={() => handleBudgetPress(item.data, item.id)}
+  useFocusEffect(
+    useCallback(() => {
+      console.log("[Screen] 🎯 Focus Effect: Checking for new data...");
+      // Solo refrescar si no hay mensajes o es necesario, para evitar parpadeos
+      if (messages.length === 0) refreshMessages();
+    }, [refreshMessages, messages.length])
+  );
+
+  const renderMessageItem = ({ item }: { item: ChatMessage }) => (
+    <View
+      style={[
+        styles.bubbleWrapper,
+        item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
+      ]}>
+      {item.type === "budget" ? (
+        <ChatBudgetCard
+          message={item}
+          onPress={() => handleBudgetPress(item.data, item.id)}
+        />
+      ) : item.type === "image" ? (
+        <View style={styles.imageCard}>
+          <Image
+            source={{ uri: item.data.imageUrl }}
+            style={styles.chatImage}
           />
-        ) : item.type === "image" ? (
-          <View style={styles.imageCard}>
-            <Image
-              source={{ uri: item.data.imageUrl }}
-              style={styles.chatImage}
-              resizeMode="cover"
-            />
-          </View>
-        ) : (
-          <ChatBubble message={item} isMine={item.isMine} />
-        )}
-      </View>
-    );
-  };
+        </View>
+      ) : (
+        <ChatBubble message={item} isMine={item.isMine} />
+      )}
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}>
-      <ToolBarTitle
-        titleText={(name as string) || "Profesional"}
-        showBackButton
-      />
+      behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ToolBarTitle titleText={(name as string) || "Chat"} showBackButton />
 
       <View style={styles.chatArea}>
-        {loading && messages.length === 0 ? (
+        {loading ? (
           <MiniLoaderScreen />
         ) : (
           <FlatList
-            ref={flatListRef}
             data={messages}
+            inverted // 💡 Crucial: Mantiene el scroll abajo y el índice 0 abajo.
             keyExtractor={(item) => item.id}
             renderItem={renderMessageItem}
             contentContainerStyle={styles.listContent}
-            keyboardShouldPersistTaps="handled"
+            onEndReached={loadMore} // Carga mensajes antiguos al subir
+            onEndReachedThreshold={0.3}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => {
-              if (messages.length > 0) {
-                flatListRef.current?.scrollToEnd({ animated: false });
-              }
-            }}
+            keyboardShouldPersistTaps="handled"
+            ListFooterComponent={loadingMore ? <MiniLoaderScreen /> : null}
           />
         )}
       </View>

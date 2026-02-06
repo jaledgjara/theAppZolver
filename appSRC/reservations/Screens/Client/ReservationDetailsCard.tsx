@@ -5,36 +5,37 @@ import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
 import { COLORS } from "@/appASSETS/theme";
+import UserAvatar from "@/appCOMP/avatar/UserAvatar";
 
 export interface ReservationDetailCardProps {
-  type: "professional" | "date" | "location" | "payment" | "title";
+  // Renombramos "professional" a "identity" para evitar conflictos
+  type: "identity" | "date" | "location" | "payment" | "title";
 
-  // Professional & Title
+  // Determinamos quién está mirando la pantalla
+  viewRole?: "client" | "professional";
+
+  // Identity & Title
   name?: string;
-  title?: string; // Prop para el título del servicio
+  title?: string;
   avatar?: any;
   statusText?: string;
   statusBg?: string;
   statusColor?: string;
 
-  // Date
+  // Date, Location, Payment... (se mantienen igual)
   date?: string;
   time?: string;
-
-  // Location
   location?: string;
-
-  // Payment
   priceService?: string;
   platformFee?: string;
   totalAmount?: string;
 
-  // Actions
   onPress?: () => void;
 }
 
 export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
   type,
+  viewRole,
   name,
   title,
   avatar,
@@ -51,7 +52,7 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
 }) => {
   return (
     <BaseCard onPress={onPress}>
-      {/* --- NUEVO: TITLE CARD --- */}
+      {/* --- TITLE CARD --- */}
       {type === "title" && (
         <View>
           <Text style={styles.labelTitle}>Servicio solicitado</Text>
@@ -59,14 +60,27 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
         </View>
       )}
 
-      {/* PROFESSIONAL: Layout Refactorizado */}
-      {type === "professional" && (
+      {/* --- IDENTITY: Lógica de Avatar según Rol --- */}
+      {type === "identity" && (
         <View style={styles.professionalRow}>
-          <Image source={avatar} style={styles.avatar} />
+          {viewRole === "professional" ? (
+            // El Pro ve al Cliente -> Usamos Iniciales
+            <UserAvatar
+              name={name || "Usuario"}
+              size={52}
+              backgroundColor={COLORS.tertiary} // Verde azulado de Zolver
+            />
+          ) : (
+            // El Cliente ve al Pro -> Usamos su Foto Real
+            <Image
+              source={typeof avatar === "string" ? { uri: avatar } : avatar}
+              style={styles.avatarImage}
+            />
+          )}
 
           <View style={styles.infoColumn}>
             <Text style={styles.name} numberOfLines={1}>
-              {name}
+              {name || "Usuario"}
             </Text>
 
             {statusText && (
@@ -84,7 +98,6 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
           </View>
         </View>
       )}
-
       {/* DATE & TIME */}
       {type === "date" && (
         <View>
@@ -154,6 +167,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     width: "100%",
+  },
+  avatarImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.backgroundInput,
+    marginRight: 14,
   },
   avatar: {
     width: 50,

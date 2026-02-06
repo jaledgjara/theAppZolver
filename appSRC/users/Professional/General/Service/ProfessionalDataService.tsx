@@ -79,14 +79,45 @@ export const ProfessionalDataService = {
   },
 
   fetchPublicProfile: async (userId: string) => {
+    console.log("📡 [Service] Cargando perfil para:", userId);
     const { data, error } = await supabase
       .from("professional_profiles")
-      .select("specialization_title, biography, photo_url, portfolio_urls")
+      .select("*")
       .eq("user_id", userId)
       .single();
 
-    if (error && error.code !== "PGRST116") throw error;
+    if (error) {
+      console.error("❌ [Service] Error en fetch:", error);
+      throw error;
+    }
     return data;
+  },
+
+  updatePublicProfile: async (userId: string, data: any) => {
+    console.log(
+      "📤 [Service] Datos finales recibidos para UPDATE:",
+      JSON.stringify(data, null, 2)
+    );
+
+    const { error } = await supabase
+      .from("professional_profiles")
+      .update({
+        // ✅ AHORA COINCIDEN CON EL HOOK
+        specialization_title: data.specialization_title,
+        biography: data.biography,
+        photo_url: data.photo_url,
+        portfolio_urls: data.portfolio_urls,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("❌ [Service] Error de Supabase SQL:", error.message);
+      throw error;
+    }
+
+    console.log("✅ [Service] Perfil actualizado exitosamente en DB.");
+    return { success: true };
   },
 
   /**
@@ -120,25 +151,6 @@ export const ProfessionalDataService = {
     }
 
     return (categoryData as any)?.name || "General";
-  },
-
-  /**
-   * Actualiza los datos públicos del perfil
-   */
-  updatePublicProfile: async (userId: string, data: any) => {
-    const { error } = await supabase
-      .from("professional_profiles")
-      .update({
-        specialization_title: data.specialty,
-        biography: data.bio,
-        photo_url: data.photoUrl,
-        portfolio_urls: data.portfolioUrls,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    if (error) throw error;
-    return { success: true };
   },
 
   /**

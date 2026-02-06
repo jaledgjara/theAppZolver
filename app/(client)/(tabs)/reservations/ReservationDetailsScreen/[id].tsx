@@ -57,7 +57,8 @@ const ReservationDetailScreen = () => {
         }>
         {/* 1. Contraparte & Estado */}
         <ReservationDetailsCard
-          type="professional" // Podríamos renombrar esta prop a "profile" en el componente base
+          type="identity"
+          viewRole="client" // Podríamos renombrar esta prop a "profile" en el componente base
           name={header.title}
           avatar={header.avatar}
           statusText={header.status.text}

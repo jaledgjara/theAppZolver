@@ -18,6 +18,7 @@ import { ProfessionalCard } from "@/appSRC/home/Screens/ProfessionalCard";
 import SearchModeSelector from "@/appSRC/searchable/Screen/SearchModeSelector";
 import { useServiceSearch } from "@/appSRC/searchable/Hooks/useServiceSearch";
 import { useServiceSelection } from "@/appSRC/categories/Hooks/useServiceCatalog";
+import { useAvatar } from "@/appSRC/users/Professional/General/Hooks/useAvatar";
 
 const SearchScreen = () => {
   const router = useRouter();
@@ -28,7 +29,6 @@ const SearchScreen = () => {
   const handleChipPress = (term: string) => {
     handleTextSearch(term);
   };
-
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Búsqueda" showBackButton={true} />

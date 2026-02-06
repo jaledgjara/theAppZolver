@@ -45,18 +45,29 @@ export const MessageService = {
 
   getMessages: async (
     conversationId: string,
-    currentUserId: string
+    currentUserId: string,
+    page: number = 0,
+    pageSize: number = 20
   ): Promise<ChatMessage[]> => {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    console.log(`[Service] 🔍 Fetching: Page ${page} | Range: [${from}-${to}]`);
+
     const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-    if (error) throw error;
-    return (data || []).map((dto) =>
-      mapMessageDTOToDomain(dto as MessageDTO, currentUserId)
-    );
+    if (error) {
+      console.error("[Service] ❌ Supabase Error:", error);
+      throw error;
+    }
+
+    console.log(`[Service] ✅ Received ${data?.length || 0} messages`);
+    return data.map((msg) => mapMessageDTOToDomain(msg, currentUserId));
   },
 
   sendTextMessage: async (

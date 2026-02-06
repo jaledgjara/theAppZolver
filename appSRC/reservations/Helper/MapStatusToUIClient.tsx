@@ -53,6 +53,7 @@ export const mapReservationToCard = (
       status: "pending",
       avatar: require("@/appASSETS/RawImages/avatar-0.jpg"),
       price: "Error",
+      viewRole: viewRole,
     };
   }
 
@@ -109,6 +110,8 @@ export const mapReservationToCard = (
       item.financials?.price > 0
         ? `$${item.financials.price.toLocaleString("es-AR")}`
         : "A cotizar",
+
+    viewRole: viewRole,
   };
 };
 

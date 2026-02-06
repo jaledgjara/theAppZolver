@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -8,7 +8,7 @@ import {
   Image,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 // UI Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -17,108 +17,104 @@ import { ChatMessage } from "@/appSRC/messages/Type/MessageType";
 import { useMessages } from "@/appSRC/messages/Hooks/useMessage";
 import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
 import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
+import { useMessageImagePicker } from "@/appSRC/messages/Hooks/useMessageImagePicker";
+
+// ... imports previos ...
 
 const MessagesDetailsProfessionalScreen = () => {
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const { id, name, conversationId } = useLocalSearchParams();
-  const { messages, loading, sendMessage } = useMessages(
-    conversationId as string,
-    id as string
-  );
-  console.log("🔍 [Check] Conversation ID en Chat:", conversationId);
   const router = useRouter();
-  const flatListRef = useRef<FlatList>(null);
 
-  // Auto-scroll to bottom when messages update
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(
-        () => flatListRef.current?.scrollToEnd({ animated: true }),
-        100
-      );
-    }
-  }, [messages]);
+  const {
+    messages,
+    loading,
+    loadingMore,
+    loadMore,
+    sendMessage,
+    refreshMessages,
+  } = useMessages(conversationId as string, id as string);
 
-  const renderMessageItem = ({ item }: { item: ChatMessage }) => {
-    return (
-      <View
-        style={[
-          styles.bubbleWrapper,
-          item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
-        ]}>
-        {/* 💡 Lógica Polimórfica Completa */}
-        {item.type === "budget" ? (
-          <ChatBudgetCard
-            message={item}
-            // El profesional quizás no necesita "Aceptar" su propio presupuesto,
-            // pero el card le sirve para ver el estado (Pendiente/Aceptado).
-            onPress={() => console.log("Detalles del presupuesto enviado")}
-          />
-        ) : item.type === "image" ? (
-          <View
-            style={[
-              styles.imageCard,
-              item.isMine ? styles.myImageCard : styles.theirImageCard,
-            ]}>
-            <Image
-              source={{ uri: item.data.imageUrl }}
-              style={styles.chatImage}
-              resizeMode="cover"
-            />
-          </View>
-        ) : (
-          <ChatBubble message={item} isMine={item.isMine} />
-        )}
-      </View>
-    );
+  useFocusEffect(
+    useCallback(() => {
+      console.log("[ProfessionalScreen] 🎯 Focus check");
+      if (messages.length === 0) {
+        refreshMessages();
+      }
+    }, [refreshMessages, messages.length])
+  );
+
+  const handleSendMessage = async (text: string) => {
+    sendMessage(text, pendingImage || undefined);
+    setPendingImage(null);
   };
 
+  const handleSendBudget = () => {
+    router.push({
+      pathname: "/(professional)/messages/ReservationRequestScreen",
+      params: {
+        conversationId: conversationId, // 💡 Asegúrate de que esta clave coincida
+        clientId: id,
+      },
+    });
+  };
+
+  const renderItem = ({ item }: { item: ChatMessage }) => (
+    <View
+      style={[
+        styles.bubbleWrapper,
+        item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
+      ]}>
+      {item.type === "budget" ? (
+        <ChatBudgetCard message={item} onPress={() => {}} />
+      ) : item.type === "image" ? (
+        <View style={styles.imageCard}>
+          <Image
+            source={{ uri: item.data.imageUrl }}
+            style={styles.chatImage}
+          />
+        </View>
+      ) : (
+        <ChatBubble message={item} isMine={item.isMine} />
+      )}
+    </View>
+  );
+
   return (
-    // 🔥 WRAP ENTIRE SCREEN in KeyboardAvoidingView
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}>
+      behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ToolBarTitle
-        titleText={(name as string) || "Chat con Cliente"}
+        titleText={(name as string) || "Zolver Chat"}
         showBackButton
       />
 
-      {/* 🔥 CHAT AREA wrapped in flex: 1 View */}
       <View style={styles.chatArea}>
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessageItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          // 🔥 Auto-scroll when keyboard appears
-          onContentSizeChange={() => {
-            if (messages.length > 0) {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }
-          }}
-        />
+        {loading ? (
+          <MiniLoaderScreen />
+        ) : (
+          <FlatList
+            data={messages}
+            inverted // 💡 Crucial: Índice 0 abajo (mensajes nuevos)
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            showsVerticalScrollIndicator={false}
+            // 💡 FIX: Usar ActivityIndicator en el footer para evitar saltos de layout
+            ListFooterComponent={loadingMore ? <MiniLoaderScreen /> : null}
+          />
+        )}
       </View>
 
-      {/* 🔥 INPUT without its own KeyboardAvoidingView */}
       <MessageInput
         placeholderName={name as string}
-        onSendText={sendMessage}
-        onQuotePress={() => {
-          if (!conversationId) {
-            Alert.alert("Error", "No se encontró el ID de la conversación.");
-            return;
-          }
-          router.push({
-            pathname: "/(professional)/messages/ReservationRequestScreen",
-            params: {
-              clientId: id,
-              conversationId: conversationId, // ✅ Asegurado
-            },
-          });
-        }}
+        onSendText={handleSendMessage}
+        onQuotePress={handleSendBudget}
+        selectedImageUri={pendingImage}
+        onClearImage={() => setPendingImage(null)}
       />
     </KeyboardAvoidingView>
   );

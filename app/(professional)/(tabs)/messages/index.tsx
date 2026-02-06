@@ -74,10 +74,21 @@ const MessagesProfesional = () => {
               })
             }>
             <MessageCard
-              name={item.partner.name} // ✅ Usamos el 'PartnerProfileSummary' aquí
+              name={item.partner.name}
               lastMessage={item.preview.content}
-              avatarUrl={item.partner.avatar || undefined}
-              // timestamp={item.preview.timestamp} // Sugerencia futura
+              avatarPath={item.partner.avatar}
+              userType={item.partner.role}
+              onPress={() =>
+                router.push({
+                  pathname:
+                    "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
+                  params: {
+                    id: item.partner.id,
+                    name: item.partner.name,
+                    conversationId: item.id,
+                  },
+                })
+              }
             />
           </Pressable>
         )}

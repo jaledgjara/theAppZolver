@@ -34,9 +34,6 @@ const Messages = () => {
             icon="message-text-outline"
             title="Bandeja Vacía"
             subtitle="Aún no has iniciado conversaciones con clientes."
-            // Opcional: Un botón para ir al Home si quisieras
-            // buttonTitle="Ir al Inicio"
-            // onButtonPress={() => router.push("/(professional)/(tabs)/home")}
           />
         </View>
       </View>
@@ -56,25 +53,22 @@ const Messages = () => {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <Pressable
+          <MessageCard
+            name={item.partner.name}
+            lastMessage={item.preview.content}
+            avatarPath={item.partner.avatar}
+            userType={item.partner.role}
             onPress={() =>
               router.push({
                 pathname: "(client)/messages/MessagesDetailsScreen/[id]",
-                // Pasamos datos clave para que la siguiente pantalla cargue rápido
                 params: {
-                  id: item.partner.id, // ID del Cliente
-                  name: item.partner.name, // Nombre para el Toolbar
-                  conversationId: item.id, // ID de la Conversación (Optimización)
+                  id: item.partner.id,
+                  name: item.partner.name,
+                  conversationId: item.id,
                 },
               })
-            }>
-            <MessageCard
-              name={item.partner.name} // ✅ Usamos el 'PartnerProfileSummary' aquí
-              lastMessage={item.preview.content}
-              avatarUrl={item.partner.avatar || undefined}
-              // timestamp={item.preview.timestamp} // Sugerencia futura
-            />
-          </Pressable>
+            }
+          />
         )}
       />
     </View>

@@ -1,45 +1,45 @@
 import { COLORS, SIZES } from "@/appASSETS/theme";
+import UserAvatar from "@/appCOMP/avatar/UserAvatar";
 import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
-
+import { View, Text, Image, StyleSheet, Pressable } from "react-native";
 
 interface MessageCardProps {
   name: string;
   lastMessage?: string;
-  avatarUrl?: string; // optional
+  avatarPath?: string | null; // Cambiado de Url a Path para Supabase
+  userType: "client" | "professional";
+  onPress?: () => void;
 }
+
+// appSRC/messages/Screens/MessageCard.tsx
 
 const MessageCard: React.FC<MessageCardProps> = ({
   name,
   lastMessage = "",
-  avatarUrl,
+  avatarPath, // Este viene del Join anterior (solo si es profesional)
+  userType, // 'client' | 'professional' (del interlocutor)
+  onPress,
 }) => {
-  return (
-    <View style={styles.container}>
-      {/* Avatar */}
-      {avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-      ) : (
-        <View style={styles.placeholderAvatar}>
-          <Text style={styles.placeholderText}>
-            {name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      )}
+  // REGLA DE NEGOCIO ZOLVER:
+  // Si hablo con un 'professional', intentamos usar avatarPath.
+  // Si hablo con un 'client', forzamos null (porque no tienen foto).
+  const resolvedPath = userType === "professional" ? avatarPath : null;
 
-      {/* Text Section */}
+  return (
+    <Pressable onPress={onPress} style={styles.container}>
+      <UserAvatar path={resolvedPath} name={name} size={60} />
+
       <View style={styles.textContainer}>
-        <Text style={styles.name}>{name}</Text>
-        {lastMessage.length > 0 && (
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {lastMessage}
-          </Text>
-        )}
+        <Text style={styles.name} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={styles.lastMessage} numberOfLines={1}>
+          {lastMessage}
+        </Text>
       </View>
-    </View>
+    </Pressable>
   );
 };
-
 export default MessageCard;
 
 const styles = StyleSheet.create({
@@ -47,14 +47,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#fff",
     paddingVertical: 18,
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5E5",
-    alignItems: "center"
+    alignItems: "center",
   },
   avatar: {
-    width: 48,
-    height: 48,
+    width: 60,
+    height: 60,
     borderRadius: 24,
   },
   placeholderAvatar: {
@@ -71,7 +71,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   textContainer: {
-    marginLeft: 12,
     flex: 1,
   },
   name: {
@@ -80,8 +79,16 @@ const styles = StyleSheet.create({
     color: "#111",
   },
   lastMessage: {
-    marginTop: 2,
+    marginTop: 6,
     fontSize: 14,
     color: "#666",
+  },
+  pressed: {
+    backgroundColor: "#F9F9F9",
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 });

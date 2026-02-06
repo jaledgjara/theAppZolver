@@ -9,38 +9,58 @@ export const ConversationService = {
   // OBTENER MIS CONVERSACIONES
   // ✅ Recibimos authUserId directo y lo usamos directo. Sin conversiones.
   getMyConversations: async (authUserId: string): Promise<Conversation[]> => {
-    // Query optimizada: Relación directa via auth_uid
     const { data, error } = await supabase
       .from("conversations")
       .select(
         `
         *,
-        participant1:user_accounts!participant1_id ( id, legal_name, role, auth_uid ),
-        participant2:user_accounts!participant2_id ( id, legal_name, role, auth_uid )
+        p1:user_accounts!participant1_id (
+          auth_uid, 
+          legal_name,
+          role,
+          professional_profiles (photo_url)
+        ),
+        p2:user_accounts!participant2_id (
+          auth_uid, 
+          legal_name,
+          role,
+          professional_profiles (photo_url)
+        )
       `
       )
-      // ✅ Supabase ahora entiende esto porque la FK apunta a auth_uid
       .or(`participant1_id.eq.${authUserId},participant2_id.eq.${authUserId}`)
       .order("updated_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching conversations:", error);
-      throw new Error(error.message);
-    }
-
+    if (error) throw new Error(error.message);
     if (!data) return [];
 
     return data.map((row: any) => {
-      // ✅ Comparación directa de Strings (Auth UIDs)
       const isP1Me = row.participant1_id === authUserId;
-      const rawPartner = isP1Me ? row.participant2 : row.participant1;
+      const rawPartner = isP1Me ? row.p2 : row.p1;
+
+      // ✅ EXTRACCIÓN RESILIENTE (1:1 vs 1:N)
+      // En relaciones 1:1 con UNIQUE, Supabase a veces devuelve un objeto en lugar de un array.
+      let partnerPhoto = null;
+      if (rawPartner?.professional_profiles) {
+        if (Array.isArray(rawPartner.professional_profiles)) {
+          partnerPhoto = rawPartner.professional_profiles[0]?.photo_url;
+        } else {
+          // Si Supabase lo devolvió como objeto plano
+          partnerPhoto = (rawPartner.professional_profiles as any).photo_url;
+        }
+      }
 
       const partnerProfile: PartnerProfileSummary = {
-        id: rawPartner?.auth_uid || "deleted", // Usamos auth_uid para consistencia
-        name: rawPartner?.legal_name || "Usuario Desconocido",
-        avatar: null,
-        role: rawPartner?.role || "client",
+        id: rawPartner?.auth_uid || "deleted",
+        name: rawPartner?.legal_name || "Usuario Zolver",
+        role: (rawPartner?.role as "client" | "professional") || "client",
+        avatar: partnerPhoto,
       };
+
+      // LOG DE CONTROL FINAL
+      console.log(
+        `✅ [Zolver Debug] Partner: ${partnerProfile.name} | Role: ${partnerProfile.role} | Path: ${partnerProfile.avatar}`
+      );
 
       return mapConversationDTOToDomain(
         row as ConversationDTO,

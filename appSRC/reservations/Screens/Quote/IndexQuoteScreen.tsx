@@ -100,6 +100,7 @@ const IndexQuoteScreen = () => {
                 time={time}
                 price={price}
                 onPress={() => handlePressWork(item.id)}
+                viewRole={"professional"}
               />
             );
           }}

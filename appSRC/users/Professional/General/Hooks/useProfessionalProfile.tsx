@@ -1,10 +1,9 @@
-// appSRC/users/Professional/Hooks/useProfessionalProfile.ts
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { ProfessionalProfileService } from "@/appSRC/auth/Service/ProfessionalAuthService";
 import { ProfessionalDataService } from "../Service/ProfessionalDataService";
-import { router, useRouter } from "expo-router";
+import { StorageService } from "@/appSRC/messages/Service/StorageService";
+import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 
 export const useProfessionalProfile = () => {
@@ -20,15 +19,13 @@ export const useProfessionalProfile = () => {
     portfolioUrls: [] as string[],
   });
 
-  useEffect(() => {
-    if (user?.uid) loadProfile();
-  }, [user?.uid]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
+    if (!user?.uid) return;
     try {
       setLoading(true);
-      const data = await ProfessionalDataService.fetchPublicProfile(user!.uid);
+      const data = await ProfessionalDataService.fetchPublicProfile(user.uid);
       if (data) {
+        console.log("📥 [HOOK] Perfil cargado:", data.photo_url);
         setProfile({
           specialty: data.specialization_title || "",
           bio: data.biography || "",
@@ -36,42 +33,47 @@ export const useProfessionalProfile = () => {
           portfolioUrls: data.portfolio_urls || [],
         });
       }
+    } catch (e) {
+      console.error("❌ [HOOK] Error loadProfile:", e);
     } finally {
       setLoading(false);
     }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const handleUpdateField = (field: keyof typeof profile, value: any) => {
+    console.log(`✍️ [HOOK] Editando [${field}]:`, value);
+    setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
-  /**
-   * Lógica para la Foto de Perfil Principal
-   */
   const handleEditPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1], // Forzamos que sea cuadrada para el avatar
+      aspect: [1, 1],
       quality: 0.5,
     });
-
     if (!result.canceled) {
-      const newPhotoUri = result.assets[0].uri;
-      setProfile((prev) => ({
-        ...prev,
-        photoUrl: newPhotoUri,
-      }));
-      console.log("📸 Foto de perfil actualizada localmente");
+      handleUpdateField("photoUrl", result.assets[0].uri);
     }
   };
 
-  // LÓGICA DE IMÁGENES (PORTFOLIO)
+  // ✅ FUNCIONES REINTEGRADAS
   const handleAddImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.7,
     });
-
     if (!result.canceled) {
       const newUri = result.assets[0].uri;
+      console.log(
+        "✅ [Hook] Imagen de portfolio seleccionada (Local):",
+        newUri
+      );
       setProfile((prev) => ({
         ...prev,
         portfolioUrls: [...prev.portfolioUrls, newUri],
@@ -86,23 +88,48 @@ export const useProfessionalProfile = () => {
     }));
   };
 
-  const updateProfile = async (data: any) => {
+  const updateProfile = async () => {
     if (!user?.uid) return;
-
     setSaving(true);
+    console.log("💾 [HOOK] Iniciando guardado...");
+
     try {
-      const res = await ProfessionalDataService.updatePublicProfile(
-        user.uid,
-        data
+      let finalPhotoPath = profile.photoUrl;
+      if (profile.photoUrl.startsWith("file://")) {
+        console.log("☁️ [HOOK] Subiendo avatar...");
+        finalPhotoPath = await StorageService.uploadFile(
+          profile.photoUrl,
+          user.uid,
+          "avatars"
+        );
+      }
+
+      console.log("☁️ [HOOK] Procesando Portfolio...");
+      const finalPortfolioPaths = await Promise.all(
+        profile.portfolioUrls.map(async (uri) => {
+          if (uri.startsWith("file://")) {
+            return await StorageService.uploadFile(uri, user.uid, "portfolio");
+          }
+          return uri;
+        })
       );
 
-      if (res.success) {
-        Alert.alert("¡Éxito!", "Tu perfil ha sido actualizado correctamente.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
-      }
+      const updateData = {
+        specialization_title: profile.specialty,
+        biography: profile.bio,
+        photo_url: finalPhotoPath,
+        portfolio_urls: finalPortfolioPaths,
+      };
+
+      await ProfessionalDataService.updatePublicProfile(user.uid, updateData);
+
+      console.log("✨ [HOOK] Perfil guardado con éxito");
+      Alert.alert("¡Éxito!", "Perfil actualizado.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     } catch (e: any) {
-      Alert.alert("Error", "No se pudo actualizar el perfil: " + e.message);
+      console.error("❌ [HOOK] Error fatal:", e.message);
+      Alert.alert("Error", e.message);
     } finally {
       setSaving(false);
     }
@@ -110,12 +137,12 @@ export const useProfessionalProfile = () => {
 
   return {
     profile,
-    setProfile,
     loading,
     saving,
     updateProfile,
+    handleEditPhoto,
     handleAddImage,
     handleRemoveImage,
-    handleEditPhoto,
+    handleUpdateField,
   };
 };
