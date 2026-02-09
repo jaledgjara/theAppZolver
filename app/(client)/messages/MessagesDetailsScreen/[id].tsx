@@ -61,12 +61,22 @@ const MessagesDetailsClientScreen = () => {
     });
   };
 
+  // Refresco al volver a la pantalla (ej: volver de ConfirmBudgetScreen).
+  // useMessages ya hace el fetch inicial via useEffect, así que aquí solo
+  // refrescamos si la pantalla re-gana foco (no en el mount inicial).
+  const hasInitializedRef = useRef(false);
+
   useFocusEffect(
     useCallback(() => {
-      console.log("[Screen] 🎯 Focus Effect: Checking for new data...");
-      // Solo refrescar si no hay mensajes o es necesario, para evitar parpadeos
-      if (messages.length === 0) refreshMessages();
-    }, [refreshMessages, messages.length])
+      if (!hasInitializedRef.current) {
+        // Primer mount: useMessages ya carga los datos → skip
+        hasInitializedRef.current = true;
+        return;
+      }
+      // Re-focus (ej: volver de otra pantalla): refrescar datos
+      console.log("[Screen] 🎯 Re-focus detected, refreshing messages...");
+      refreshMessages();
+    }, [refreshMessages])
   );
 
   const renderMessageItem = ({ item }: { item: ChatMessage }) => (

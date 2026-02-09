@@ -72,7 +72,7 @@ const IndexQuoteScreen = () => {
 
   const handlePressWork = (reservationId: string) => {
     router.push(
-      `/(professional)/(tabs)/home/ReservationsDetails/${reservationId}`
+      `/(professional)/(tabs)/home/ReservationsDetails/${reservationId}`,
     );
   };
 
@@ -85,7 +85,7 @@ const IndexQuoteScreen = () => {
   useFocusEffect(
     useCallback(() => {
       handleRefreshAll();
-    }, [])
+    }, []),
   );
 
   // --- LOADING ---
@@ -103,10 +103,9 @@ const IndexQuoteScreen = () => {
     );
   }
 
-  // --- SECCIONES ---
+  // --- SECCIONES (solo se agregan si tienen datos) ---
   const sections: SectionData[] = [];
 
-  // Sección 1: Solicitudes Pendientes (solo si hay)
   if (pendingRequests.length > 0) {
     sections.push({
       title: `Nuevas Solicitudes (${pendingRequests.length})`,
@@ -115,12 +114,13 @@ const IndexQuoteScreen = () => {
     });
   }
 
-  // Sección 2: Trabajos Confirmados
-  sections.push({
-    title: `Agenda de Trabajo (${confirmedWorks.length})`,
-    type: "confirmed",
-    data: confirmedWorks,
-  });
+  if (confirmedWorks.length > 0) {
+    sections.push({
+      title: `Agenda de Trabajo (${confirmedWorks.length})`,
+      type: "confirmed",
+      data: confirmedWorks,
+    });
+  }
 
   // --- RENDER ---
   return (
@@ -156,7 +156,11 @@ const IndexQuoteScreen = () => {
         )}
         renderItem={({ item, section }) => {
           if (section.type === "pending") {
-            return renderPendingItem(item, handleAcceptQuote, handleRejectQuote);
+            return renderPendingItem(
+              item,
+              handleAcceptQuote,
+              handleRejectQuote,
+            );
           }
           return renderConfirmedItem(item, handlePressWork);
         }}
@@ -183,7 +187,7 @@ const IndexQuoteScreen = () => {
 const renderPendingItem = (
   item: Reservation,
   onAccept: (id: string) => void,
-  onReject: (id: string) => void
+  onReject: (id: string) => void,
 ) => {
   const targetDate = item.scheduledStart || item.createdAt;
   const { time } = formatForUI(targetDate);
@@ -211,7 +215,7 @@ const renderPendingItem = (
  */
 const renderConfirmedItem = (
   item: Reservation,
-  onPress: (id: string) => void
+  onPress: (id: string) => void,
 ) => {
   const rawDate = item.scheduledStart || item.createdAt || new Date();
   const isValidDate = rawDate instanceof Date && !isNaN(rawDate.getTime());
@@ -246,7 +250,7 @@ export default IndexQuoteScreen;
 // ============================================================================
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: "white" },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   statsCard: {

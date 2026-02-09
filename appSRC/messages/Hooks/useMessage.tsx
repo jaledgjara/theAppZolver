@@ -173,19 +173,23 @@ export const useMessages = (conversationId: string, professionalId: string) => {
     [conversationId, professionalId, currentUserId]
   );
 
+  const loadMore = useCallback(() => {
+    console.log("[UI] 👆 User reached end (loadMore)");
+    fetchMessages(false);
+  }, [fetchMessages]);
+
+  const refreshMessages = useCallback(() => {
+    console.log("[UI] 🔄 Manual refresh triggered");
+    fetchMessages(true);
+  }, [fetchMessages]);
+
   return {
     messages,
     loading,
     loadingMore,
     hasMore,
     sendMessage,
-    loadMore: () => {
-      console.log("[UI] 👆 User reached end (loadMore)");
-      fetchMessages(false);
-    },
-    refreshMessages: () => {
-      console.log("[UI] 🔄 Manual refresh triggered");
-      fetchMessages(true);
-    },
+    loadMore,
+    refreshMessages,
   };
 };
