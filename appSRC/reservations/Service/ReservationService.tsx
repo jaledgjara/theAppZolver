@@ -10,6 +10,26 @@ import { mapReservationFromDTO } from "../Mapper/ReservationMapper";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
 // ============================================================================
+// MARK: - BUSINESS RULES: CONCURRENCIA DE TRABAJOS
+// ============================================================================
+//
+// REGLA 1 - INSTANT: Máximo 1 trabajo activo a la vez.
+//   - Al aceptar un instant, is_active → false (deja de recibir en el radar).
+//   - Al completar el instant, is_active → true (vuelve al radar).
+//   - El radar solo muestra requests si isActive=true Y NO hay currentJob.
+//
+// REGLA 2 - QUOTE: Sin límite de trabajos agendados.
+//   - Aceptar un quote NO cambia is_active (sigue disponible en el radar).
+//   - El profesional puede tener N trabajos quote confirmados en su agenda.
+//
+// REGLA 3 - HYBRID: 1 instant + N quotes simultáneos.
+//   - Un profesional puede estar trabajando en 1 instant job
+//     Y tener N quote jobs confirmados en paralelo.
+//   - Los flujos son independientes: instant (radar) vs quote (agenda).
+//
+// ============================================================================
+
+// ============================================================================
 // MARK: - SHARED / CORE SERVICES
 // (Funcionalidad genérica utilizada por ambos roles)
 // ============================================================================
@@ -367,7 +387,8 @@ export const cancelReservationByClient = async (
 // ============================================================================
 
 /**
- * Obtiene las solicitudes entrantes para el profesional.
+ * INSTANT FLOW: Solicitudes entrantes para el radar del profesional.
+ * Solo devuelve reservas con service_modality = "instant".
  */
 export const fetchProIncomingRequests = async (professionalId: string) => {
   try {
@@ -386,33 +407,83 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
       `
       )
       .eq("professional_id", professionalId)
-      .in("status", ["pending_approval", "quoting", "draft"])
+      .eq("service_modality", "instant")
+      .in("status", ["pending_approval"])
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching pro requests:", error.message);
+      console.error("Error fetching instant requests:", error.message);
       throw new Error(error.message);
     }
 
     return (data as any[])
       .map((dto) => {
         try {
-          // ✅ FIX: Pasamos "professional"
           return mapReservationFromDTO(dto, "professional");
         } catch (mapError) {
           console.warn("Mapping error:", mapError);
           return null;
         }
       })
-      .filter(Boolean);
+      .filter((r): r is Reservation => r !== null);
   } catch (err) {
-    console.error("Critical failure fetching requests:", err);
+    console.error("Critical failure fetching instant requests:", err);
     throw err;
   }
 };
 
 /**
- * Obtiene la agenda confirmada del profesional.
+ * QUOTE FLOW: Solicitudes entrantes de presupuesto (Agenda - Sección Pendientes).
+ * Solo devuelve reservas con service_modality = "quote" y estados pendientes.
+ */
+export const fetchProQuoteRequests = async (
+  professionalId: string
+): Promise<Reservation[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("reservations")
+      .select(
+        `
+        *,
+        client:user_accounts!client_id (
+          legal_name
+        ),
+        professional:professional_profiles!reservations_to_pro_profile_fkey (
+          legal_name,
+          photo_url
+        )
+      `
+      )
+      .eq("professional_id", professionalId)
+      .eq("service_modality", "quote")
+      .in("status", ["pending_approval", "quoting", "draft"])
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching quote requests:", error.message);
+      throw new Error(error.message);
+    }
+
+    return (data as any[])
+      .map((dto) => {
+        try {
+          return mapReservationFromDTO(dto, "professional");
+        } catch (mapError) {
+          console.warn("Mapping error (quote):", mapError);
+          return null;
+        }
+      })
+      .filter((r): r is Reservation => r !== null);
+  } catch (err) {
+    console.error("Critical failure fetching quote requests:", err);
+    throw err;
+  }
+};
+
+/**
+ * QUOTE FLOW: Agenda confirmada del profesional.
+ * Solo devuelve reservas con service_modality = "quote" y estados activos.
+ * Las reservas instant activas se muestran en el ActiveJobControlCard del radar.
  */
 export const fetchProConfirmedWorks = async (professionalId: string) => {
   try {
@@ -426,20 +497,58 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
       `
       )
       .eq("professional_id", professionalId)
+      .eq("service_modality", "quote")
       .in("status", ["confirmed", "on_route", "in_progress"])
+      .order("scheduled_range", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) {
       throw new Error(error.message);
     }
 
-    // ✅ FIX: Usamos arrow function para pasar "professional"
-    // NO HACER: .map(mapReservationFromDTO) <-- Esto pasa el índice como 2do argumento
     return (data as any[]).map((dto) =>
       mapReservationFromDTO(dto, "professional")
     );
   } catch (err: any) {
-    console.error("Exception fetching confirmed works:", err);
+    console.error("Exception fetching quote confirmed works:", err);
+    throw err;
+  }
+};
+
+/**
+ * QUOTE FLOW: Confirma una solicitud de presupuesto.
+ * A diferencia de confirmInstantReservationService, NO cambia is_active
+ * porque el profesional puede seguir disponible en el radar mientras
+ * tiene trabajos agendados.
+ */
+export const confirmQuoteReservationService = async (
+  reservationId: string,
+  professionalId: string
+): Promise<Reservation> => {
+  console.log("Service - Confirming Quote Reservation");
+
+  try {
+    const { data, error } = await supabase
+      .from("reservations")
+      .update({
+        status: "confirmed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", reservationId)
+      .eq("professional_id", professionalId)
+      .select(
+        `
+        *,
+        client:user_accounts!client_id(legal_name),
+        professional:professional_profiles!professional_id(legal_name, photo_url)
+      `
+      )
+      .single();
+
+    if (error) throw error;
+    return mapReservationFromDTO(data as any, "professional");
+  } catch (err: any) {
+    console.error("Exception confirming quote reservation:", err);
     throw err;
   }
 };

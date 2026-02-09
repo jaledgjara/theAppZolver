@@ -1,12 +1,24 @@
-type PaymentFormMode = "checkout" | "profile";
+export type PaymentFormMode = "checkout" | "profile";
 
-interface PaymentMethodListViewProps {
+export interface PaymentMethodListViewProps {
   mode: PaymentFormMode;
+  /** Called when user confirms card selection in checkout mode. */
   onConfirmSelection?: (cardId: string) => void;
-  price?: string;
+  /** Service subtotal (numeric) for the CheckoutSummaryCard. */
+  subtotal?: number;
+  /** Estimated hours label for the summary. */
+  hoursLabel?: string;
+  /** Left-side label for the summary info row. Defaults to "Tiempo estimado". */
+  infoLabel?: string;
+  /** Right-side suffix for the summary info value. Defaults to " hs". */
+  infoSuffix?: string;
+  /** Loading state for the pay button. */
+  paymentLoading?: boolean;
+  /** Override the "add new card" screen path (defaults by mode). */
+  formScreenPath?: string;
 }
 
-interface PaymentFormProps {
+export interface PaymentFormProps {
   mode: PaymentFormMode;
   onSuccess?: () => void;
 }

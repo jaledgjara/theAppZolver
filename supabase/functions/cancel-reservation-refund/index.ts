@@ -78,10 +78,9 @@ serve(async (req) => {
       .update({ status: "refunded", updated_at: new Date() })
       .eq("id", paymentRecord.id);
 
-    // B. Determinar estado final de la reserva según quién canceló
-    let finalStatus = "canceled_system";
+    // B. Determinar estado final según quién canceló (enum: canceled_pro | canceled_client)
+    let finalStatus = "canceled_client"; // Default for system/user cancellations
     if (triggered_by === "professional") finalStatus = "canceled_pro";
-    if (triggered_by === "user") finalStatus = "canceled_user";
 
     // C. Cancelar Reserva
     const { error: resUpdateError } = await supabase

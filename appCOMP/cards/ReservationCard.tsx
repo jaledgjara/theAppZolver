@@ -71,11 +71,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
         <View style={styles.bodyRow}>
           <View style={styles.avatarWrapper}>
             {viewRole === "professional" ? (
-              <UserAvatar
-                name={counterpartName}
-                size={avatarSize}
-                backgroundColor={COLORS.primary}
-              />
+              <UserAvatar name={counterpartName} size={avatarSize} />
             ) : (
               <Image
                 source={typeof avatar === "string" ? { uri: avatar } : avatar}

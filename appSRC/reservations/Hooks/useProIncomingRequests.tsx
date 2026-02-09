@@ -12,6 +12,9 @@ import {
 export const useProIncomingRequests = (isActive: boolean) => {
   const user = useAuthStore((state) => state.user);
 
+  // GUARD: Solo profesionales deben usar este hook
+  const isProfessional = user?.role === "professional";
+
   // Estado local
   const [requests, setRequests] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -19,6 +22,9 @@ export const useProIncomingRequests = (isActive: boolean) => {
 
   // Control de reconexión: usamos un contador para forzar el re-render del efecto
   const [retryKey, setRetryKey] = useState(0);
+  const retryCountRef = useRef(0);
+  const gaveUpRef = useRef(false); // Persiste "ya me rendi" incluso tras remount del efecto
+  const MAX_RETRIES = 5;
 
   // Referencia para limpieza segura
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -26,8 +32,8 @@ export const useProIncomingRequests = (isActive: boolean) => {
   // 1. CARGA DE DATOS (Estable)
   const loadRequests = useCallback(
     async (isSilent = false) => {
-      if (!user?.uid || !isActive) {
-        if (!isActive) setRequests([]);
+      if (!user?.uid || !isActive || !isProfessional) {
+        if (!isActive || !isProfessional) setRequests([]);
         return;
       }
 
@@ -43,8 +49,8 @@ export const useProIncomingRequests = (isActive: boolean) => {
         setLoading(false);
       }
     },
-    [user?.uid, isActive]
-  ); // Quitamos 'requests' de dependencias
+    [user?.uid, isActive, isProfessional]
+  );
 
   // 2. LÓGICA DE NEGOCIO (Aceptar)
   const acceptRequest = async (reservationId: string) => {
@@ -68,8 +74,16 @@ export const useProIncomingRequests = (isActive: boolean) => {
 
   // 3. ORQUESTACIÓN REALTIME CON AUTO-RECONEXIÓN
   useEffect(() => {
-    // Si no estamos activos o logueados, limpiamos y salimos
-    if (!isActive || !user?.uid) {
+    // GUARD: Solo profesionales activos y logueados pueden suscribirse
+    if (!isActive || !user?.uid || !isProfessional) {
+      return;
+    }
+
+    // Si ya nos rendimos en un ciclo anterior, no reintentar
+    if (gaveUpRef.current) {
+      console.warn(
+        "[HOOK] Realtime: Reconexión deshabilitada (max retries alcanzado anteriormente)."
+      );
       return;
     }
 
@@ -77,22 +91,37 @@ export const useProIncomingRequests = (isActive: boolean) => {
     loadRequests();
 
     const handleConnectionError = () => {
+      retryCountRef.current += 1;
+
+      if (retryCountRef.current > MAX_RETRIES) {
+        gaveUpRef.current = true; // No reintentar ni con remount
+        console.error(
+          `[HOOK] Realtime: Max retries (${MAX_RETRIES}) alcanzado. Deteniendo reconexión permanentemente.`
+        );
+        if (channelRef.current) unsubscribeFromChannel(channelRef.current);
+        return;
+      }
+
+      // Exponential backoff: 5s, 10s, 20s, 40s, 80s
+      const delay = 5000 * Math.pow(2, retryCountRef.current - 1);
       console.warn(
-        "⚠️ [HOOK] Detectada caída de conexión. Reintentando en 5s..."
+        `⚠️ [HOOK] Caída de conexión. Reintento ${retryCountRef.current}/${MAX_RETRIES} en ${delay / 1000}s...`
       );
-      // Desconectamos inmediatamente para limpiar estado
+
       if (channelRef.current) unsubscribeFromChannel(channelRef.current);
 
-      // Programamos reconexión incrementando la llave
       setTimeout(() => {
         setRetryKey((prev) => prev + 1);
-      }, 5000);
+      }, delay);
     };
 
     // B. Suscripción
     channelRef.current = subscribeToIncomingRequestsService(
       user.uid,
       () => {
+        // Connection is healthy — reset retry counter
+        retryCountRef.current = 0;
+        gaveUpRef.current = false;
         console.log("🔄 [HOOK] Evento Realtime -> Refrescando lista");
         loadRequests(true); // Silent reload
       },
@@ -106,7 +135,7 @@ export const useProIncomingRequests = (isActive: boolean) => {
         channelRef.current = null;
       }
     };
-  }, [isActive, user?.uid, retryKey, loadRequests]);
+  }, [isActive, user?.uid, isProfessional, retryKey, loadRequests]);
   // 'retryKey' es la clave: si cambia, el efecto se desmonta y se monta de nuevo (Reconexión)
 
   return {

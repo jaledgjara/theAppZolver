@@ -1,29 +1,74 @@
 import React, { useCallback } from "react";
-import { StyleSheet, Text, View, FlatList, RefreshControl } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  SectionList,
+  RefreshControl,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 
-// Hook de Datos
+// Hooks
+import { useProQuoteRequests } from "@/appSRC/reservations/Hooks/useProQuoteRequests";
 import { useProConfirmedWorks } from "@/appSRC/reservations/Hooks/useProConfirmedWorks";
+import { useConfirmQuoteReservation } from "@/appSRC/reservations/Hooks/useConfirmQuoteReservation";
+import { useRejectByProfessional } from "@/appSRC/reservations/Hooks/useRejectByProfessional";
 
 // UI Components
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
-import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
+import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
 import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
+import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
+import { Reservation } from "../../Type/ReservationType";
 
-// Utils
+// ============================================================================
+// TIPOS INTERNOS
+// ============================================================================
+
+interface SectionData {
+  title: string;
+  type: "pending" | "confirmed";
+  data: Reservation[];
+}
+
+// ============================================================================
+// PANTALLA PRINCIPAL
+// ============================================================================
 
 const IndexQuoteScreen = () => {
   const router = useRouter();
-  const { works, loading, refreshing, onRefresh } = useProConfirmedWorks();
 
-  // Refrescar al entrar para asegurar datos frescos
-  useFocusEffect(
-    useCallback(() => {
-      onRefresh();
-    }, [])
-  );
+  // --- HOOKS ---
+  const {
+    requests: pendingRequests,
+    loading: loadingPending,
+    refresh: refreshPending,
+  } = useProQuoteRequests();
+
+  const {
+    works: confirmedWorks,
+    loading: loadingConfirmed,
+    onRefresh: refreshConfirmed,
+  } = useProConfirmedWorks();
+
+  const { confirmQuoteRequest } = useConfirmQuoteReservation();
+  const { rejectReservation } = useRejectByProfessional();
+
+  // --- ACCIONES ---
+  const handleAcceptQuote = async (reservationId: string) => {
+    await confirmQuoteRequest(reservationId, () => {
+      refreshPending();
+      refreshConfirmed();
+    });
+  };
+
+  const handleRejectQuote = (reservationId: string) => {
+    rejectReservation(reservationId, () => {
+      refreshPending();
+    });
+  };
 
   const handlePressWork = (reservationId: string) => {
     router.push(
@@ -31,112 +76,186 @@ const IndexQuoteScreen = () => {
     );
   };
 
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <View style={styles.statsCard}>
-        <Text style={styles.statsLabel}>Trabajos Confirmados</Text>
-        <Text style={styles.statsNumber}>{works.length}</Text>
-        <Text style={styles.statsSubLabel}>Tareas pendientes de ejecución</Text>
-      </View>
-      <Text style={styles.sectionTitle}>Agenda de Trabajo</Text>
-    </View>
+  const handleRefreshAll = useCallback(() => {
+    refreshPending();
+    refreshConfirmed();
+  }, [refreshPending, refreshConfirmed]);
+
+  // Refrescar al entrar
+  useFocusEffect(
+    useCallback(() => {
+      handleRefreshAll();
+    }, [])
   );
 
+  // --- LOADING ---
+  const isInitialLoad =
+    loadingPending &&
+    loadingConfirmed &&
+    pendingRequests.length === 0 &&
+    confirmedWorks.length === 0;
+
+  if (isInitialLoad) {
+    return (
+      <View style={styles.centerContainer}>
+        <MiniLoaderScreen />
+      </View>
+    );
+  }
+
+  // --- SECCIONES ---
+  const sections: SectionData[] = [];
+
+  // Sección 1: Solicitudes Pendientes (solo si hay)
+  if (pendingRequests.length > 0) {
+    sections.push({
+      title: `Nuevas Solicitudes (${pendingRequests.length})`,
+      type: "pending",
+      data: pendingRequests,
+    });
+  }
+
+  // Sección 2: Trabajos Confirmados
+  sections.push({
+    title: `Agenda de Trabajo (${confirmedWorks.length})`,
+    type: "confirmed",
+    data: confirmedWorks,
+  });
+
+  // --- RENDER ---
   return (
     <View style={styles.container}>
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <MiniLoaderScreen />
-        </View>
-      ) : (
-        <FlatList
-          data={works}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderHeader}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        stickySectionHeadersEnabled={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loadingPending || loadingConfirmed}
+            onRefresh={handleRefreshAll}
+          />
+        }
+        ListHeaderComponent={
+          <View style={styles.statsCard}>
+            <Text style={styles.statsLabel}>Presupuestos</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statsNumber}>{pendingRequests.length}</Text>
+                <Text style={styles.statsSubLabel}>Pendientes</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statsNumber}>{confirmedWorks.length}</Text>
+                <Text style={styles.statsSubLabel}>Confirmados</Text>
+              </View>
+            </View>
+          </View>
+        }
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+        )}
+        renderItem={({ item, section }) => {
+          if (section.type === "pending") {
+            return renderPendingItem(item, handleAcceptQuote, handleRejectQuote);
           }
-          renderItem={({ item }) => {
-            // ================================================================
-            // 🛡️ LÓGICA DE FECHA BLINDADA (Fix Date { NaN })
-            // ================================================================
-
-            // 1. Elegir la fuente preferida
-            let rawDate =
-              item.modality === "instant"
-                ? item.createdAt
-                : item.scheduledStart;
-
-            // 2. Verificar si es válida
-            const isValidDate =
-              rawDate instanceof Date && !isNaN(rawDate.getTime());
-
-            // 3. Fallback: Si está rota, usar createdAt. Si también falla, usar AHORA.
-            if (!isValidDate) {
-              // console.warn(`⚠️ [UI] Fecha inválida en ID ${item.id}. Usando fallback.`);
-              rawDate = item.createdAt || new Date();
-            }
-
-            // 4. Formatear
-            const { date, time } = formatForUI(rawDate);
-
-            // ================================================================
-
-            const price =
-              item.financials.price > 0
-                ? `$${item.financials.price.toLocaleString("es-AR")}`
-                : "A cotizar";
-
-            return (
-              <ReservationCard
-                id={item.id}
-                // Usamos propiedades planas de la nueva entidad
-                serviceName={item.serviceTitle || "Servicio"}
-                counterpartName={item.roleName || "Cliente"}
-                status={item.statusUI} // Estado Visual
-                avatar={item.roleAvatar}
-                date={date}
-                time={time}
-                price={price}
-                onPress={() => handlePressWork(item.id)}
-                viewRole={"professional"}
-              />
-            );
-          }}
-          ListEmptyComponent={
-            <StatusPlaceholder
-              icon="calendar"
-              title="Sin trabajos confirmados"
-              subtitle="Tus reservas aceptadas aparecerán aquí."
-            />
-          }
-        />
-      )}
+          return renderConfirmedItem(item, handlePressWork);
+        }}
+        ListEmptyComponent={
+          <StatusPlaceholder
+            icon="calendar"
+            title="Sin actividad"
+            subtitle="Tus presupuestos aceptados y trabajos agendados aparecerán aquí."
+          />
+        }
+        contentContainerStyle={styles.listContent}
+      />
     </View>
+  );
+};
+
+// ============================================================================
+// RENDER HELPERS
+// ============================================================================
+
+/**
+ * Renderiza una solicitud de presupuesto pendiente (con botones Aceptar/Rechazar).
+ */
+const renderPendingItem = (
+  item: Reservation,
+  onAccept: (id: string) => void,
+  onReject: (id: string) => void
+) => {
+  const targetDate = item.scheduledStart || item.createdAt;
+  const { time } = formatForUI(targetDate);
+
+  return (
+    <ServiceRequestCard
+      category={item.serviceTitle}
+      price={
+        item.financials.price > 0
+          ? `$${item.financials.price.toLocaleString("es-AR")}`
+          : "A cotizar"
+      }
+      distance="📋 Presupuesto"
+      location={item.address}
+      title={item.roleName}
+      timeAgo={time}
+      onAccept={() => onAccept(item.id)}
+      onDecline={() => onReject(item.id)}
+    />
+  );
+};
+
+/**
+ * Renderiza un trabajo confirmado de la agenda (tap para ver detalles).
+ */
+const renderConfirmedItem = (
+  item: Reservation,
+  onPress: (id: string) => void
+) => {
+  const rawDate = item.scheduledStart || item.createdAt || new Date();
+  const isValidDate = rawDate instanceof Date && !isNaN(rawDate.getTime());
+  const safeDate = isValidDate ? rawDate : new Date();
+  const { date, time } = formatForUI(safeDate);
+
+  const price =
+    item.financials.price > 0
+      ? `$${item.financials.price.toLocaleString("es-AR")}`
+      : "A cotizar";
+
+  return (
+    <ReservationCard
+      id={item.id}
+      serviceName={item.serviceTitle || "Servicio"}
+      counterpartName={item.roleName || "Cliente"}
+      status={item.statusUI}
+      avatar={item.roleAvatar}
+      date={date}
+      time={time}
+      price={price}
+      onPress={() => onPress(item.id)}
+      viewRole="professional"
+    />
   );
 };
 
 export default IndexQuoteScreen;
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
-  headerContainer: { marginTop: 20, marginBottom: 10 },
-  sectionTitle: {
-    ...FONTS.h3,
-    color: COLORS.textPrimary,
-    fontWeight: "700",
-    marginTop: 10,
-    marginBottom: 10,
-  },
   statsCard: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 10,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -145,12 +264,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0F0F0",
   },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  statItem: {
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E5E7EB",
+  },
   statsNumber: {
-    fontSize: 48,
+    fontSize: 36,
     color: COLORS.primary,
     fontWeight: "800",
-    paddingVertical: 10,
   },
   statsLabel: { ...FONTS.h3, color: COLORS.textPrimary, fontWeight: "700" },
-  statsSubLabel: { ...FONTS.body4, color: COLORS.textSecondary },
+  statsSubLabel: { ...FONTS.body4, color: COLORS.textSecondary, marginTop: 4 },
+  sectionTitle: {
+    ...FONTS.h3,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+    marginTop: 20,
+    marginBottom: 10,
+  },
 });

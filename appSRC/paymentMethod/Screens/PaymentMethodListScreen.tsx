@@ -11,16 +11,22 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { SavedCardRow } from "@/appSRC/payments/Screens/SavedCardRow";
-import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { CheckoutSummaryCard } from "@/appCOMP/cards/CheckoutSummaryCard";
 import { COLORS } from "@/appASSETS/theme";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 import { usePaymentMethods } from "@/appSRC/paymentMethod/Hooks/usePaymentMethods";
+import { PaymentMethodListViewProps } from "@/appSRC/paymentMethod/Type/PaymentMethodScreenType";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 
 export const PaymentMethodListScreen = ({
   mode,
   onConfirmSelection,
-  price,
+  subtotal = 0,
+  hoursLabel,
+  infoLabel,
+  infoSuffix,
+  paymentLoading = false,
+  formScreenPath,
 }: PaymentMethodListViewProps) => {
   const router = useRouter();
   const { cards, loading, isEmpty, deleteCard } = usePaymentMethods();
@@ -35,9 +41,13 @@ export const PaymentMethodListScreen = ({
   const isCheckout = mode === "checkout";
 
   const handleNavigation = () => {
-    isCheckout
-      ? router.push("/(client)/(tabs)/home/HomePaymentFormScreen")
-      : router.push("/(client)/(tabs)/profile/ProfilePaymentFormScreen");
+    if (formScreenPath) {
+      router.push(formScreenPath as any);
+    } else {
+      isCheckout
+        ? router.push("/(client)/(tabs)/home/HomePaymentFormScreen")
+        : router.push("/(client)/(tabs)/profile/ProfilePaymentFormScreen");
+    }
   };
 
   if (loading && cards.length === 0) {
@@ -54,7 +64,7 @@ export const PaymentMethodListScreen = ({
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        {/* 1. LISTA DE TARJETAS */}
+        {/* 1. CARD LIST */}
         <View style={styles.listWrapper}>
           {!isEmpty ? (
             cards.map((card) => (
@@ -75,7 +85,7 @@ export const PaymentMethodListScreen = ({
           )}
         </View>
 
-        {/* 2. BOTÓN AGREGAR (SIEMPRE ORGÁNICO) */}
+        {/* 2. ADD NEW CARD */}
         <TouchableOpacity
           style={styles.addNewInline}
           onPress={handleNavigation}>
@@ -87,32 +97,18 @@ export const PaymentMethodListScreen = ({
           <Text style={styles.addNewText}>Usar otra tarjeta</Text>
         </TouchableOpacity>
 
-        {/* 3. RESUMEN Y ACCIÓN DE PAGO (INTEGRADO AL SCROLL) */}
+        {/* 3. CHECKOUT SUMMARY (reusable component) */}
         {isCheckout && !isEmpty && (
-          <View style={styles.summaryContainer}>
-            <View style={styles.divider} />
-
-            <View style={styles.priceRow}>
-              <View>
-                <Text style={styles.totalLabel}>Total a pagar</Text>
-                <Text style={styles.taxNote}>
-                  Incluye impuestos de plataforma
-                </Text>
-              </View>
-              <Text style={styles.totalValue}>{price || "$0"}</Text>
-            </View>
-
-            <LargeButton
-              title="Pagar ahora"
-              onPress={() => onConfirmSelection?.(selectedCardId)}
-              disabled={!selectedCardId}
-            />
-
-            <View style={styles.secureBadge}>
-              <Ionicons name="shield-checkmark" size={14} color="#888" />
-              <Text style={styles.secureText}>Pago encriptado y seguro</Text>
-            </View>
-          </View>
+          <CheckoutSummaryCard
+            subtotal={subtotal}
+            hoursLabel={hoursLabel}
+            infoLabel={infoLabel}
+            infoSuffix={infoSuffix}
+            buttonTitle="Pagar ahora"
+            onPress={() => onConfirmSelection?.(selectedCardId)}
+            disabled={!selectedCardId}
+            loading={paymentLoading}
+          />
         )}
       </ScrollView>
     </View>
@@ -124,7 +120,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 40, // Espacio extra al final para que respire
+    paddingBottom: 40,
   },
   listWrapper: {
     marginBottom: 10,
@@ -140,49 +136,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: "600",
     marginLeft: 8,
-  },
-  // Nueva sección de resumen integrada
-  summaryContainer: {
-    marginTop: 30,
-    padding: 20,
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: 20,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#EEE",
-    marginBottom: 20,
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 25,
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
-  },
-  taxNote: {
-    fontSize: 11,
-    color: "#AAA",
-  },
-  totalValue: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-  },
-  secureBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 15,
-    gap: 5,
-  },
-  secureText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
   },
 });
 

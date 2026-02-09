@@ -15,6 +15,7 @@ import { COLORS } from "@/appASSETS/theme";
 import { PaymentTypeSelector } from "@/appSRC/payments/Screens/PaymentTypeSelector";
 import { useCreatePaymentMethod } from "@/appSRC/paymentMethod/Hooks/useCreatePaymentMethod";
 import { PaymentMethodType } from "@/appSRC/paymentMethod/Type/PaymentMethodType";
+import { PaymentFormProps } from "../Type/PaymentMethodScreenType";
 
 export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
   // 2. ESTADOS DEL FORMULARIO
@@ -162,8 +163,8 @@ export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
               loading
                 ? "Procesando..."
                 : isCheckout
-                ? "Pagar ahora"
-                : "Guardar Método"
+                  ? "Pagar ahora"
+                  : "Guardar Método"
             }
             onPress={handleSave}
             disabled={loading || !isValid}

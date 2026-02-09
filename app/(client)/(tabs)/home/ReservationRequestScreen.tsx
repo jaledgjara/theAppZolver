@@ -20,10 +20,10 @@ import { Ionicons } from "@expo/vector-icons";
 // Componentes
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import QuickChips from "@/appCOMP/quickChips/QuickChips";
-import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { CheckoutSummaryCard } from "@/appCOMP/cards/CheckoutSummaryCard";
 
 // Hooks & Estilos
-import { COLORS, SIZES } from "@/appASSETS/theme";
+import { COLORS } from "@/appASSETS/theme";
 import { useReservationPricing } from "@/appSRC/reservations/Hooks/useReservationPricing";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
 import { ProfessionalTemplate } from "@/appSRC/templates/Type/TemplateType";
@@ -57,7 +57,20 @@ const ReservationRequestScreen = () => {
 
   const handlePreSend = () => {
     if (selectedServices.length === 0) return;
-    router.push("/(client)/(tabs)/home/PaymentScreen");
+
+    // Pass reservation context to PaymentScreen via query params
+    const serviceCategory = selectedServices.map((s) => s.label).join(", ");
+    router.push({
+      pathname: "/(client)/(tabs)/home/PaymentScreen",
+      params: {
+        subtotal: estimates.finalPrice.toString(),
+        hoursLabel: estimates.hoursLabel,
+        professionalId,
+        professionalName,
+        serviceCategory,
+        serviceModality: isInstant ? "instant" : "quote",
+      },
+    });
   };
 
   const handleLocationPress = () => {
@@ -181,39 +194,14 @@ const ReservationRequestScreen = () => {
               </View>
 
               {/* Summary Box */}
-              <View style={styles.summaryBox}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Tiempo estimado</Text>
-                  <Text style={styles.summaryValue}>
-                    {estimates.hoursLabel} hs
-                  </Text>
-                </View>
-
-                <View style={styles.divider} />
-
-                <View style={styles.priceRow}>
-                  <View>
-                    <Text style={styles.totalLabel}>Total Estimado</Text>
-                    <Text style={styles.subtext}>
-                      Sujeto a cambios del profesional
-                    </Text>
-                  </View>
-                  <Text style={styles.totalValue}>
-                    ${estimates.finalPrice.toLocaleString()}
-                  </Text>
-                </View>
-
-                <LargeButton
-                  title={isInstant ? "Ir a Pagar" : "Enviar Solicitud"}
-                  onPress={handlePreSend}
-                  disabled={selectedServices.length === 0}
-                />
-
-                <Text style={styles.disclaimer}>
-                  No se realizará ningún cargo hasta que confirmes el método de
-                  pago.
-                </Text>
-              </View>
+              <CheckoutSummaryCard
+                subtotal={estimates.finalPrice}
+                hoursLabel={estimates.hoursLabel}
+                buttonTitle={isInstant ? "Ir a Pagar" : "Enviar Solicitud"}
+                onPress={handlePreSend}
+                disabled={selectedServices.length === 0}
+                disclaimer="No se realizará ningún cargo hasta que confirmes el método de pago."
+              />
 
               <View style={{ height: 60 }} />
             </View>
@@ -290,36 +278,6 @@ const styles = StyleSheet.create({
   },
   locTitle: { fontSize: 15, fontWeight: "700", color: "#333" },
   locSub: { fontSize: 13, color: "#999", marginTop: 2 },
-  summaryBox: {
-    marginTop: 10,
-    padding: 24,
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: 24,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 15,
-  }, // CORREGIDO: justifyContent
-  summaryLabel: { fontSize: 14, color: "#666" },
-  summaryValue: { fontSize: 15, fontWeight: "600", color: "#333" },
-  divider: { height: 1, backgroundColor: "#EEE", marginBottom: 20 },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 25,
-  }, // CORREGIDO: justifyContent
-  totalLabel: { fontSize: 14, fontWeight: "700", color: "#333" },
-  subtext: { fontSize: 11, color: "#999", marginTop: 2 },
-  totalValue: { fontSize: SIZES.h2, fontWeight: "800", color: COLORS.primary },
-  disclaimer: {
-    fontSize: 12,
-    color: "#AAA",
-    textAlign: "center",
-    marginTop: 15,
-    paddingHorizontal: 10,
-  },
 });
 
 export default ReservationRequestScreen;
