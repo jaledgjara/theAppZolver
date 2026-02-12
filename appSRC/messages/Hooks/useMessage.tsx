@@ -34,7 +34,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
       }
 
       console.log(
-        `[Hook] 🚀 Fetch Started | Initial: ${isInitial} | Current Page: ${pageRef.current}`
+        `[Hook] 🚀 Fetch Started | Initial: ${isInitial} | Current Page: ${pageRef.current}`,
       );
 
       isFetchingRef.current = true;
@@ -60,7 +60,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         if (error) throw error;
 
         const domainMessages = data.map((msg) =>
-          mapMessageDTOToDomain(msg, currentUserId)
+          mapMessageDTOToDomain(msg, currentUserId),
         );
 
         console.log(`[Hook] 📦 Data mapped: ${domainMessages.length} items`);
@@ -74,7 +74,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
             ? domainMessages
             : [...prev, ...domainMessages];
           console.log(
-            `[Hook] 📊 New total messages in state: ${newList.length}`
+            `[Hook] 📊 New total messages in state: ${newList.length}`,
           );
           return newList;
         });
@@ -89,7 +89,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         console.log("[Hook] 🏁 Fetch Finished");
       }
     },
-    [conversationId, currentUserId]
+    [conversationId, currentUserId],
   );
 
   // Suscripción Realtime (Mantiene el mismo orden inverted)
@@ -112,7 +112,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev;
           return [newMsg, ...prev];
         });
-      }
+      },
     );
 
     return () => {
@@ -144,7 +144,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
           // 1. Subida al Storage
           const publicUrl = await StorageService.uploadMessageImage(
             imageUri,
-            conversationId
+            conversationId,
           );
 
           // 💡 FIX: Enviamos los 5 parámetros requeridos en el orden exacto
@@ -153,7 +153,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
             currentUserId!, // sid (Sender - EL QUE FALTABA)
             professionalId, // rid (Receiver)
             publicUrl, // url
-            text // text (Opcional)
+            text, // text (Opcional)
           );
         } else {
           // Texto simple
@@ -161,7 +161,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
             conversationId,
             currentUserId!,
             professionalId,
-            text
+            text,
           );
         }
         console.log("[Hook] ✅ Send success");
@@ -171,8 +171,8 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         const notifBody = imageUri
           ? `${senderName} envió una imagen.`
           : text.length > 80
-          ? `${senderName}: ${text.substring(0, 80)}...`
-          : `${senderName}: ${text}`;
+            ? `${senderName}: ${text.substring(0, 80)}...`
+            : `${senderName}: ${text}`;
 
         createNotification({
           user_id: professionalId,
@@ -189,7 +189,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
       }
     },
-    [conversationId, professionalId, currentUserId]
+    [conversationId, professionalId, currentUserId],
   );
 
   const loadMore = useCallback(() => {

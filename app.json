@@ -41,7 +41,7 @@
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./appASSETS/IconImage/logo-zZz.JPG"
     },
     "plugins": [
       "expo-router",
@@ -63,7 +63,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./appASSETS/IconImage/logo-zZz.JPG",
           "color": "#ffffff"
         }
       ]

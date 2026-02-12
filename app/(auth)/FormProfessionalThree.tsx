@@ -12,7 +12,11 @@ import {
   TouchableOpacity,
   Modal,
 } from "react-native";
-import MapView, { Circle, Marker } from "react-native-maps";
+import {
+  MapView,
+  Circle,
+  Marker,
+} from "@/appCOMP/maps/extensions/NativeMapView";
 import * as Location from "expo-location";
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
@@ -73,7 +77,7 @@ const FormProfessionalLocationTime = () => {
   const openTimePicker = (
     day: string,
     type: "from" | "to",
-    currentTime: string
+    currentTime: string,
   ) => {
     setPickerConfig({
       day,
@@ -128,7 +132,7 @@ const FormProfessionalLocationTime = () => {
       if (status !== "granted") {
         Alert.alert(
           "Permiso denegado",
-          "Habilita la ubicación en configuración."
+          "Habilita la ubicación en configuración.",
         );
         setLoadingLocation(false);
         return;

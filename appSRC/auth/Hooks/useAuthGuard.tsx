@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Platform } from "react-native";
 import {
   useRouter,
   usePathname,
@@ -8,6 +9,20 @@ import {
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { AUTH_PATHS } from "@/appSRC/auth/Path/AuthPaths";
 import type { AuthStatus } from "@/appSRC/auth/Store/AuthStore";
+
+/** Segments that do NOT require authentication */
+const PUBLIC_SEGMENTS = ["(public)"] as const;
+
+/** Segments that require admin role */
+const ADMIN_SEGMENTS = ["(admin)"] as const;
+
+function isPublicSegment(segment: string | undefined): boolean {
+  return PUBLIC_SEGMENTS.includes(segment as (typeof PUBLIC_SEGMENTS)[number]);
+}
+
+function isAdminSegment(segment: string | undefined): boolean {
+  return ADMIN_SEGMENTS.includes(segment as (typeof ADMIN_SEGMENTS)[number]);
+}
 
 export function useAuthGuard() {
   const router = useRouter();
@@ -27,15 +42,55 @@ export function useAuthGuard() {
     if (!isNavReady) return;
     if (isBootLoading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
-    const inClientGroup = segments[0] === "(client)";
-    const inProfessionalGroup = segments[0] === "(professional)";
+    const currentSegment = segments[0];
+    const inAuthGroup = currentSegment === "(auth)";
+    const inClientGroup = currentSegment === "(client)";
+    const inProfessionalGroup = currentSegment === "(professional)";
+    const inPublicGroup = isPublicSegment(currentSegment);
+    const inAdminGroup = isAdminSegment(currentSegment);
 
     console.log(
       `\n👮‍♂️ [AuthGuard] Check: ${status.toUpperCase()} | Segment: ${
-        segments[0] || "root"
+        currentSegment || "root"
       } | Path: ${pathname}`
     );
+
+    // ---------------------------------------------------------------
+    // RUTAS PÚBLICAS: No requieren autenticación, acceso libre.
+    // ---------------------------------------------------------------
+    if (inPublicGroup) {
+      prevStatus.current = status;
+      return;
+    }
+
+    // ---------------------------------------------------------------
+    // WEB: Ruta raíz ("/") — Dejar que index.tsx maneje el redirect.
+    // En web, si no hay segmento (ruta raíz), no interceptar.
+    // index.tsx se encargará de redirigir a (public) o al home.
+    // ---------------------------------------------------------------
+    if (Platform.OS === "web" && !currentSegment) {
+      prevStatus.current = status;
+      return;
+    }
+
+    // ---------------------------------------------------------------
+    // RUTAS ADMIN: Requieren autenticación + rol admin.
+    // El AdminLayout maneja su propio guard de rol internamente.
+    // Aquí solo verificamos que el usuario esté autenticado.
+    // ---------------------------------------------------------------
+    if (inAdminGroup) {
+      if (status === "authenticated" || status === "authenticatedProfessional") {
+        prevStatus.current = status;
+        return;
+      }
+      // Si no está autenticado, redirigir a auth
+      setTransitionDirection("back");
+      prevStatus.current = status;
+      requestAnimationFrame(() => {
+        router.replace("/(auth)/SignInScreen" as any);
+      });
+      return;
+    }
 
     let target: string | null = null;
     let direction: "forward" | "back" = "forward";
@@ -72,19 +127,15 @@ export function useAuthGuard() {
           if (currentSimple !== expectedSimple) {
             target = expectedPath;
 
-            // 👇👇👇 AQUÍ ESTÁ EL CAMBIO CLAVE 👇👇👇
             if (status === "anonymous") {
-              // Si vengo de "unknown" (Welcome) o es el inicio (null) -> ADELANTE
-              // Si vengo de "preAuth" (me arrepentí y volví) -> ATRÁS
               const cameFromWelcome =
                 prevStatus.current === "unknown" || prevStatus.current === null;
               direction = cameFromWelcome ? "forward" : "back";
             } else if (status === "unknown") {
-              direction = "back"; // Volver a Welcome siempre es back
+              direction = "back";
             } else {
-              direction = "forward"; // Ir a preAuth, phone, etc. siempre es forward
+              direction = "forward";
             }
-            // 👆👆👆 FIN DEL CAMBIO CLAVE 👆👆👆
           }
         }
         break;
@@ -94,7 +145,7 @@ export function useAuthGuard() {
       // -----------------------------------------------------------------
       case "authenticated":
         if (inClientGroup) {
-          prevStatus.current = status; // Actualizamos historial si estamos en zona segura
+          prevStatus.current = status;
           return;
         }
         target = AUTH_PATHS.authenticated;
@@ -106,7 +157,7 @@ export function useAuthGuard() {
       // -----------------------------------------------------------------
       case "authenticatedProfessional":
         if (inProfessionalGroup) {
-          prevStatus.current = status; // Actualizamos historial si estamos en zona segura
+          prevStatus.current = status;
           return;
         }
         target = AUTH_PATHS.authenticatedProfessional;
@@ -119,14 +170,12 @@ export function useAuthGuard() {
       console.log(`🚀 [AuthGuard] REDIRECT -> ${target} (${direction})`);
       setTransitionDirection(direction);
 
-      // Guardamos el status actual como "previo" antes de saltar
       prevStatus.current = status;
 
       requestAnimationFrame(() => {
         router.replace(target as any);
       });
     } else {
-      // Si no hubo redirección, también actualizamos el historial para la próxima vez
       prevStatus.current = status;
     }
   }, [isNavReady, isBootLoading, status, pathname, segments]);
@@ -139,6 +188,8 @@ function normalize(p: string) {
     .replace("/(tabs)", "")
     .replace("/(client)", "")
     .replace("/(professional)", "")
+    .replace("/(public)", "")
+    .replace("/(admin)", "")
     .replace(/\?.*$/, "");
 }
 

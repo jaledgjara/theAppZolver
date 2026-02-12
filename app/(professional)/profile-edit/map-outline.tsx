@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Alert, ActivityIndicator } from "react-native";
-import MapView, { Circle, Marker } from "react-native-maps";
+import {
+  MapView,
+  Circle,
+  Marker,
+} from "@/appCOMP/maps/extensions/NativeMapView";
 import * as Location from "expo-location";
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";

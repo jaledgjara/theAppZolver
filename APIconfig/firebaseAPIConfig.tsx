@@ -1,9 +1,6 @@
 // ✅ Importación correcta en Firebase 11+
 import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  initializeAuth
-} from "firebase/auth";
+import { getAuth, initializeAuth } from "firebase/auth";
 
 import { getReactNativePersistence } from "firebase/auth";
 
