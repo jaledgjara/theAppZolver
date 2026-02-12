@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { rejectReservationByPro } from "@/appSRC/reservations/Service/ReservationService"; // Ajusta la ruta a tu service
+import { rejectReservationByPro } from "@/appSRC/reservations/Service/ReservationService";
 import { Alert } from "react-native";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useRejectByProfessional = () => {
   const user = useAuthStore((state) => state.user);
@@ -15,7 +16,8 @@ export const useRejectByProfessional = () => {
    */
   const rejectReservation = async (
     reservationId: string,
-    onSuccess?: () => void
+    onSuccess?: () => void,
+    clientId?: string
   ) => {
     // 1. Validación de Seguridad Local
     if (!user?.uid) {
@@ -31,7 +33,18 @@ export const useRejectByProfessional = () => {
       console.log(`🛡️ [HOOK] Rechazando reserva ${reservationId}...`);
       await rejectReservationByPro(reservationId, user.uid);
 
-      // 3. Feedback Exitoso
+      // 3. Side-effect: Notificar al cliente (fire & forget)
+      if (clientId) {
+        createNotification({
+          user_id: clientId,
+          title: "Solicitud rechazada",
+          body: "El profesional no puede tomar el servicio en este momento.",
+          type: "reservation_rejected",
+          data: { reservation_id: reservationId },
+        });
+      }
+
+      // 4. Feedback Exitoso
       console.log("✅ [HOOK] Reserva rechazada correctamente.");
       if (onSuccess) onSuccess();
     } catch (err: any) {

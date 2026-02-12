@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Alert } from "react-native";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { confirmQuoteReservationService } from "../Service/ReservationService";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 /**
  * Hook: useConfirmQuoteReservation
@@ -16,12 +17,23 @@ export const useConfirmQuoteReservation = () => {
   const [loading, setLoading] = useState(false);
 
   const confirmQuoteRequest = useCallback(
-    async (reservationId: string, onSuccess?: () => void) => {
+    async (reservationId: string, onSuccess?: () => void, clientId?: string) => {
       if (!user?.uid) return;
 
       setLoading(true);
       try {
         await confirmQuoteReservationService(reservationId, user.uid);
+
+        // Side-effect: Notificar al cliente (fire & forget)
+        if (clientId) {
+          createNotification({
+            user_id: clientId,
+            title: "Presupuesto aceptado",
+            body: "El profesional aceptó el trabajo. Fue agendado.",
+            type: "reservation_accepted",
+            data: { reservation_id: reservationId, screen: "/(client)/(tabs)/reservations" },
+          });
+        }
 
         Alert.alert("Trabajo aceptado", "Se agregó a tu agenda de trabajos.");
         onSuccess?.();

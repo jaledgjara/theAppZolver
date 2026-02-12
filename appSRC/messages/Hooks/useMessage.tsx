@@ -5,6 +5,7 @@ import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { MessageService } from "../Service/MessageService";
 import { StorageService } from "../Service/StorageService";
 import { mapMessageDTOToDomain } from "../Mapper/MessageMapper";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useMessages = (conversationId: string, professionalId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -164,7 +165,25 @@ export const useMessages = (conversationId: string, professionalId: string) => {
           );
         }
         console.log("[Hook] ✅ Send success");
-        console.log("[Hook] ✅ Send success");
+
+        // Side-effect: Notificar al receptor (estilo WhatsApp)
+        const senderName = user?.legalName || user?.displayName || "Usuario";
+        const notifBody = imageUri
+          ? `${senderName} envió una imagen.`
+          : text.length > 80
+          ? `${senderName}: ${text.substring(0, 80)}...`
+          : `${senderName}: ${text}`;
+
+        createNotification({
+          user_id: professionalId,
+          title: "Nuevo mensaje",
+          body: notifBody,
+          type: "message_new",
+          data: {
+            conversation_id: conversationId,
+            screen: `/(client)/messages/MessagesDetailsScreen/${conversationId}`,
+          },
+        });
       } catch (error) {
         console.error("[Hook] ❌ Send failed:", error);
         setMessages((prev) => prev.filter((m) => m.id !== tempId));

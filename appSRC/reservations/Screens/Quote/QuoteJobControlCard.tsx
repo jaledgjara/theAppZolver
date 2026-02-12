@@ -8,6 +8,7 @@ import { COLORS } from "@/appASSETS/theme";
 import { updateReservationStatusService } from "@/appSRC/reservations/Service/ReservationService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { getStatusConfig } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 interface Props {
   job: Reservation;
@@ -38,8 +39,31 @@ export const QuoteJobControlCard = ({ job, onJobCompleted }: Props) => {
     }
 
     try {
-      // Reutilizamos el servicio central de actualización
       await updateReservationStatusService(job.id, user.uid, nextStatus);
+
+      // Side-effect: Notificar al cliente del cambio de estado (fire & forget)
+      const notificationMap = {
+        in_progress: {
+          title: "Trabajo iniciado",
+          body: "El profesional comenzó el servicio agendado.",
+          type: "reservation_accepted" as const,
+        },
+        completed: {
+          title: "Trabajo finalizado",
+          body: "El profesional completó el servicio agendado.",
+          type: "reservation_completed" as const,
+        },
+      };
+
+      const notif = notificationMap[nextStatus];
+      createNotification({
+        user_id: job.roleId,
+        title: notif.title,
+        body: notif.body,
+        type: notif.type,
+        data: { reservation_id: job.id, screen: "/(client)/(tabs)/reservations" },
+      });
+
       onJobCompleted();
     } catch (e) {
       console.error("[QuoteControl] Error:", e);

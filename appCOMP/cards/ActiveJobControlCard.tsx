@@ -8,6 +8,7 @@ import { COLORS } from "@/appASSETS/theme";
 import { updateReservationStatusService } from "@/appSRC/reservations/Service/ReservationService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { getStatusConfig } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 interface Props {
   job: Reservation;
@@ -32,6 +33,35 @@ export const ActiveJobControlCard = ({ job, onJobCompleted }: Props) => {
 
     try {
       await updateReservationStatusService(job.id, user.uid, nextStatus);
+
+      // Side-effect: Notificar al cliente del cambio de estado (fire & forget)
+      const notificationMap = {
+        on_route: {
+          title: "Profesional en camino",
+          body: "El profesional salió hacia tu ubicación.",
+          type: "reservation_accepted" as const,
+        },
+        in_progress: {
+          title: "Servicio iniciado",
+          body: "El profesional llegó y comenzó el trabajo.",
+          type: "reservation_accepted" as const,
+        },
+        completed: {
+          title: "Servicio finalizado",
+          body: "El profesional completó el trabajo.",
+          type: "reservation_completed" as const,
+        },
+      };
+
+      const notif = notificationMap[nextStatus];
+      createNotification({
+        user_id: job.roleId,
+        title: notif.title,
+        body: notif.body,
+        type: notif.type,
+        data: { reservation_id: job.id, screen: "/(client)/(tabs)/reservations" },
+      });
+
       onJobCompleted();
     } catch (e) {
       console.error(e);

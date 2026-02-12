@@ -7,6 +7,7 @@ import { PaymentMethodsService } from "@/appSRC/paymentMethod/Service/PaymentMet
 import { PaymentService } from "../Service/PaymentService";
 import { CreatePaymentPayload } from "../Type/PaymentType";
 import { updateBudgetMessageStatusService } from "@/appSRC/messages/Service/MessageService";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 // ============================================================================
 // CONSTANTES
@@ -202,7 +203,16 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           data.reservation_id,
         );
 
-        // STEP 5 (Budget only): Actualizar mensaje a "confirmed"
+        // STEP 5: Notificar al profesional (fire & forget)
+        createNotification({
+          user_id: professionalId,
+          title: "Pago recibido",
+          body: `Se procesó un pago de $${totalAmount} por un servicio.`,
+          type: "payment_received",
+          data: { reservation_id: data.reservation_id, screen: "/(professional)/(tabs)/home" },
+        });
+
+        // STEP 6 (Budget only): Actualizar mensaje a "confirmed"
         if (messageId) {
           try {
             const updatedPayload = {
@@ -225,7 +235,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           }
         }
 
-        // STEP 6: Navegar al tab de reservas
+        // STEP 7: Navegar al tab de reservas
         Alert.alert("Pago procesado", "Tu reserva fue creada exitosamente.", [
           {
             text: "Ver mis reservas",

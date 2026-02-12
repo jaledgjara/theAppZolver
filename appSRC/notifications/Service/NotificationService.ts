@@ -44,12 +44,17 @@ Notifications.setNotificationHandler({
 // ---------------------------------------------------------------------------
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   // GUARD: Solo dispositivos físicos pueden recibir push.
-  // En el simulador de iOS o emulador Android, esto retorna false.
+  // En simulador generamos un mock token para testing.
+  // El push real no llegará, pero la notificación SÍ se guarda en la tabla
+  // y se ve en la pantalla de notificaciones (via Realtime).
+  // TODO: Eliminar este bloque antes de producción.
   if (!Device.isDevice) {
     console.warn(
-      "⚠️ [NotificationService] Push notifications solo funcionan en dispositivos físicos."
+      "⚠️ [NotificationService] Simulador detectado. Usando mock token para testing."
     );
-    return null;
+    const mockToken = `ExponentPushToken[SIMULATOR_${Date.now()}]`;
+    console.log("🧪 [NotificationService] Mock token:", mockToken);
+    return mockToken;
   }
 
   // PASO 1: Verificar / pedir permisos al usuario.
@@ -124,23 +129,38 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 export async function savePushTokenToDatabase(
   userId: string,
   token: string
-): Promise<void> {
+): Promise<boolean> {
   console.log(
     `📡 [NotificationService] Guardando token para usuario: ${userId}`
   );
+  console.log(`📡 [NotificationService] Token: ${token}`);
 
-  const { error } = await supabase
+  // Usamos .select() para verificar que el UPDATE realmente afectó filas.
+  // Sin .select(), Supabase retorna success aunque RLS bloquee el update.
+  const { data, error } = await supabase
     .from("user_accounts")
     .update({ expo_push_token: token })
-    .eq("auth_uid", userId);
+    .eq("auth_uid", userId)
+    .select("auth_uid, expo_push_token")
+    .maybeSingle();
 
   if (error) {
     console.error(
       "❌ [NotificationService] Error al guardar token en DB:",
       error.message
     );
-    return;
+    return false;
   }
 
-  console.log("✅ [NotificationService] Token guardado en user_accounts.");
+  if (!data) {
+    console.error(
+      "❌ [NotificationService] UPDATE retornó 0 filas. Posibles causas:\n",
+      "   1. RLS en user_accounts bloquea el UPDATE para este usuario.\n",
+      "   2. No existe fila con auth_uid =", userId
+    );
+    return false;
+  }
+
+  console.log("✅ [NotificationService] Token guardado:", data.expo_push_token);
+  return true;
 }

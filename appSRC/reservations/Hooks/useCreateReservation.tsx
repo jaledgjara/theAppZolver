@@ -7,6 +7,7 @@ import {
 } from "../Service/ReservationService";
 import { ProfessionalTypeWork } from "@/appSRC/users/Model/ProfessionalTypeWork";
 import { ReservationPayload } from "../Type/ReservationType";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useCreateReservation = () => {
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,16 @@ export const useCreateReservation = () => {
           ? await createInstantReservation(payload)
           : await createQuoteReservation(payload);
 
-      // 2. Feedback al Usuario (UI)
+      // 2. Side-effect: Notificar al profesional (fire & forget)
+      createNotification({
+        user_id: payload.professional_id,
+        title: mode === "instant" ? "Nueva solicitud" : "Nueva consulta de presupuesto",
+        body: `Un cliente solicita un servicio de ${payload.service_category}.`,
+        type: "reservation_new",
+        data: { reservation_id: reservation.id, screen: "/(professional)/(tabs)/home" },
+      });
+
+      // 3. Feedback al Usuario (UI)
       const successTitle =
         mode === "instant" ? "Solicitud Enviada" : "Presupuesto Iniciado";
 

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { cancelReservationByClient } from "@/appSRC/reservations/Service/ReservationService"; // Ajusta la ruta a tu service
+import { cancelReservationByClient } from "@/appSRC/reservations/Service/ReservationService";
 import { Alert } from "react-native";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useRejectByClient = () => {
   const user = useAuthStore((state) => state.user);
@@ -15,7 +16,8 @@ export const useRejectByClient = () => {
    */
   const cancelReservation = async (
     reservationId: string,
-    onSuccess?: () => void
+    onSuccess?: () => void,
+    professionalId?: string
   ) => {
     // 1. Validación de Seguridad Local
     if (!user?.uid) {
@@ -33,7 +35,18 @@ export const useRejectByClient = () => {
       );
       await cancelReservationByClient(reservationId, user.uid);
 
-      // 3. Feedback Exitoso
+      // 3. Side-effect: Notificar al profesional (fire & forget)
+      if (professionalId) {
+        createNotification({
+          user_id: professionalId,
+          title: "Reserva cancelada",
+          body: "El cliente canceló la solicitud de servicio.",
+          type: "reservation_cancelled",
+          data: { reservation_id: reservationId },
+        });
+      }
+
+      // 4. Feedback Exitoso
       console.log("✅ [HOOK] Reserva cancelada correctamente.");
       if (onSuccess) onSuccess();
     } catch (err: any) {

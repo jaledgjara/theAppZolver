@@ -56,6 +56,10 @@ export function usePushNotifications() {
 
     const register = async () => {
       try {
+        console.log(
+          `🔔 [usePushNotifications] Iniciando registro. Status: ${status} | UID: ${user.uid}`
+        );
+
         const token = await registerForPushNotificationsAsync();
 
         if (!token) {
@@ -65,11 +69,24 @@ export function usePushNotifications() {
           return;
         }
 
-        // Guardar en DB. Si falla, el service loguea el error pero no crashea.
-        await savePushTokenToDatabase(user.uid, token);
+        console.log(
+          `🔔 [usePushNotifications] Token obtenido. Guardando en DB...`
+        );
 
-        // Marcar como registrado para esta sesión.
-        hasRegistered.current = true;
+        // Guardar en DB. Retorna true si el UPDATE realmente afectó la fila.
+        const saved = await savePushTokenToDatabase(user.uid, token);
+
+        if (saved) {
+          // Solo marcamos como registrado si el save fue exitoso.
+          hasRegistered.current = true;
+          console.log("✅ [usePushNotifications] Registro completo.");
+        } else {
+          // Si falló, NO marcamos hasRegistered para que reintente
+          // en el próximo cambio de status o re-render.
+          console.warn(
+            "⚠️ [usePushNotifications] Token no guardado. Se reintentará."
+          );
+        }
       } catch (error) {
         console.error(
           "❌ [usePushNotifications] Error en registro:",

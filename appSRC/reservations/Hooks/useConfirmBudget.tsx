@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { confirmBudgetService } from "../Service/ReservationService";
 import { updateBudgetMessageStatusService } from "@/appSRC/messages/Service/MessageService";
-// ✅ Importamos ambas funciones del servicio
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useConfirmBudget = () => {
   const [loading, setLoading] = useState(false);
@@ -49,7 +49,16 @@ export const useConfirmBudget = () => {
         );
       }
 
-      // PASO 3
+      // PASO 3: Notificar al profesional (fire & forget)
+      createNotification({
+        user_id: professionalId,
+        title: "Presupuesto aceptado",
+        body: "El cliente aceptó tu propuesta. Tienes un nuevo trabajo.",
+        type: "budget_accepted",
+        data: { reservation_id: newReservationId, screen: "/(professional)/(tabs)/home" },
+      });
+
+      // PASO 4
       Alert.alert("¡Éxito!", "Servicio contratado correctamente.", [
         {
           text: "Ver Reserva",

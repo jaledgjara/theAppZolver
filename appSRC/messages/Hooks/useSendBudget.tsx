@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { MessageService } from "../Service/MessageService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { BudgetPayload } from "../Type/MessageType";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useSendBudget = (
   conversationId: string,
@@ -67,6 +68,16 @@ export const useSendBudget = (
         targetClientId,
         budgetPayload
       );
+
+      // Side-effect: Notificar al cliente (fire & forget)
+      createNotification({
+        user_id: targetClientId,
+        title: "Nuevo presupuesto",
+        body: `Recibiste una propuesta de $${priceValue} por "${title}".`,
+        type: "budget_received",
+        data: { conversation_id: conversationId, screen: `/(client)/messages/MessagesDetailsScreen/${conversationId}` },
+      });
+
       Alert.alert("Enviado", "El presupuesto ha sido enviado al chat.", [
         { text: "OK", onPress: () => router.back() },
       ]);

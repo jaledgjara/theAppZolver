@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { confirmInstantReservationService } from "../Service/ReservationService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useConfirmInstantReservation = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -9,7 +10,8 @@ export const useConfirmInstantReservation = () => {
 
   const confirmRequest = async (
     reservationId: string,
-    onSuccess?: () => void // <--- Callback para refrescar la UI padre
+    onSuccess?: () => void, // <--- Callback para refrescar la UI padre
+    clientId?: string // Para notificar al cliente
   ) => {
     if (!user) return;
 
@@ -20,13 +22,23 @@ export const useConfirmInstantReservation = () => {
       // 1. Llamada al Servicio (Transacción atómica)
       await confirmInstantReservationService(reservationId, user.uid);
 
-      // 2. Ejecutar Callback de éxito
-      // Esto gatilla 'refreshActiveJob()' en IndexInstantScreen, cambiando la vista instantáneamente
+      // 2. Side-effect: Notificar al cliente (fire & forget)
+      if (clientId) {
+        createNotification({
+          user_id: clientId,
+          title: "Solicitud aceptada",
+          body: "Un profesional aceptó tu solicitud. El servicio está en curso.",
+          type: "reservation_accepted",
+          data: { reservation_id: reservationId, screen: "/(client)/(tabs)/reservations" },
+        });
+      }
+
+      // 3. Ejecutar Callback de éxito
       if (onSuccess) {
         onSuccess();
       }
 
-      // 3. Feedback Visual simple (sin navegación forzada)
+      // 4. Feedback Visual simple (sin navegación forzada)
       Alert.alert(
         "¡Trabajo Aceptado!",
         "Tu estado ahora es 'Ocupado'. Tienes el control del servicio en pantalla."
