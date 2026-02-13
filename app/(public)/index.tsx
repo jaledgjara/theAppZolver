@@ -1,236 +1,216 @@
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Platform,
+  Dimensions,
+} from "react-native";
 import { Link } from "expo-router";
 import { COLORS, SIZES } from "@/appASSETS/theme";
+import InfoCard from "@/appCOMP/website/InfoCard";
+
+// Definición de constantes para layout web
+const WEB_MAX_WIDTH = 1200;
+const isWeb = Platform.OS === "web";
 
 /**
- * LandingPage — The public-facing home page for the web.
- * Shows hero section, features, and a CTA to download/sign up.
+ * LandingPage Professional Design
+ * Nota: Navbar y Footer son manejados por app/(public)/_layout.tsx
  */
 export default function LandingPage() {
-  console.log("🏠 [LandingPage] RENDER — Landing page is mounting!");
-
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {/* ─── Hero Section ─── */}
-      <View style={styles.hero}>
-        <View style={styles.heroContent}>
-          <Text style={styles.heroTitle}>
-            Encuentra al profesional perfecto para tu hogar
-          </Text>
-          <Text style={styles.heroSubtitle}>
-            Zolver conecta clientes con profesionales verificados de confianza.
-            Solicita presupuestos, agenda servicios y paga de forma segura.
-          </Text>
-          <View style={styles.heroCta}>
-            <Link href="/(auth)/SignInScreen" asChild>
-              <Pressable style={styles.primaryButton}>
-                <Text style={styles.primaryButtonText}>Comenzar ahora</Text>
-              </Pressable>
-            </Link>
+    <View style={styles.container}>
+      {/* ─── 1. HERO SECTION (CENTERED) ─── */}
+      <View style={styles.heroSection}>
+        <View style={styles.heroContainer}>
+          <View style={styles.heroTextColumn}>
+            <Text style={styles.heroTitle}>
+              Soluciones expertas para tu hogar, al instante.
+            </Text>
+            <Text style={styles.heroSubtitle}>
+              Conectamos tu necesidad con profesionales verificados. Garantía,
+              seguridad y rapidez en una sola plataforma.
+            </Text>
+
+            <View style={styles.heroButtons}>
+              <Link href="/(auth)/SignInScreen" asChild>
+                <Pressable style={styles.ctaPrimary}>
+                  <Text style={styles.ctaPrimaryText}>Solicitar Servicio</Text>
+                </Pressable>
+              </Link>
+              <Link href="/(auth)/SignInScreen" asChild>
+                <Pressable style={styles.ctaSecondary}>
+                  <Text style={styles.ctaSecondaryText}>Soy Profesional</Text>
+                </Pressable>
+              </Link>
+            </View>
           </View>
         </View>
       </View>
 
-      {/* ─── Features Section ─── */}
+      {/* ─── 2. VALUE PROPOSITION ─── */}
       <View style={styles.featuresSection}>
-        <Text style={styles.sectionTitle}>¿Cómo funciona?</Text>
+        <Text style={styles.sectionHeader}>¿Por qué elegir Zolver?</Text>
 
-        <View style={styles.featuresGrid}>
-          <FeatureCard
-            step="1"
-            title="Publica tu solicitud"
-            description="Describe el servicio que necesitas y recibe presupuestos de profesionales cercanos."
+        <View style={styles.gridContainer}>
+          <InfoCard
+            iconName="shield-checkmark-outline"
+            title="Profesionales Verificados"
+            description="Cada Zolver pasa por un riguroso proceso de validación de identidad y antecedentes."
           />
-          <FeatureCard
-            step="2"
-            title="Compara y elige"
-            description="Revisa perfiles, valoraciones y presupuestos para elegir al mejor profesional."
+          <InfoCard
+            iconName="card-outline"
+            title="Pagos Seguros"
+            description="Tu dinero está protegido hasta que el servicio se complete satisfactoriamente."
           />
-          <FeatureCard
-            step="3"
-            title="Paga seguro"
-            description="Realiza el pago de forma segura a través de la plataforma. Sin sorpresas."
+          <InfoCard
+            iconName="flash-outline"
+            title="Respuesta Inmediata"
+            description="Nuestro algoritmo encuentra al profesional disponible más cercano en segundos."
           />
         </View>
       </View>
-
-      {/* ─── CTA Section ─── */}
-      <View style={styles.ctaSection}>
-        <Text style={styles.ctaSectionTitle}>
-          ¿Eres profesional? Únete a Zolver
-        </Text>
-        <Text style={styles.ctaSectionSubtitle}>
-          Amplía tu cartera de clientes y gestiona tus trabajos desde una sola
-          aplicación.
-        </Text>
-        <Link href="/(auth)/SignInScreen" asChild>
-          <Pressable style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Registrarme como profesional</Text>
-          </Pressable>
-        </Link>
-      </View>
-    </ScrollView>
-  );
-}
-
-/** Reusable feature card */
-function FeatureCard({
-  step,
-  title,
-  description,
-}: {
-  step: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <View style={styles.featureCard}>
-      <View style={styles.featureStep}>
-        <Text style={styles.featureStepText}>{step}</Text>
-      </View>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={styles.featureDescription}>{description}</Text>
     </View>
   );
 }
 
+// ─── STYLES ───
+
 const styles = StyleSheet.create({
-  scroll: {
+  container: {
     flex: 1,
     backgroundColor: COLORS.white,
+    // Sin ScrollView, sin Padding superior (lo maneja el layout)
   },
-  scrollContent: {
-    flexGrow: 1,
+
+  // ─── HERO SECTION ───
+  heroSection: {
+    backgroundColor: COLORS.backgroundLight || "#f8f9fa",
+    width: "100%",
+    alignItems: "center",
+    paddingVertical: 100, // Espaciado vertical generoso
+    paddingHorizontal: SIZES.padding,
   },
-  // ─── Hero ───
-  hero: {
-    backgroundColor: COLORS.backgroundLight,
+  heroContainer: {
+    flexDirection: "column", // Siempre columna para centrado
+    maxWidth: 800, // Ancho reducido para lectura centrada
+    width: "100%",
+    alignItems: "center", // Centrado horizontal
+  },
+  heroTextColumn: {
+    alignItems: "center", // Centra el contenido interno (Badge, Textos, Botones)
+    width: "100%",
+  },
+  badgeContainer: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    marginBottom: 24,
+  },
+  heroTitle: {
+    fontSize: isWeb ? 56 : 36,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    lineHeight: isWeb ? 64 : 42,
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  heroSubtitle: {
+    fontSize: 18,
+    color: COLORS.textSecondary,
+    marginBottom: 40,
+    lineHeight: 28,
+    maxWidth: 600,
+    textAlign: "center", // Texto centrado
+  },
+  heroButtons: {
+    flexDirection: "row",
+    gap: 16,
+    flexWrap: "wrap",
+    justifyContent: "center", // Botones centrados
+  },
+  ctaPrimary: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: SIZES.radius,
+    elevation: 2,
+  },
+  ctaPrimaryText: {
+    color: COLORS.white,
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  ctaSecondary: {
+    backgroundColor: "transparent",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: SIZES.radius,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  ctaSecondaryText: {
+    color: COLORS.primary,
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  // ─── FEATURES GRID ───
+  featuresSection: {
     paddingVertical: 80,
     paddingHorizontal: SIZES.padding,
     alignItems: "center",
+    backgroundColor: COLORS.white,
   },
-  heroContent: {
-    maxWidth: 720,
-    alignItems: "center",
-  },
-  heroTitle: {
-    fontSize: Platform.OS === "web" ? 48 : SIZES.h1,
-    fontWeight: "800",
-    color: COLORS.textPrimary,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  heroSubtitle: {
-    fontSize: SIZES.body3,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    lineHeight: 26,
-    marginBottom: 32,
-  },
-  heroCta: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: SIZES.radius,
-  },
-  primaryButtonText: {
-    color: COLORS.textPrimary,
-    fontWeight: "700",
-    fontSize: SIZES.body3,
-  },
-  // ─── Features ───
-  featuresSection: {
-    paddingVertical: 64,
-    paddingHorizontal: SIZES.padding,
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: SIZES.h2,
+  sectionHeader: {
+    fontSize: 32,
     fontWeight: "700",
     color: COLORS.textPrimary,
     marginBottom: 40,
     textAlign: "center",
   },
-  featuresGrid: {
-    flexDirection: Platform.OS === "web" ? "row" : "column",
-    gap: 24,
-    maxWidth: 1000,
+  gridContainer: {
+    flexDirection: isWeb ? "row" : "column",
+    maxWidth: WEB_MAX_WIDTH,
     width: "100%",
-    justifyContent: "center",
+    gap: 30,
+    justifyContent: "space-between",
   },
-  featureCard: {
+  card: {
     flex: 1,
-    backgroundColor: COLORS.backgroundLight,
-    borderRadius: SIZES.radius,
-    padding: 24,
-    alignItems: "center",
-    minWidth: 240,
-  },
-  featureStep: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  featureStepText: {
-    fontSize: SIZES.h3,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-  },
-  featureTitle: {
-    fontSize: SIZES.h3,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  featureDescription: {
-    fontSize: SIZES.body4,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  // ─── CTA Section ───
-  ctaSection: {
-    backgroundColor: COLORS.tertiary,
-    paddingVertical: 64,
-    paddingHorizontal: SIZES.padding,
-    alignItems: "center",
-  },
-  ctaSectionTitle: {
-    fontSize: SIZES.h2,
-    fontWeight: "700",
-    color: COLORS.white,
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  ctaSectionSubtitle: {
-    fontSize: SIZES.body3,
-    color: COLORS.white,
-    textAlign: "center",
-    marginBottom: 32,
-    opacity: 0.9,
-    maxWidth: 560,
-  },
-  secondaryButton: {
     backgroundColor: COLORS.white,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: SIZES.radius,
+    padding: 30,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+    alignItems: "center", // Centra contenido de tarjeta
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    minWidth: 280,
   },
-  secondaryButtonText: {
-    color: COLORS.tertiary,
+  cardIcon: {
+    fontSize: 40,
+    marginBottom: 20,
+  },
+  cardTitle: {
+    fontSize: 20,
     fontWeight: "700",
-    fontSize: SIZES.body3,
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  cardDesc: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    lineHeight: 24,
+    textAlign: "center",
   },
 });

@@ -1,121 +1,248 @@
+import React from "react";
 import { Slot, Link } from "expo-router";
-import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
+import {
+  Image,
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  Pressable,
+  Dimensions,
+  ScrollView,
+} from "react-native";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 
-/**
- * PublicLayout — Layout for the public-facing web pages.
- * Renders a top Navbar and a footer. Content is rendered via <Slot />.
- * On native platforms, it renders just the Slot without web chrome.
- */
-export default function PublicLayout() {
-  console.log("🌐 [PublicLayout] RENDER | Platform:", Platform.OS);
+const WEB_MAX_WIDTH = 1200;
+const { width } = Dimensions.get("window");
 
+export default function PublicLayout() {
+  // 1. Mobile Native: Sin layout web
   if (Platform.OS !== "web") {
     return <Slot />;
   }
 
+  // 2. Web: Estructura Profesional
   return (
-    <View style={styles.container}>
-      <PublicNavbar />
-      <View style={styles.content}>
-        <Slot />
-      </View>
-      <PublicFooter />
+    <View style={styles.mainContainer}>
+      <ProfessionalNavbar />
+
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={true}>
+        <View style={styles.pageContent}>
+          <Slot />
+        </View>
+
+        <ProfessionalFooter />
+      </ScrollView>
     </View>
   );
 }
 
-/** Top navigation bar for the public web */
-function PublicNavbar() {
+// ─── COMPONENTS ───
+
+function ProfessionalNavbar() {
   return (
     <View style={styles.navbar}>
       <View style={styles.navInner}>
-        <Link href="/(public)" asChild>
-          <Pressable>
-            <Text style={styles.logo}>Zolver</Text>
+        {/* BRAND AREA: HUGE & PROFESSIONAL */}
+        <Link href="/" asChild>
+          <Pressable style={styles.logoContainer}>
+            <Image
+              // Asegúrate de que esta ruta sea correcta en tu estructura
+              source={require("../../appASSETS/IconImage/logo-zZzNoBgX2.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <View style={styles.logoTextColumn}>
+              <Text style={styles.logoBrand}>ZOLVER</Text>
+              <Text style={styles.logoTagline}>PLATFORMA</Text>
+            </View>
           </Pressable>
         </Link>
 
-        <View style={styles.navLinks}>
-          <Link href="/(auth)/SignInScreen" asChild>
-            <Pressable style={styles.ctaButton}>
-              <Text style={styles.ctaButtonText}>Iniciar Sesión</Text>
-            </Pressable>
-          </Link>
+        {/* WEB NAVIGATION TABS */}
+        {width > 768 && (
+          <View style={styles.navTabs}>
+            <NavTab title="Servicios" href="/services" />
+            <NavTab title="Cómo funciona" href="/how-it-works" />
+            <NavTab title="Descargar App" href="/download" />
+            <NavTab title="Soporte" href="/support" />
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function NavTab({ title, href }: { title: string; href: string }) {
+  return (
+    <Link href={href as any} asChild>
+      <Pressable style={styles.navTab}>
+        <Text style={styles.navTabText}>{title}</Text>
+      </Pressable>
+    </Link>
+  );
+}
+
+function ProfessionalFooter() {
+  return (
+    <View style={styles.footer}>
+      <View style={styles.footerContent}>
+        <View>
+          <Text style={styles.footerBrand}>ZOLVER</Text>
+          <Text style={styles.footerText}>
+            © {new Date().getFullYear()} Zolver Platform. Todos los derechos
+            reservados.
+          </Text>
+        </View>
+        <View style={styles.footerLinks}>
+          <Text style={styles.footerLinkItem}>Privacidad</Text>
+          <Text style={styles.footerLinkItem}>Términos</Text>
+          <Text style={styles.footerLinkItem}>Ayuda</Text>
         </View>
       </View>
     </View>
   );
 }
 
-/** Footer for the public web */
-function PublicFooter() {
-  return (
-    <View style={styles.footer}>
-      <Text style={styles.footerText}>
-        © {new Date().getFullYear()} Zolver. Todos los derechos reservados.
-      </Text>
-    </View>
-  );
-}
+// ─── STYLES ───
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  // --- Navbar ---
+
+  // ─── NAVBAR STYLES ───
   navbar: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.tertiary,
+    height: 120, // Altura aumentada para acomodar el logo "Huge"
+    justifyContent: "center",
+    zIndex: 100,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingVertical: 12,
-    paddingHorizontal: SIZES.padding,
+    borderBottomColor: "rgba(255,255,255,0.1)",
   },
   navInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    maxWidth: 1200,
+    maxWidth: WEB_MAX_WIDTH,
     width: "100%",
     alignSelf: "center",
+    paddingHorizontal: SIZES.padding,
   },
-  logo: {
-    fontSize: SIZES.h2,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-  },
-  navLinks: {
+
+  // HUGE LOGO CONTAINER
+  logoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-  },
-  ctaButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
+    gap: 16, // Espacio entre logo y texto
     paddingVertical: 10,
-    borderRadius: SIZES.radius,
   },
-  ctaButtonText: {
-    color: COLORS.textPrimary,
-    fontWeight: "600",
-    fontSize: SIZES.body4,
+  logoImage: {
+    width: 90, // Imagen grande
+    height: 90, // Imagen grande
   },
-  // --- Content ---
-  content: {
-    flex: 1,
+  logoTextColumn: {
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "flex-start",
   },
-  // --- Footer ---
-  footer: {
-    backgroundColor: COLORS.backgroundLight,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingVertical: 24,
-    paddingHorizontal: SIZES.padding,
+  logoBrand: {
+    fontSize: 36, // Tipografía Masiva
+    fontWeight: "900", // Extra Bold
+    color: COLORS.white,
+    letterSpacing: 2,
+    lineHeight: 36, // Compacto para apilar con el tagline
+    marginTop: 16,
+  },
+  logoTagline: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.primary, // Acento de color
+    letterSpacing: 4, // Estilo "Premium"
+    textTransform: "uppercase",
+    marginTop: 5,
+  },
+
+  // TABS
+  navTabs: {
+    flexDirection: "row",
+    gap: 40,
+    height: "100%",
     alignItems: "center",
   },
+  navTab: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  navTabText: {
+    color: "rgba(255,255,255, 0.9)",
+    fontWeight: "600",
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+
+  // ─── SCROLL & CONTENT ───
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    flexDirection: "column",
+    justifyContent: "space-between",
+  },
+  pageContent: {
+    flex: 1,
+    width: "100%",
+  },
+
+  // ─── FOOTER ───
+  footer: {
+    backgroundColor: "#111", // Negro más profundo
+    paddingVertical: 60,
+    paddingHorizontal: SIZES.padding,
+    marginTop: "auto",
+  },
+  footerContent: {
+    maxWidth: WEB_MAX_WIDTH,
+    width: "100%",
+    alignSelf: "center",
+    flexDirection: width > 768 ? "row" : "column",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 40,
+  },
+  footerBrand: {
+    color: COLORS.white,
+    fontWeight: "900",
+    fontSize: 24,
+    marginBottom: 12,
+    letterSpacing: 1,
+    textAlign: width > 768 ? "left" : "center",
+  },
   footerText: {
-    color: COLORS.textSecondary,
-    fontSize: SIZES.h4,
+    color: "#666",
+    fontSize: 13,
+    textAlign: width > 768 ? "left" : "center",
+  },
+  footerLinks: {
+    flexDirection: "row",
+    gap: 32,
+  },
+  footerLinkItem: {
+    color: "#999",
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
 });
