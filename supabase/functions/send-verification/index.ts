@@ -91,8 +91,11 @@ serve(async (req: Request): Promise<Response> => {
     // Limpieza básica del número para comparar
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
-    // 1. BYPASS LOGIC
-    if (WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
+    // @ts-ignore
+    const DEV_BYPASS_ENABLED = Deno.env.get("DEV_BYPASS_ENABLED") === "true";
+
+    // 1. BYPASS LOGIC (solo activo con DEV_BYPASS_ENABLED=true)
+    if (DEV_BYPASS_ENABLED && WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
       console.log(`⚠️ DEV MODE: Mocking SEND for whitelist number: ${phone}`);
 
       return json(

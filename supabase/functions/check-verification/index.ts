@@ -107,8 +107,11 @@ serve(async (req: Request): Promise<Response> => {
     const DEV_CODE = "123456";
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
-    // 1. BYPASS LOGIC
-    if (WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
+    // @ts-ignore
+    const DEV_BYPASS_ENABLED = Deno.env.get("DEV_BYPASS_ENABLED") === "true";
+
+    // 1. BYPASS LOGIC (solo activo con DEV_BYPASS_ENABLED=true)
+    if (DEV_BYPASS_ENABLED && WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
       console.log(`⚠️ DEV MODE: Mocking CHECK for ${phone} with code ${code}`);
 
       if (code === DEV_CODE) {
