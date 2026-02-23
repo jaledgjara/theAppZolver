@@ -6,6 +6,8 @@ export interface Address {
   label: string | null;
   address_street: string;
   address_number: string;
+  city?: string | null;
+  province?: string | null;
   // Nuevos campos para lectura
   floor?: string | null;
   apartment?: string | null;
@@ -36,6 +38,26 @@ export interface CreateAddressDTO {
   longitude?: number;
 
   is_default?: boolean;
+}
+
+/**
+ * Formatea una Address como "Calle 123, Departamento, Provincia".
+ * Filtra campos vacíos y el legacy "Ubicación actual".
+ */
+export function formatAddress(addr: Address): string {
+  const street =
+    addr.address_street && addr.address_street !== "Ubicación actual"
+      ? addr.address_street
+      : "";
+  const streetFull = addr.address_number
+    ? `${street} ${addr.address_number}`.trim()
+    : street;
+
+  return (
+    [streetFull, addr.city, addr.province || "Mendoza"]
+      .filter(Boolean)
+      .join(", ") || "Ubicación actual"
+  );
 }
 
 export const LOCATION_TYPES = [

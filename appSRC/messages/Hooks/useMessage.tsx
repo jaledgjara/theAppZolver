@@ -174,6 +174,15 @@ export const useMessages = (conversationId: string, professionalId: string) => {
             ? `${senderName}: ${text.substring(0, 80)}...`
             : `${senderName}: ${text}`;
 
+        // Determinar la pantalla destino según quién RECIBE la notificación.
+        // Si yo soy client → el receptor es professional → su pantalla es /(professional)/...
+        // Si yo soy professional → el receptor es client → su pantalla es /(client)/...
+        const currentStatus = useAuthStore.getState().status;
+        const receiverScreen =
+          currentStatus === "authenticatedProfessional"
+            ? "/(client)/(tabs)/messages"
+            : "/(professional)/(tabs)/messages";
+
         createNotification({
           user_id: professionalId,
           title: "Nuevo mensaje",
@@ -181,7 +190,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
           type: "message_new",
           data: {
             conversation_id: conversationId,
-            screen: `/(client)/messages/MessagesDetailsScreen/${conversationId}`,
+            screen: receiverScreen,
           },
         });
       } catch (error) {

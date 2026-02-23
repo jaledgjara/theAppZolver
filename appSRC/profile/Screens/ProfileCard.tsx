@@ -2,17 +2,20 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { EvilIcons } from "@expo/vector-icons";
 import { SIZES, COLORS } from "@/appASSETS/theme";
+import { NotificationBadge } from "@/appCOMP/badge/NotificationBadge";
 
 interface ProfileCardProps {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  badge?: number;
 }
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({
   icon,
   title,
   subtitle,
+  badge,
 }) => {
   return (
     <View style={styles.container}>
@@ -24,6 +27,9 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
+
+      {/* Badge */}
+      {badge !== undefined && <NotificationBadge count={badge} />}
 
       {/* Right navigation arrow */}
       <View style={styles.arrowContainer}>

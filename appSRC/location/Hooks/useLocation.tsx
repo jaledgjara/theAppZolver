@@ -138,8 +138,10 @@ export function useLocation() {
       });
 
       // C. Reverse Geocoding
-      let label = "Ubicación actual";
       let street = "";
+      let streetNumber = "";
+      let city = "";
+      let province = "Mendoza";
 
       try {
         const reverse = await Location.reverseGeocodeAsync({
@@ -148,20 +150,49 @@ export function useLocation() {
         });
         if (reverse.length > 0) {
           const addr = reverse[0];
-          street = `${addr.street || ""} ${addr.streetNumber || ""}`.trim();
-          if (street) label = street;
+          console.log("📍 [GPS] Reverse geocode FULL:", JSON.stringify(addr));
+
+          // Prioridad para la calle:
+          //   1. addr.street  — "Besares" (nombre de calle)
+          //   2. addr.name    — "Besares 795" (iOS suele poner dirección completa aquí)
+          //   3. addr.district — barrio/zona como último recurso
+          street = addr.street || addr.name || addr.district || "";
+          streetNumber = addr.streetNumber || "";
+
+          // Si street ya incluye el número (ej: "Besares 795"), no duplicar.
+          if (streetNumber && street.includes(streetNumber)) {
+            streetNumber = "";
+          }
+
+          city = addr.city || addr.subregion || "";
+          province = addr.region || "Mendoza";
+
+          console.log(
+            `📍 [GPS] Parsed → street: "${street}", number: "${streetNumber}", city: "${city}", province: "${province}"`
+          );
         }
       } catch (e) {
         console.warn("No se pudo obtener nombre de calle, usando coords");
       }
 
-      // D. Crear Dirección "Virtual"
+      // D. Construir label legible: "Calle 123, Ciudad, Provincia"
+      const streetFull = streetNumber
+        ? `${street} ${streetNumber}`
+        : street;
+      const parts = [streetFull, city, province].filter(Boolean);
+      const label = parts.length > 0 ? parts.join(", ") : "Ubicación actual";
+
+      // E. Crear Dirección "Virtual"
+      //    address_street solo lleva la calle (sin ciudad ni provincia),
+      //    porque el formato final se arma en la UI con city + province.
       const gpsAddress: Address = {
         id: "gps_current",
         user_id: user?.uid || "guest",
         label: "Ubicación actual",
-        address_street: street || "Ubicación actual",
-        address_number: "",
+        address_street: street,
+        address_number: streetNumber,
+        city: city || null,
+        province: province,
         coords: {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
@@ -169,7 +200,7 @@ export function useLocation() {
         is_default: false,
       };
 
-      // E. Actualizar el Store Global
+      // F. Actualizar el Store Global
       setActiveAddress(gpsAddress);
       return true;
     } catch (err: any) {

@@ -63,7 +63,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./appASSETS/IconImage/logo-zZz.JPG",
+          "icon": "./appASSETS/IconImage/logoX2.png",
           "color": "#ffffff"
         }
       ]

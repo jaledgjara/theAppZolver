@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
+import { formatAddress } from "@/appSRC/location/Type/LocationType";
 import { PaymentMethodsService } from "@/appSRC/paymentMethod/Service/PaymentMethodService";
 import { PaymentService } from "../Service/PaymentService";
 import { CreatePaymentPayload } from "../Type/PaymentType";
@@ -176,7 +177,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           start_date: new Date().toISOString(),
           end_date: new Date(Date.now() + 3600000).toISOString(),
           address_display: activeAddress
-            ? `${activeAddress.address_street} ${activeAddress.address_number}`
+            ? formatAddress(activeAddress)
             : "Sin dirección",
           coordinates: activeAddress?.coords
             ? {

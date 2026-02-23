@@ -40,7 +40,7 @@ export const useRejectByProfessional = () => {
           title: "Solicitud rechazada",
           body: "El profesional no puede tomar el servicio en este momento.",
           type: "reservation_rejected",
-          data: { reservation_id: reservationId },
+          data: { reservation_id: reservationId, screen: "/(client)/(tabs)/reservations" },
         });
       }
 

@@ -26,6 +26,7 @@ import { CheckoutSummaryCard } from "@/appCOMP/cards/CheckoutSummaryCard";
 import { COLORS } from "@/appASSETS/theme";
 import { useReservationPricing } from "@/appSRC/reservations/Hooks/useReservationPricing";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
+import { formatAddress } from "@/appSRC/location/Type/LocationType";
 import { ProfessionalTemplate } from "@/appSRC/templates/Type/TemplateType";
 import { useProfessionalServices } from "@/appSRC/templates/Hooks/useProfessionalServices";
 
@@ -185,7 +186,7 @@ const ReservationRequestScreen = () => {
                     </Text>
                     <Text style={styles.locSub}>
                       {activeAddress
-                        ? `${activeAddress.address_street} ${activeAddress.address_number}`
+                        ? formatAddress(activeAddress)
                         : "Configura tu ubicación"}
                     </Text>
                   </View>

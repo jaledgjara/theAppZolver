@@ -42,7 +42,7 @@ export const useRejectByClient = () => {
           title: "Reserva cancelada",
           body: "El cliente canceló la solicitud de servicio.",
           type: "reservation_cancelled",
-          data: { reservation_id: reservationId },
+          data: { reservation_id: reservationId, screen: "/(professional)/(tabs)/home" },
         });
       }
 

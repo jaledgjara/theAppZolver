@@ -13,9 +13,12 @@ import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { useRouter } from "expo-router";
 import { CLIENT_MENU_ITEMS } from "@/appSRC/profile/Type/ProfileData";
 import { COLORS } from "@/appASSETS/theme";
+import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
 
 const Profile = () => {
   const router = useRouter();
+  const { unreadCount } = useUnreadCount();
+
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Perfil" />
@@ -24,7 +27,6 @@ const Profile = () => {
         data={CLIENT_MENU_ITEMS}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          // 2. ENVOLVER EN TOUCHABLE PARA HABILITAR LA NAVEGACIÓN
           <TouchableOpacity
             onPress={() => router.push(item.route as any)}
             activeOpacity={0.7}>
@@ -38,6 +40,7 @@ const Profile = () => {
               }
               title={item.title}
               subtitle={item.subtitle}
+              badge={item.icon === "notifications-outline" ? unreadCount : undefined}
             />
           </TouchableOpacity>
         )}

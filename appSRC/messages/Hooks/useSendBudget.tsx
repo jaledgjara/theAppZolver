@@ -75,7 +75,7 @@ export const useSendBudget = (
         title: "Nuevo presupuesto",
         body: `Recibiste una propuesta de $${priceValue} por "${title}".`,
         type: "budget_received",
-        data: { conversation_id: conversationId, screen: `/(client)/messages/MessagesDetailsScreen/${conversationId}` },
+        data: { conversation_id: conversationId, screen: "/(client)/(tabs)/messages" },
       });
 
       Alert.alert("Enviado", "El presupuesto ha sido enviado al chat.", [

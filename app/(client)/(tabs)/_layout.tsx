@@ -1,9 +1,12 @@
 import { Tabs } from "expo-router";
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { COLORS } from "@/appASSETS/theme";
+import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
 
 
 export default function TabsClientLayout() {
+  const { unreadCount } = useUnreadCount();
+
   return (
     <Tabs
       screenOptions={{
@@ -52,6 +55,17 @@ export default function TabsClientLayout() {
           tabBarIcon: ({ color }) => (
             <FontAwesome size={28} name="user" color={color} />
           ),
+          tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: COLORS.tertiary,
+            color: COLORS.white,
+            fontSize: 11,
+            fontWeight: "700",
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            lineHeight: 18,
+          },
         }}
       />
     </Tabs>

@@ -1,6 +1,7 @@
 // appSRC/notifications/Hooks/useUnreadCount.ts
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { useNotificationStore } from "@/appSRC/notifications/Store/NotificationStore";
 import {
   getUnreadCount,
   subscribeToUnreadCount,
@@ -12,10 +13,12 @@ import {
 // ---------------------------------------------------------------------------
 // HOOK GLOBAL: Se puede montar en CUALQUIER lugar que necesite el badge.
 //
-// ARQUITECTURA: Service-Hook-View
+// ARQUITECTURA: Service-Hook-Store-View
+//   - Usa un Zustand store (NotificationStore) para que TODOS los
+//     consumidores compartan el mismo estado. Cuando "Marcar todas como
+//     leídas" setea el count a 0, TODAS las badges se actualizan al instante.
 //   - Este hook NO importa supabase. Toda interacción con la API
 //     pasa por NotificationCrudService (Service layer).
-//   - El Service crea los canales Realtime, el hook solo hace cleanup.
 //
 // RESPONSABILIDADES:
 //   1. Fetch inicial del conteo de no leídas.
@@ -26,10 +29,12 @@ import {
 //
 // USO:
 //   const { unreadCount } = useUnreadCount();
-//   <TabBarIcon badgeCount={unreadCount} />
+//   <NotificationBadge count={unreadCount} />
 // ---------------------------------------------------------------------------
 export function useUnreadCount() {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
+  const increment = useNotificationStore((s) => s.increment);
 
   const user = useAuthStore((s) => s.user);
   const currentUserId = user?.uid ?? null;
@@ -41,7 +46,7 @@ export function useUnreadCount() {
     if (!currentUserId) return;
     const count = await getUnreadCount(currentUserId);
     setUnreadCount(count);
-  }, [currentUserId]);
+  }, [currentUserId, setUnreadCount]);
 
   // -----------------------------------------------------------------
   // SUSCRIPCIÓN REALTIME (delega al Service)
@@ -56,7 +61,7 @@ export function useUnreadCount() {
     const channel = subscribeToUnreadCount(
       currentUserId,
       // onInsert: incrementar localmente (más rápido que re-fetch).
-      () => setUnreadCount((prev) => prev + 1),
+      () => increment(),
       // onChange (UPDATE/DELETE): re-fetch para tener el número exacto.
       () => fetchCount()
     );
@@ -64,7 +69,7 @@ export function useUnreadCount() {
     return () => {
       removeChannel(channel);
     };
-  }, [currentUserId, fetchCount]);
+  }, [currentUserId, fetchCount, increment]);
 
   return { unreadCount, refetch: fetchCount };
 }

@@ -14,9 +14,11 @@ import ProfileCard from "@/appSRC/profile/Screens/ProfileCard";
 import { useRouter } from "expo-router";
 import { PROFESSIONAL_MENU_ITEMS } from "@/appSRC/profile/Type/ProfileData";
 import { COLORS } from "@/appASSETS/theme";
+import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
 
 const ProfileProfessional = () => {
   const router = useRouter();
+  const { unreadCount } = useUnreadCount();
 
   return (
     <View style={styles.container}>
@@ -26,7 +28,6 @@ const ProfileProfessional = () => {
         data={PROFESSIONAL_MENU_ITEMS}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          // 2. ENVOLVER EN TOUCHABLE PARA HABILITAR LA NAVEGACIÓN
           <TouchableOpacity
             onPress={() => router.push(item.route as any)}
             activeOpacity={0.7}>
@@ -40,6 +41,7 @@ const ProfileProfessional = () => {
               }
               title={item.title}
               subtitle={item.subtitle}
+              badge={item.icon === "notifications-outline" ? unreadCount : undefined}
             />
           </TouchableOpacity>
         )}

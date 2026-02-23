@@ -1,6 +1,7 @@
 // appSRC/notifications/Hooks/useFetchNotifications.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { useNotificationStore } from "@/appSRC/notifications/Store/NotificationStore";
 import {
   fetchNotifications,
   markAllAsRead,
@@ -42,6 +43,8 @@ export function useFetchNotifications() {
 
   const user = useAuthStore((s) => s.user);
   const currentUserId = user?.uid ?? null;
+
+  const resetUnreadCount = useNotificationStore((s) => s.reset);
 
   // -----------------------------------------------------------------
   // FETCH PAGINADO (delega al Service)
@@ -127,15 +130,18 @@ export function useFetchNotifications() {
   const handleMarkAllRead = useCallback(async () => {
     if (!currentUserId) return;
 
+    // Optimistic: reset badge to 0 instantly across all consumers.
+    resetUnreadCount();
+    setNotifications((prev) =>
+      prev.map((n) => (n.is_read ? n : { ...n, is_read: true }))
+    );
+
     try {
       await markAllAsRead(currentUserId);
-      setNotifications((prev) =>
-        prev.map((n) => (n.is_read ? n : { ...n, is_read: true }))
-      );
     } catch (error) {
       console.error("❌ [useFetchNotifications] Error marking all:", error);
     }
-  }, [currentUserId]);
+  }, [currentUserId, resetUnreadCount]);
 
   const handleDelete = useCallback(async (notificationId: string) => {
     try {

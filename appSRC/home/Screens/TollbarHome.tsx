@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLocation } from "@/appSRC/location/Hooks/useLocation";
+import { formatAddress } from "@/appSRC/location/Type/LocationType";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 
 interface ToolBarHomeProps {
@@ -18,7 +19,7 @@ export const ToolBarHome: React.FC<ToolBarHomeProps> = ({
   const { activeAddress, loading } = useLocation();
 
   const titleText = activeAddress
-    ? `${activeAddress.address_street} ${activeAddress.address_number}`
+    ? formatAddress(activeAddress)
     : loading
     ? "Cargando ubicación..."
     : "Seleccionar ubicación";

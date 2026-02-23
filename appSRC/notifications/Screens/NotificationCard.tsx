@@ -26,7 +26,10 @@ const ICON_MAP: Record<
   { name: keyof typeof Ionicons.glyphMap; color: string }
 > = {
   reservation_new: { name: "calendar-outline", color: COLORS.tertiary },
-  reservation_accepted: { name: "checkmark-circle-outline", color: COLORS.success },
+  reservation_accepted: {
+    name: "checkmark-circle-outline",
+    color: COLORS.success,
+  },
   reservation_rejected: { name: "close-circle-outline", color: COLORS.error },
   reservation_completed: { name: "trophy-outline", color: COLORS.primary },
   reservation_cancelled: { name: "ban-outline", color: COLORS.error },
@@ -79,7 +82,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 }) => {
   const iconConfig = ICON_MAP[item.type] || ICON_MAP.general;
 
-  const renderRightActions = (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
+  const renderRightActions = (
+    _progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>,
+  ) => {
     const scale = dragX.interpolate({
       inputRange: [-100, 0],
       outputRange: [1, 0],
@@ -110,11 +116,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             styles.iconBox,
             { backgroundColor: iconConfig.color + "15" },
           ]}>
-          <Ionicons
-            name={iconConfig.name}
-            size={24}
-            color={iconConfig.color}
-          />
+          <Ionicons name={iconConfig.name} size={24} color={iconConfig.color} />
         </View>
 
         {/* Contenido */}
@@ -153,21 +155,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: "#F2F2F2",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
     elevation: 2,
   },
   unreadContainer: {
-    backgroundColor: "#FFFBF0",
-    borderColor: COLORS.primary,
+    backgroundColor: "#FFFCF3",
+    borderColor: COLORS.primary + "60",
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -182,20 +184,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    ...FONTS.body4,
+    ...FONTS.h3,
     color: COLORS.textPrimary,
+    fontWeight: "500",
     flex: 1,
     marginRight: 8,
   },
   unreadTitle: {
-    fontWeight: "700",
+    fontFamily: "Roboto-Black",
   },
   time: {
+    fontFamily: "Roboto-Medium",
     fontSize: 11,
     color: COLORS.textSecondary,
+    marginBottom: 2,
   },
   body: {
     ...FONTS.body4,
+    fontSize: 12,
     color: COLORS.textSecondary,
     lineHeight: 18,
   },

@@ -14,6 +14,7 @@ import NotificationCard from "@/appSRC/notifications/Screens/NotificationCard";
 import { useFetchNotifications } from "@/appSRC/notifications/Hooks/useFetchNotifications";
 import { useMarkNotificationRead } from "@/appSRC/notifications/Hooks/useMarkNotificationRead";
 import { COLORS, FONTS } from "@/appASSETS/theme";
+import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 
 export default function NotificationsScreen() {
   const {
@@ -40,7 +41,7 @@ export default function NotificationsScreen() {
           style: "destructive",
           onPress: () => handleDelete(id),
         },
-      ]
+      ],
     );
   };
 
@@ -63,7 +64,7 @@ export default function NotificationsScreen() {
       {/* Estado: Cargando */}
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={COLORS.tertiary} />
+          <MiniLoaderScreen />
         </View>
       ) : notifications.length === 0 ? (
         /* Estado: Vacío */
@@ -90,15 +91,7 @@ export default function NotificationsScreen() {
               onDelete={() => confirmDelete(item.id)}
             />
           )}
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator
-                size="small"
-                color={COLORS.tertiary}
-                style={styles.footer}
-              />
-            ) : null
-          }
+          ListFooterComponent={loadingMore ? <MiniLoaderScreen /> : null}
         />
       )}
     </View>
@@ -108,7 +101,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.backgroundLight,
+    backgroundColor: "white",
   },
   listContent: {
     paddingHorizontal: 16,

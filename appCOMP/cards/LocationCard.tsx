@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme";
-import { Address } from "@/appSRC/location/Type/LocationType";
+import { Address, formatAddress } from "@/appSRC/location/Type/LocationType";
 
 // 🔥 CORRECCIÓN CRÍTICA: Importar con llaves { } desde la raíz
 import { Swipeable } from "react-native-gesture-handler";
@@ -81,7 +81,7 @@ const LocationCard: React.FC<LocationCardProps> = ({
             )}
           </View>
           <Text style={styles.address} numberOfLines={1}>
-            {item.address_street} {item.address_number}
+            {formatAddress(item)}
           </Text>
         </View>
 

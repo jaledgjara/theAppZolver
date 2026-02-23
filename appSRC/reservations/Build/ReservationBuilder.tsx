@@ -1,4 +1,4 @@
-import { Address } from "@/appSRC/location/Type/LocationType";
+import { Address, formatAddress } from "@/appSRC/location/Type/LocationType";
 import { ReservationPayload } from "../Type/ReservationType";
 import { ServiceTag } from "@/appSRC/categories/Service/ProfessionalCatalog";
 
@@ -40,8 +40,8 @@ export const buildReservationPayload = (
   let finalCoordsStr: string | undefined = undefined;
 
   if (input.activeAddress) {
-    const { address_street, address_number, coords } = input.activeAddress;
-    finalAddress = `${address_street} ${address_number}`;
+    finalAddress = formatAddress(input.activeAddress);
+    const { coords } = input.activeAddress;
     if (coords && coords.lng !== undefined && coords.lat !== undefined) {
       finalCoordsStr = `(${coords.lng},${coords.lat})`;
     }
