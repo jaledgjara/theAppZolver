@@ -54,6 +54,8 @@ export const mapReservationFromDTO = (
   // 4. Construcción de Entidad Limpia
   return {
     id: dto.id,
+    clientId: dto.client_id,
+    professionalId: dto.professional_id,
     roleId,
     roleName,
     roleAvatar: require("@/appASSETS/RawImages/avatar-0.jpg"),

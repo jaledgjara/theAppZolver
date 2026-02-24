@@ -47,6 +47,8 @@ export interface ReservationDTO {
 // --- 2. ENTIDAD ---
 export interface Reservation {
   id: string;
+  clientId: string;
+  professionalId: string;
   roleId: string;
   roleName: string;
   roleAvatar: any;

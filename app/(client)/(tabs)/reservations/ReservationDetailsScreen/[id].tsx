@@ -1,6 +1,5 @@
-import React, { useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   View,
@@ -9,18 +8,27 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 // Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { ReservationDetailsCard } from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { useReservationDetail } from "@/appSRC/reservations/Hooks/useClientReservationDetail";
-import {
-  getStatusConfig,
-  mapStatusToUI,
-} from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { COLORS } from "@/appASSETS/theme";
+
+// Realtime
+import {
+  subscribeToReservationStatusService,
+  unsubscribeFromChannel,
+} from "@/appSRC/reservations/Service/ReservationService";
+
+// Reviews
+import { useReviewByReservation } from "@/appSRC/reviews/Hooks/useReviewByReservation";
+import { useCreateReview } from "@/appSRC/reviews/Hooks/useCreateReview";
+import ReviewModal from "@/appSRC/reviews/Screen/ReviewModal";
+import { ReviewSummaryCard } from "@/appSRC/reviews/Screen/ReviewSummaryCard";
 
 const ReservationDetailScreen = () => {
   const { id } = useLocalSearchParams();
@@ -31,6 +39,93 @@ const ReservationDetailScreen = () => {
     reservationId,
     "client"
   );
+
+  // --- Realtime: listen for status changes ---
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  useEffect(() => {
+    if (!reservationId) return;
+
+    console.log("[REVIEW] Setting up realtime subscription for reservation:", reservationId);
+
+    channelRef.current = subscribeToReservationStatusService(
+      reservationId,
+      (newStatus) => {
+        console.log("[REVIEW] Realtime status change detected:", newStatus);
+        // Refetch reservation data so UI updates immediately
+        refetch();
+      }
+    );
+
+    return () => {
+      console.log("[REVIEW] Cleaning up realtime subscription");
+      unsubscribeFromChannel(channelRef.current);
+      channelRef.current = null;
+    };
+  }, [reservationId, refetch]);
+
+  // --- Reviews ---
+  const {
+    data: existingReview,
+    isLoading: reviewLoading,
+  } = useReviewByReservation(reservationId);
+
+  console.log("[REVIEW] existingReview:", existingReview);
+  console.log("[REVIEW] reviewLoading:", reviewLoading);
+
+  const createReview = useCreateReview();
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+
+  // Auto-show modal when reservation is completed and no review exists
+  const isCompleted = displayData?.raw.statusDTO === "completed";
+  const canReview = isCompleted && !existingReview && !reviewLoading;
+
+  console.log("[REVIEW] statusDTO:", displayData?.raw.statusDTO);
+  console.log("[REVIEW] isCompleted:", isCompleted);
+  console.log("[REVIEW] canReview:", canReview);
+
+  useEffect(() => {
+    if (canReview) {
+      console.log("[REVIEW] canReview is true -> showing modal in 600ms");
+      const timer = setTimeout(() => {
+        console.log("[REVIEW] Opening review modal now");
+        setReviewModalVisible(true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [canReview]);
+
+  const handleSubmitReview = (score: number, comment: string) => {
+    if (!displayData) return;
+    const raw = displayData.raw;
+
+    console.log("[REVIEW] Submitting review:", {
+      reservation_id: reservationId,
+      client_id: raw.clientId,
+      professional_id: raw.professionalId,
+      score,
+      comment: comment || "(empty)",
+    });
+
+    createReview.mutate(
+      {
+        reservation_id: reservationId,
+        client_id: raw.clientId,
+        professional_id: raw.professionalId,
+        score,
+        comment: comment || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          console.log("[REVIEW] Review created successfully:", data);
+          setReviewModalVisible(false);
+        },
+        onError: (error) => {
+          console.error("[REVIEW] Error creating review:", error);
+        },
+      }
+    );
+  };
 
   if (isLoading) return <MiniLoaderScreen />;
 
@@ -58,7 +153,7 @@ const ReservationDetailScreen = () => {
         {/* 1. Contraparte & Estado */}
         <ReservationDetailsCard
           type="identity"
-          viewRole="client" // Podríamos renombrar esta prop a "profile" en el componente base
+          viewRole="client"
           name={header.title}
           avatar={header.avatar}
           statusText={header.status.text}
@@ -87,9 +182,21 @@ const ReservationDetailScreen = () => {
           totalAmount={finance.total}
         />
 
-        {/* 6. Acciones Dinámicas */}
+        {/* 6. Reseña: Mostrar existente o botón para calificar */}
+        {existingReview ? (
+          <ReviewSummaryCard review={existingReview} />
+        ) : canReview ? (
+          <LargeButton
+            title="Calificar Profesional"
+            iconName="star"
+            backgroundColor={COLORS.primary}
+            onPress={() => setReviewModalVisible(true)}
+            style={{ marginVertical: 10 }}
+          />
+        ) : null}
+
+        {/* 7. Acciones Dinámicas */}
         <View style={styles.footerAction}>
-          {/* Ejemplo de extensibilidad futura */}
           {actions.canQuote && (
             <LargeButton
               title="Enviar Cotización"
@@ -99,13 +206,21 @@ const ReservationDetailScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      {/* Review Modal */}
+      <ReviewModal
+        visible={reviewModalVisible}
+        professionalName={header.title}
+        onClose={() => setReviewModalVisible(false)}
+        onSubmit={handleSubmitReview}
+        isLoading={createReview.isPending}
+      />
     </View>
   );
 };
 
 export default ReservationDetailScreen;
 
-// ... (Mismos estilos que tenías)
 const styles = StyleSheet.create({
   container: {
     flex: 1,

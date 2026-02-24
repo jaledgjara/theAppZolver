@@ -7,6 +7,7 @@ export default function ProfileLayout() {
 
       <Stack.Screen name="payment-methods" />
       <Stack.Screen name="services" />
+      <Stack.Screen name="my-reviews" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="privacy" />
       <Stack.Screen name="app-settings" />

@@ -854,6 +854,52 @@ export const subscribeToIncomingRequestsService = (
   return channel;
 };
 
+export const subscribeToReservationStatusService = (
+  reservationId: string,
+  onStatusChange: (newStatus: string) => void
+): RealtimeChannel => {
+  const channelName = `reservation_status_${reservationId}`;
+  console.log(`[REVIEW-RT] Subscribing to status changes for reservation: ${reservationId}`);
+
+  const allChannels = supabase.getChannels();
+  const staleChannel = allChannels.find(
+    (ch) => ch.topic === `realtime:${channelName}`
+  );
+  if (staleChannel) {
+    console.log("[REVIEW-RT] Cleaning stale channel before subscribing...");
+    supabase.removeChannel(staleChannel);
+  }
+
+  const channel = supabase
+    .channel(channelName)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "reservations",
+        filter: `id=eq.${reservationId}`,
+      },
+      (payload) => {
+        const newStatus = (payload.new as { status?: string }).status;
+        console.log(`[REVIEW-RT] Reservation ${reservationId} status changed to: ${newStatus}`);
+        if (newStatus) {
+          onStatusChange(newStatus);
+        }
+      }
+    )
+    .subscribe((status, err) => {
+      if (status === "SUBSCRIBED") {
+        console.log("[REVIEW-RT] Realtime connection established.");
+      }
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error(`[REVIEW-RT] Realtime Error (${status}):`, err);
+      }
+    });
+
+  return channel;
+};
+
 export const unsubscribeFromChannel = async (
   channel: RealtimeChannel | null
 ) => {

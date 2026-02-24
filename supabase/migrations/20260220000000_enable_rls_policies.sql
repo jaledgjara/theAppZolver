@@ -580,3 +580,107 @@ CREATE POLICY "user_addresses_delete_own"
 CREATE POLICY "session_logs_select_own"
   ON session_logs FOR SELECT
   USING (user_id = auth.uid());
+
+
+-- =============================================================
+--
+--   16. REVIEWS (Rating System)
+--
+--   All authenticated users can READ (public marketplace data).
+--   Only the client who owns the reservation can INSERT, and only
+--   when the reservation status is 'completed'.
+--   No UPDATE or DELETE — reviews are immutable once created.
+--
+--   CONSTRAINTS:
+--     - One review per reservation (UNIQUE on reservation_id).
+--     - Score is 1–5 (integer CHECK).
+--     - Comment is optional (nullable TEXT).
+--
+--   SECURITY NOTES:
+--   - INSERT requires client_id = _uid() (must be the caller).
+--   - INSERT requires _has_role('client') (professionals can't review).
+--   - INSERT validates the reservation belongs to the caller AND is completed.
+--   - UNIQUE(reservation_id) prevents duplicate reviews at DB level.
+--   - No UPDATE/DELETE policies = reviews cannot be tampered with.
+--   - Trigger auto-updates average_rating/review_count on professional_profiles.
+--
+-- =============================================================
+
+-- --- Schema changes for reviews ---
+ALTER TABLE professional_profiles
+  ADD COLUMN IF NOT EXISTS average_rating numeric(3,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS review_count   integer       DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  reservation_id  uuid NOT NULL REFERENCES reservations(id) ON DELETE CASCADE,
+  client_id       text NOT NULL REFERENCES user_accounts(auth_uid),
+  professional_id text NOT NULL REFERENCES user_accounts(auth_uid),
+  score           integer NOT NULL CHECK (score >= 1 AND score <= 5),
+  comment         text,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT reviews_reservation_unique UNIQUE (reservation_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_professional_id ON reviews(professional_id);
+
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+-- --- RLS Policies ---
+
+CREATE POLICY "reviews_select_all"
+  ON reviews FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "reviews_insert_client"
+  ON reviews FOR INSERT
+  WITH CHECK (
+    -- Must be the caller (no impersonation)
+    client_id = _uid()
+    -- Must have client role (professionals cannot review)
+    AND _has_role('client')
+    -- Reservation must belong to caller AND be completed
+    AND EXISTS (
+      SELECT 1 FROM reservations r
+      WHERE r.id = reservation_id
+        AND r.client_id = _uid()
+        AND r.status = 'completed'
+    )
+  );
+
+-- No UPDATE or DELETE policies — reviews are immutable.
+
+-- --- Trigger: Auto-update average_rating & review_count ---
+
+CREATE OR REPLACE FUNCTION public.update_professional_rating()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  UPDATE public.professional_profiles
+  SET
+    average_rating = (
+      SELECT COALESCE(ROUND(AVG(r.score)::numeric, 2), 0)
+      FROM public.reviews r
+      WHERE r.professional_id = NEW.professional_id
+    ),
+    review_count = (
+      SELECT COUNT(*)
+      FROM public.reviews r
+      WHERE r.professional_id = NEW.professional_id
+    )
+  WHERE user_id = NEW.professional_id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_update_professional_rating ON reviews;
+
+CREATE TRIGGER trg_update_professional_rating
+  AFTER INSERT ON reviews
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_professional_rating();
