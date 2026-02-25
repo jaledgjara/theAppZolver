@@ -1,8 +1,9 @@
-import { Slot, Link, usePathname } from "expo-router";
+import { Slot, usePathname, useRouter } from "expo-router";
 import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { useAdminAuthGuard } from "@/appSRC/auth/Hooks/useAdminAuthGuard";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import AdminLoginScreen from "@/appSRC/admin/Screen/AdminLoginScreen";
 
 /** Admin sidebar navigation items */
 interface NavItem {
@@ -21,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
  * Renders a sidebar + topbar chrome around the <Slot />.
  */
 export default function AdminLayout() {
-  const { isAdmin, isLoading } = useAdminAuthGuard();
+  const { isAdmin, isLoading, needsLogin } = useAdminAuthGuard();
 
   // While verifying admin role, show a loading state
   if (isLoading) {
@@ -30,6 +31,11 @@ export default function AdminLayout() {
         <Text style={styles.loadingText}>Verificando permisos...</Text>
       </View>
     );
+  }
+
+  // Not authenticated — show admin login screen inline (no redirect)
+  if (needsLogin) {
+    return <AdminLoginScreen onLoginSuccess={() => {}} />;
   }
 
   // If not admin, the guard already redirects. Render nothing as fallback.
@@ -64,6 +70,7 @@ export default function AdminLayout() {
 /** Sidebar navigation */
 function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <View style={styles.sidebar}>
@@ -78,33 +85,34 @@ function AdminSidebar() {
             item.href.replace("/(admin)", "")
           );
           return (
-            <Link key={item.href} href={item.href as any} asChild>
-              <Pressable
+            <Pressable
+              key={item.href}
+              style={[
+                styles.sidebarItem,
+                isActive && styles.sidebarItemActive,
+              ]}
+              onPress={() => router.push(item.href as any)}
+            >
+              <Text
                 style={[
-                  styles.sidebarItem,
-                  isActive && styles.sidebarItemActive,
+                  styles.sidebarItemText,
+                  isActive && styles.sidebarItemTextActive,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.sidebarItemText,
-                    isActive && styles.sidebarItemTextActive,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            </Link>
+                {item.label}
+              </Text>
+            </Pressable>
           );
         })}
       </View>
 
       <View style={styles.sidebarFooter}>
-        <Link href="/(public)" asChild>
-          <Pressable style={styles.sidebarItem}>
-            <Text style={styles.sidebarItemText}>Volver al sitio</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          style={styles.sidebarItem}
+          onPress={() => router.push("/(public)" as any)}
+        >
+          <Text style={styles.sidebarItemText}>Volver al sitio</Text>
+        </Pressable>
       </View>
     </View>
   );

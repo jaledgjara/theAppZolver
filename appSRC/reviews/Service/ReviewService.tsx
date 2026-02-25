@@ -73,6 +73,76 @@ export const fetchReviewByReservation = async (
 // FETCH: All reviews for a professional
 // ============================================================================
 
+// ============================================================================
+// FETCH: First completed reservation without a review (for global alert)
+// ============================================================================
+
+export interface PendingReviewReservation {
+  reservationId: string;
+  clientId: string;
+  professionalId: string;
+  professionalName: string;
+}
+
+export const fetchPendingReview = async (
+  clientId: string
+): Promise<PendingReviewReservation | null> => {
+  console.log("[REVIEW-SERVICE] fetchPendingReview for client:", clientId);
+
+  // Find completed reservations that have no review yet
+  const { data, error } = await supabase
+    .from("reservations")
+    .select("id, client_id, professional_id, professional:user_accounts!professional_id(legal_name)")
+    .eq("client_id", clientId)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[REVIEW-SERVICE] Error fetching pending reviews:", error.message);
+    return null;
+  }
+
+  if (!data || data.length === 0) {
+    console.log("[REVIEW-SERVICE] No completed reservations found");
+    return null;
+  }
+
+  // Check which ones already have a review
+  const reservationIds = data.map((r: { id: string }) => r.id);
+  const { data: existingReviews, error: reviewError } = await supabase
+    .from("reviews")
+    .select("reservation_id")
+    .in("reservation_id", reservationIds);
+
+  if (reviewError) {
+    console.error("[REVIEW-SERVICE] Error checking existing reviews:", reviewError.message);
+    return null;
+  }
+
+  const reviewedIds = new Set((existingReviews ?? []).map((r: { reservation_id: string }) => r.reservation_id));
+
+  // Find first unreviewed reservation
+  const pending = data.find((r: { id: string }) => !reviewedIds.has(r.id));
+  if (!pending) {
+    console.log("[REVIEW-SERVICE] All completed reservations already reviewed");
+    return null;
+  }
+
+  const professional = pending.professional as { legal_name: string } | null;
+  console.log("[REVIEW-SERVICE] Found pending review for reservation:", pending.id);
+
+  return {
+    reservationId: pending.id,
+    clientId: pending.client_id,
+    professionalId: pending.professional_id,
+    professionalName: professional?.legal_name ?? "Profesional",
+  };
+};
+
+// ============================================================================
+// FETCH: All reviews for a professional
+// ============================================================================
+
 export const fetchReviewsByProfessional = async (
   professionalId: string
 ): Promise<Review[]> => {

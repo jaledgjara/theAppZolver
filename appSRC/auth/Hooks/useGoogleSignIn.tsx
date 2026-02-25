@@ -16,6 +16,7 @@ export function useGoogleSignIn() {
 
   const iosClientId = process.env.EXPO_PUBLIC_FIREBASE_IOS_CLIENT ?? "";
   const androidClientId = process.env.EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT ?? "";
+  const webClientId = process.env.EXPO_PUBLIC_FIREBASE_WEB_CLIENT ?? "";
 
   // redirect nativo (reversed client id)
   const redirectUri =
@@ -28,7 +29,8 @@ export function useGoogleSignIn() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId,
     androidClientId,
-    redirectUri,
+    webClientId,
+    redirectUri: Platform.OS === "web" ? undefined : redirectUri,
     scopes: ["profile", "email", "openid"],
   });
   useEffect(() => {

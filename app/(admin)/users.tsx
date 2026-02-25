@@ -1,32 +1,92 @@
-import { View, Text, StyleSheet } from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { COLORS, SIZES } from "@/appASSETS/theme";
+import { useAdminUsers } from "@/appSRC/admin/Hooks/useAdminUsers";
+import { AdminUser, AdminUserFilters } from "@/appSRC/admin/Type/AdminTypes";
+import UserSearchBar from "@/appSRC/admin/Screen/UserSearchBar";
+import UserTableRow from "@/appSRC/admin/Screen/UserTableRow";
+import Pagination from "@/appSRC/admin/Screen/Pagination";
+import UserDetailModal from "@/appSRC/admin/Screen/UserDetailModal";
 
-/**
- * AdminUsers — User management page for the admin panel.
- * Will display a list/table of all users with filtering and actions.
- */
+const PAGE_SIZE = 20;
+
 export default function AdminUsers() {
+  const [filters, setFilters] = useState<AdminUserFilters>({
+    search: "",
+    role: "all",
+    page: 0,
+    pageSize: PAGE_SIZE,
+  });
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+
+  const { users, totalCount, isLoading, isError } = useAdminUsers(filters);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const handlePageChange = useCallback(
+    (page: number) => setFilters((f) => ({ ...f, page })),
+    []
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Gestión de Usuarios</Text>
+        <Text style={styles.countText}>
+          {totalCount} usuario{totalCount !== 1 ? "s" : ""}
+        </Text>
       </View>
+
+      <UserSearchBar filters={filters} onFiltersChange={setFilters} />
 
       <View style={styles.tableContainer}>
+        {/* Table header */}
         <View style={styles.tableHeader}>
-          <Text style={[styles.tableCell, styles.tableCellName]}>Nombre</Text>
-          <Text style={[styles.tableCell, styles.tableCellEmail]}>Email</Text>
-          <Text style={[styles.tableCell, styles.tableCellRole]}>Rol</Text>
-          <Text style={[styles.tableCell, styles.tableCellStatus]}>Estado</Text>
+          <Text style={[styles.headerCell, { flex: 3 }]}>Nombre / Email</Text>
+          <Text style={[styles.headerCell, { flex: 1.5 }]}>Rol</Text>
+          <Text style={[styles.headerCell, { flex: 1.5 }]}>Perfil</Text>
+          <Text style={[styles.headerCell, { flex: 1.5 }]}>Registro</Text>
+          <Text style={[styles.headerCell, { flex: 0.5 }]} />
         </View>
 
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>
-            La tabla de usuarios se llenará una vez conectados los servicios de
-            datos.
-          </Text>
-        </View>
+        {/* Content */}
+        {isLoading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator color={COLORS.tertiary} size="large" />
+          </View>
+        ) : isError ? (
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>
+              Error al cargar usuarios. Verificá tus permisos.
+            </Text>
+          </View>
+        ) : users.length === 0 ? (
+          <View style={styles.centered}>
+            <Text style={styles.emptyText}>No se encontraron usuarios.</Text>
+          </View>
+        ) : (
+          <ScrollView>
+            {users.map((user) => (
+              <UserTableRow
+                key={user.id}
+                user={user}
+                onPress={setSelectedUser}
+              />
+            ))}
+          </ScrollView>
+        )}
       </View>
+
+      <Pagination
+        page={filters.page}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
+
+      <UserDetailModal
+        user={selectedUser}
+        visible={selectedUser !== null}
+        onClose={() => setSelectedUser(null)}
+      />
     </View>
   );
 }
@@ -37,14 +97,18 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "baseline",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   pageTitle: {
     fontSize: SIZES.h2,
     fontWeight: "700",
     color: COLORS.textPrimary,
+  },
+  countText: {
+    fontSize: SIZES.body4,
+    color: COLORS.textSecondary,
   },
   tableContainer: {
     backgroundColor: COLORS.white,
@@ -52,6 +116,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: "hidden",
+    flex: 1,
   },
   tableHeader: {
     flexDirection: "row",
@@ -61,28 +126,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  tableCell: {
-    fontSize: SIZES.body4,
-    color: COLORS.textSecondary,
+  headerCell: {
+    fontSize: 12,
     fontWeight: "600",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  tableCellName: {
-    flex: 2,
-  },
-  tableCellEmail: {
-    flex: 3,
-  },
-  tableCellRole: {
-    flex: 1,
-  },
-  tableCellStatus: {
-    flex: 1,
-  },
-  placeholder: {
+  centered: {
     padding: 48,
     alignItems: "center",
+    justifyContent: "center",
   },
-  placeholderText: {
+  errorText: {
+    fontSize: SIZES.body4,
+    color: COLORS.error,
+    textAlign: "center",
+  },
+  emptyText: {
     fontSize: SIZES.body4,
     color: COLORS.textSecondary,
     textAlign: "center",

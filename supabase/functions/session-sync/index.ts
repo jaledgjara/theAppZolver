@@ -84,7 +84,11 @@ serve(async (req: Request) => {
   try {
     if (req.method === "OPTIONS")
       return new Response("ok", {
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Authorization, Content-Type, apikey, x-client-info",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+        },
       });
 
     // A) Verificar Firebase
@@ -184,9 +188,14 @@ serve(async (req: Request) => {
       legal_name: upsertedAccount.legal_name,
       identityStatus,
       type_work: typeWork,
+    }, {
+      headers: { "Access-Control-Allow-Origin": "*" },
     });
   } catch (err: any) {
     console.error("💥 Error:", err.message);
-    return Response.json({ ok: false, error: err.message }, { status: 400 });
+    return Response.json({ ok: false, error: err.message }, {
+      status: 400,
+      headers: { "Access-Control-Allow-Origin": "*" },
+    });
   }
 });

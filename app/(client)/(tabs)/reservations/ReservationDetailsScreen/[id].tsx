@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -24,10 +24,8 @@ import {
   unsubscribeFromChannel,
 } from "@/appSRC/reservations/Service/ReservationService";
 
-// Reviews
+// Reviews (display only — modal is handled globally by GlobalReviewAlert)
 import { useReviewByReservation } from "@/appSRC/reviews/Hooks/useReviewByReservation";
-import { useCreateReview } from "@/appSRC/reviews/Hooks/useCreateReview";
-import ReviewModal from "@/appSRC/reviews/Screen/ReviewModal";
 import { ReviewSummaryCard } from "@/appSRC/reviews/Screen/ReviewSummaryCard";
 
 const ReservationDetailScreen = () => {
@@ -46,86 +44,25 @@ const ReservationDetailScreen = () => {
   useEffect(() => {
     if (!reservationId) return;
 
-    console.log("[REVIEW] Setting up realtime subscription for reservation:", reservationId);
+    console.log("[DETAIL] Setting up realtime subscription for reservation:", reservationId);
 
     channelRef.current = subscribeToReservationStatusService(
       reservationId,
       (newStatus) => {
-        console.log("[REVIEW] Realtime status change detected:", newStatus);
-        // Refetch reservation data so UI updates immediately
+        console.log("[DETAIL] Realtime status change detected:", newStatus);
         refetch();
       }
     );
 
     return () => {
-      console.log("[REVIEW] Cleaning up realtime subscription");
+      console.log("[DETAIL] Cleaning up realtime subscription");
       unsubscribeFromChannel(channelRef.current);
       channelRef.current = null;
     };
   }, [reservationId, refetch]);
 
-  // --- Reviews ---
-  const {
-    data: existingReview,
-    isLoading: reviewLoading,
-  } = useReviewByReservation(reservationId);
-
-  console.log("[REVIEW] existingReview:", existingReview);
-  console.log("[REVIEW] reviewLoading:", reviewLoading);
-
-  const createReview = useCreateReview();
-  const [reviewModalVisible, setReviewModalVisible] = useState(false);
-
-  // Auto-show modal when reservation is completed and no review exists
-  const isCompleted = displayData?.raw.statusDTO === "completed";
-  const canReview = isCompleted && !existingReview && !reviewLoading;
-
-  console.log("[REVIEW] statusDTO:", displayData?.raw.statusDTO);
-  console.log("[REVIEW] isCompleted:", isCompleted);
-  console.log("[REVIEW] canReview:", canReview);
-
-  useEffect(() => {
-    if (canReview) {
-      console.log("[REVIEW] canReview is true -> showing modal in 600ms");
-      const timer = setTimeout(() => {
-        console.log("[REVIEW] Opening review modal now");
-        setReviewModalVisible(true);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [canReview]);
-
-  const handleSubmitReview = (score: number, comment: string) => {
-    if (!displayData) return;
-    const raw = displayData.raw;
-
-    console.log("[REVIEW] Submitting review:", {
-      reservation_id: reservationId,
-      client_id: raw.clientId,
-      professional_id: raw.professionalId,
-      score,
-      comment: comment || "(empty)",
-    });
-
-    createReview.mutate(
-      {
-        reservation_id: reservationId,
-        client_id: raw.clientId,
-        professional_id: raw.professionalId,
-        score,
-        comment: comment || undefined,
-      },
-      {
-        onSuccess: (data) => {
-          console.log("[REVIEW] Review created successfully:", data);
-          setReviewModalVisible(false);
-        },
-        onError: (error) => {
-          console.error("[REVIEW] Error creating review:", error);
-        },
-      }
-    );
-  };
+  // --- Show existing review if already submitted ---
+  const { data: existingReview } = useReviewByReservation(reservationId);
 
   if (isLoading) return <MiniLoaderScreen />;
 
@@ -182,17 +119,9 @@ const ReservationDetailScreen = () => {
           totalAmount={finance.total}
         />
 
-        {/* 6. Reseña: Mostrar existente o botón para calificar */}
+        {/* 6. Reseña existente */}
         {existingReview ? (
           <ReviewSummaryCard review={existingReview} />
-        ) : canReview ? (
-          <LargeButton
-            title="Calificar Profesional"
-            iconName="star"
-            backgroundColor={COLORS.primary}
-            onPress={() => setReviewModalVisible(true)}
-            style={{ marginVertical: 10 }}
-          />
         ) : null}
 
         {/* 7. Acciones Dinámicas */}
@@ -206,15 +135,6 @@ const ReservationDetailScreen = () => {
           )}
         </View>
       </ScrollView>
-
-      {/* Review Modal */}
-      <ReviewModal
-        visible={reviewModalVisible}
-        professionalName={header.title}
-        onClose={() => setReviewModalVisible(false)}
-        onSubmit={handleSubmitReview}
-        isLoading={createReview.isPending}
-      />
     </View>
   );
 };
@@ -242,37 +162,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1F2937",
     marginTop: 12,
-  },
-  errorText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  descriptionContainer: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#9CA3AF",
-    marginBottom: 8,
-    textTransform: "uppercase",
-  },
-  descriptionText: {
-    fontSize: 15,
-    color: "#374151",
-    lineHeight: 22,
   },
   footerAction: {
     marginTop: 10,

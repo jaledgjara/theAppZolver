@@ -65,6 +65,7 @@ function decideAuthStatus(params: {
 
   if (!hasPhone) return "preAuth";
   if (hasPhone && !role) return "phoneVerified";
+  if (role === "admin") return "authenticatedAdmin";
   if (role === "client") return "authenticated";
   if (role === "professional") {
     if (!profileComplete) return "preProfessionalForm";

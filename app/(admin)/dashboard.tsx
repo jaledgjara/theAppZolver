@@ -1,38 +1,59 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { COLORS, SIZES } from "@/appASSETS/theme";
+import { AdminUserService } from "@/appSRC/admin/Service/AdminUserService";
 
-/**
- * AdminDashboard — Main overview page for the admin panel.
- * Displays summary cards with key platform metrics.
- */
 export default function AdminDashboard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: () => AdminUserService.fetchDashboardStats(),
+    staleTime: 1000 * 60 * 5,
+  });
+
   return (
     <View style={styles.container}>
       <Text style={styles.pageTitle}>Dashboard</Text>
 
       <View style={styles.grid}>
-        <MetricCard title="Usuarios Totales" value="—" />
-        <MetricCard title="Profesionales Activos" value="—" />
-        <MetricCard title="Reservas del Mes" value="—" />
-        <MetricCard title="Ingresos del Mes" value="—" />
+        <MetricCard
+          title="Usuarios Totales"
+          value={isLoading ? "..." : String(data?.totalUsers ?? 0)}
+        />
+        <MetricCard
+          title="Clientes"
+          value={isLoading ? "..." : String(data?.totalClients ?? 0)}
+        />
+        <MetricCard
+          title="Profesionales"
+          value={isLoading ? "..." : String(data?.totalProfessionals ?? 0)}
+        />
+        <MetricCard
+          title="Profesionales Pendientes"
+          value={isLoading ? "..." : String(data?.pendingProfessionals ?? 0)}
+          highlight={!!data?.pendingProfessionals}
+        />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Actividad Reciente</Text>
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderText}>
-            Los datos se mostrarán aquí una vez conectados los servicios.
-          </Text>
+      {isLoading && (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={COLORS.tertiary} />
         </View>
-      </View>
+      )}
     </View>
   );
 }
 
-/** Reusable metric card */
-function MetricCard({ title, value }: { title: string; value: string }) {
+function MetricCard({
+  title,
+  value,
+  highlight,
+}: {
+  title: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, highlight && styles.cardHighlight]}>
       <Text style={styles.cardValue}>{value}</Text>
       <Text style={styles.cardTitle}>{title}</Text>
     </View>
@@ -64,6 +85,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  cardHighlight: {
+    borderColor: COLORS.warning,
+    borderWidth: 2,
+  },
   cardValue: {
     fontSize: SIZES.h1,
     fontWeight: "800",
@@ -74,25 +99,8 @@ const styles = StyleSheet.create({
     fontSize: SIZES.body4,
     color: COLORS.textSecondary,
   },
-  section: {
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: SIZES.h3,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-    marginBottom: 16,
-  },
-  placeholder: {
-    backgroundColor: COLORS.white,
-    borderRadius: SIZES.radius,
-    padding: 32,
+  loadingRow: {
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  placeholderText: {
-    fontSize: SIZES.body4,
-    color: COLORS.textSecondary,
+    paddingVertical: 16,
   },
 });

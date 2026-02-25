@@ -30,6 +30,10 @@ export default function Index() {
       console.log("📍 [Index] Web: Redirecting to professional home");
       return <Redirect href="/(professional)/(tabs)/home" />;
     }
+    if (status === "authenticatedAdmin") {
+      console.log("📍 [Index] Web: Redirecting to admin dashboard");
+      return <Redirect href="/(admin)/dashboard" />;
+    }
 
     // Default: show public landing
     console.log("📍 [Index] Web: Redirecting to (public) landing");

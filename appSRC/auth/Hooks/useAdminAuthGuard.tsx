@@ -6,38 +6,46 @@ import { supabase } from "@/appSRC/services/supabaseClient";
 interface AdminGuardState {
   isAdmin: boolean;
   isLoading: boolean;
+  needsLogin: boolean;
 }
 
 /**
  * useAdminAuthGuard — Verifies the current user has admin privileges.
- * First checks the local AuthStore role, then validates against Supabase.
- * Redirects away if the user is not an admin.
+ * Returns `needsLogin: true` when the user is not authenticated,
+ * so the admin layout can show its own login screen inline (no redirect).
+ * Redirects non-admin authenticated users back to the client home.
  */
 export function useAdminAuthGuard(): AdminGuardState {
   const router = useRouter();
-  const { status, user } = useAuthStore();
+  const { status, user, isBootLoading } = useAuthStore();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   useEffect(() => {
+    if (isBootLoading) return;
+
     async function checkAdminRole() {
-      // Not authenticated at all — redirect to sign in
+      // Not authenticated at all — show admin login inline
       if (
         status !== "authenticated" &&
-        status !== "authenticatedProfessional"
+        status !== "authenticatedProfessional" &&
+        status !== "authenticatedAdmin"
       ) {
         setIsLoading(false);
         setIsAdmin(false);
-        router.replace("/(auth)/SignInScreen" as any);
+        setNeedsLogin(true);
         return;
       }
 
       if (!user?.uid) {
         setIsLoading(false);
         setIsAdmin(false);
-        router.replace("/(auth)/SignInScreen" as any);
+        setNeedsLogin(true);
         return;
       }
+
+      setNeedsLogin(false);
 
       // Quick local check — the AuthStore may already have the role
       if (user.role === "admin") {
@@ -49,9 +57,9 @@ export function useAdminAuthGuard(): AdminGuardState {
       try {
         // Verify against Supabase as source of truth
         const { data, error } = await supabase
-          .from("users")
+          .from("user_accounts")
           .select("role")
-          .eq("firebase_uid", user.uid)
+          .eq("auth_uid", user.uid)
           .single();
 
         if (error || data?.role !== "admin") {
@@ -75,9 +83,9 @@ export function useAdminAuthGuard(): AdminGuardState {
     }
 
     checkAdminRole();
-  }, [status, user?.uid]);
+  }, [status, user?.uid, isBootLoading]);
 
-  return { isAdmin, isLoading };
+  return { isAdmin, isLoading, needsLogin };
 }
 
 export default useAdminAuthGuard;

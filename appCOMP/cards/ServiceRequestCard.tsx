@@ -13,6 +13,7 @@ export interface ServiceRequestCardProps {
   timeAgo: string;
   onAccept: () => void;
   onDecline: () => void;
+  onPress?: () => void;
 }
 
 export const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
@@ -24,9 +25,10 @@ export const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
   timeAgo,
   onAccept,
   onDecline,
+  onPress,
 }) => {
   return (
-    <BaseCard>
+    <BaseCard onPress={onPress}>
       {/* Top: Categoría y Tiempo */}
       <View style={styles.topRow}>
         <Text style={styles.category}>{category}</Text>

@@ -11,7 +11,8 @@ export type AuthStatus =
   | "authenticated"
   | "pendingReview"
   | "rejected"
-  | "authenticatedProfessional";
+  | "authenticatedProfessional"
+  | "authenticatedAdmin";
 
 type AuthState = {
   status: AuthStatus;

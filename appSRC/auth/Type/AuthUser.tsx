@@ -9,7 +9,8 @@ export type AuthStatus =
   | "pendingReview"
   | "rejected"
   | "authenticated"
-  | "authenticatedProfessional";
+  | "authenticatedProfessional"
+  | "authenticatedAdmin";
 
 // appSRC/auth/Model/AuthUser.ts
 

@@ -58,14 +58,8 @@ export function useAuthGuard() {
     // ---------------------------------------------------------------
     // RUTAS ADMIN: Requieren autenticación + rol admin.
     // ---------------------------------------------------------------
+    // Admin routes handle their own auth via useAdminAuthGuard + inline login
     if (inAdminGroup) {
-      if (status === "authenticated" || status === "authenticatedProfessional") {
-        return;
-      }
-      setTransitionDirection("back");
-      requestAnimationFrame(() => {
-        router.replace("/(auth)/SignInScreen" as any);
-      });
       return;
     }
 
@@ -131,6 +125,12 @@ export function useAuthGuard() {
       case "authenticatedProfessional":
         if (inProfessionalGroup) return;
         target = AUTH_PATHS.authenticatedProfessional;
+        direction = "forward";
+        break;
+
+      case "authenticatedAdmin":
+        if (inAdminGroup) return;
+        target = AUTH_PATHS.authenticatedAdmin;
         direction = "forward";
         break;
     }

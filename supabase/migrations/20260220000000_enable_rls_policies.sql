@@ -110,6 +110,9 @@ DO $$ BEGIN
   DROP POLICY IF EXISTS "user_addresses_delete_own" ON user_addresses;
   -- session_logs
   DROP POLICY IF EXISTS "session_logs_select_own" ON session_logs;
+  -- reviews
+  DROP POLICY IF EXISTS "reviews_select_all" ON reviews;
+  DROP POLICY IF EXISTS "reviews_insert_client" ON reviews;
 END $$;
 
 
@@ -607,9 +610,11 @@ CREATE POLICY "session_logs_select_own"
 -- =============================================================
 
 -- --- Schema changes for reviews ---
+-- NOTE: columns are named 'rating' and 'reviews_count' to match
+-- the existing RPC (search_professionals) and frontend code.
 ALTER TABLE professional_profiles
-  ADD COLUMN IF NOT EXISTS average_rating numeric(3,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS review_count   integer       DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS rating         double precision DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS reviews_count  integer          DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS reviews (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -651,7 +656,7 @@ CREATE POLICY "reviews_insert_client"
 
 -- No UPDATE or DELETE policies — reviews are immutable.
 
--- --- Trigger: Auto-update average_rating & review_count ---
+-- --- Trigger: Auto-update rating & reviews_count ---
 
 CREATE OR REPLACE FUNCTION public.update_professional_rating()
 RETURNS trigger
@@ -662,13 +667,13 @@ AS $$
 BEGIN
   UPDATE public.professional_profiles
   SET
-    average_rating = (
+    rating = (
       SELECT COALESCE(ROUND(AVG(r.score)::numeric, 2), 0)
       FROM public.reviews r
       WHERE r.professional_id = NEW.professional_id
     ),
-    review_count = (
-      SELECT COUNT(*)
+    reviews_count = (
+      SELECT COUNT(*)::integer
       FROM public.reviews r
       WHERE r.professional_id = NEW.professional_id
     )
