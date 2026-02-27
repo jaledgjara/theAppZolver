@@ -1,9 +1,6 @@
-// src/modules/auth/hooks/useSelectUserType.ts
-
-// src/modules/auth/hooks/useSelectUserType.ts
-
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { saveUserRole } from "../Service/SupabaseAuthService";
+import type { AuthStatus } from "../Type/AuthUser";
 
 export function useSelectUserType() {
   const { setStatus, setUser, user } = useAuthStore();
@@ -14,22 +11,31 @@ export function useSelectUserType() {
 
       const result = await saveUserRole(role, phone);
 
-      const updatedUser = {
+      setUser({
         ...user!,
-        profileComplete: result.profile_complete, // boolean from backend
-      };
+        role,
+        profileComplete: result.profile_complete,
+        identityStatus: result.identityStatus ?? null,
+      });
 
-      setUser(updatedUser);
-
+      // Use the same logic as decideAuthStatus for consistency
+      let nextStatus: AuthStatus;
       if (role === "client") {
-        setStatus("authenticated");
+        nextStatus = "authenticated";
       } else {
-        if (result.profile_complete) {
-          setStatus("authenticated");
+        if (!result.profile_complete) {
+          nextStatus = "preProfessionalForm";
+        } else if (result.identityStatus === "approved" || result.identityStatus === "verified") {
+          nextStatus = "authenticatedProfessional";
+        } else if (result.identityStatus === "rejected") {
+          nextStatus = "rejected";
         } else {
-          setStatus("preProfessionalForm");
+          nextStatus = "pendingReview";
         }
       }
+
+      console.log(`🎯 [useSelectUserType] Role: ${role} | profile_complete: ${result.profile_complete} | identityStatus: ${result.identityStatus} → ${nextStatus}`);
+      setStatus(nextStatus);
     } catch (err) {
       console.error("❌ Error selecting role:", err);
     }

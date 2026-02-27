@@ -117,6 +117,31 @@ export const AdminUserService = {
     if (error) throw new Error(error.message);
   },
 
+  /** Fetch a platform setting by key */
+  async fetchPlatformSetting(key: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", key)
+      .single();
+
+    if (error) {
+      console.error(`[AdminService] Error fetching setting '${key}':`, error.message);
+      return null;
+    }
+    return data?.value ?? null;
+  },
+
+  /** Update a platform setting */
+  async updatePlatformSetting(key: string, value: string): Promise<void> {
+    const { error } = await supabase
+      .from("platform_settings")
+      .update({ value, updated_at: new Date().toISOString() })
+      .eq("key", key);
+
+    if (error) throw new Error(error.message);
+  },
+
   /** Fetch aggregate stats for the dashboard */
   async fetchDashboardStats(): Promise<{
     totalUsers: number;

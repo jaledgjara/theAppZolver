@@ -87,41 +87,37 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const { phone, code } = await req.json().catch(() => ({} as any));
 
-    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS CONFIG ---
-    // DEBE SER IDENTICA A LA DE SEND-VERIFICATION
-    const WHITELIST_NUMBERS = [
-      "+542616837340",
-      "+542616837341",
-      "+542616837342",
-      "+542616837344",
-      "+542616837345",
-      "+542616837346",
-      "+542616837347",
-      "+542616837348",
-      "+542616837349",
-      "+542616837350",
-      "+542616837351",
-      "+542616837352",
-    ];
-
-    const DEV_CODE = "123456";
+    // --- DEV BYPASS CONFIG ---
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
     // @ts-ignore
-    const DEV_BYPASS_ENABLED = Deno.env.get("DEV_BYPASS_ENABLED") === "true";
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
+    // @ts-ignore
+    const DEV_BYPASS_ENABLED = ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
 
-    // 1. BYPASS LOGIC (solo activo con DEV_BYPASS_ENABLED=true)
-    if (DEV_BYPASS_ENABLED && WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
-      console.log(`⚠️ DEV MODE: Mocking CHECK for ${phone} with code ${code}`);
+    const DEFAULT_WHITELIST = [
+      "+542616837340","+542616837341","+542616837342","+542616837344",
+      "+542616837345","+542616837346","+542616837347","+542616837348",
+      "+542616837349","+542616837350","+542616837351","+542616837352",
+    ];
+    // @ts-ignore
+    const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
+    const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : DEFAULT_WHITELIST;
+    // @ts-ignore
+    const DEV_CODE = Deno.env.get("DEV_VERIFICATION_CODE") ?? "123456";
 
+    if (
+      DEV_BYPASS_ENABLED &&
+      WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
+    ) {
       if (code === DEV_CODE) {
         return json(
-          { valid: true, status: "approved", message: "Dev Bypass Success" },
+          { valid: true, status: "approved" },
           200
         );
       } else {
         return json(
-          { valid: false, error: "Wrong Dev Code (Use 123456)" },
+          { valid: false, error: "Código incorrecto" },
           400
         );
       }

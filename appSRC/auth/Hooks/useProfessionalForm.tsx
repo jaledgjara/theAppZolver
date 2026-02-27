@@ -3,13 +3,18 @@ import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { useAuthStore } from "../Store/AuthStore";
 import { useServiceSelection } from "../../categories/Hooks/useServiceCatalog";
-import { ServiceMode } from "@/appSRC/users/Model/ServiceMode";
-import { useProfessionalOnboardingStore } from "../Type/ProfessionalAuthUser";
+import {
+  ProfessionalTypeWork,
+  useProfessionalOnboardingStore,
+} from "../Type/ProfessionalAuthUser";
 import { ProfessionalProfileService } from "../Service/ProfessionalAuthService";
+import { InstantModeService } from "@/appSRC/users/Professional/Instant/Service/InstantProfessionalService";
 
 export function useProfessionalForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templates, setTemplates] = useState<{ id: string; label: string; basePrice: number }[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const { user, setUser, setStatus } = useAuthStore();
 
   const store = useProfessionalOnboardingStore();
@@ -33,20 +38,32 @@ export function useProfessionalForm() {
     setSelectedCategory(store.category);
   }, [store.category]);
 
-  // Lógica Zolver Ya
+  // Si la categoría no es urgente, forzar typeWork a "quote"
   useEffect(() => {
-    if (store.category) {
-      const isUrgent = store.category.is_usually_urgent;
-      let newModes = [...store.serviceModes];
-      if (!isUrgent) {
-        newModes = newModes.filter((m) => m !== "zolver_ya");
-        if (!newModes.includes("presupuesto")) newModes.push("presupuesto");
-        if (newModes.length !== store.serviceModes.length) {
-          store.setData({ serviceModes: newModes });
-        }
-      }
+    if (store.category && !store.category.is_usually_urgent) {
+      store.setTypeWork("quote");
     }
   }, [store.category]);
+
+  // Fetch templates when category changes (for pricing)
+  useEffect(() => {
+    if (!store.category?.id) {
+      setTemplates([]);
+      return;
+    }
+    const loadTemplates = async () => {
+      setLoadingTemplates(true);
+      try {
+        const data = await InstantModeService.getTemplatesByCategory(store.category.id);
+        setTemplates(data);
+      } catch (e) {
+        console.error("[useProfessionalForm] Error loading templates:", e);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+    loadTemplates();
+  }, [store.category?.id]);
 
   // --- ACCIONES ---
   const updateField = (field: string, value: any) => {
@@ -68,20 +85,11 @@ export function useProfessionalForm() {
     store.setData({ portfolioUris: newImages });
   };
 
-  const toggleServiceMode = (mode: ServiceMode) => {
-    if (
-      mode === "zolver_ya" &&
-      store.category &&
-      !store.category.is_usually_urgent
-    )
-      return;
-    const currentModes = store.serviceModes;
-    const exists = currentModes.includes(mode);
-    if (exists && currentModes.length === 1) return;
-    const newModes = exists
-      ? currentModes.filter((m) => m !== mode)
-      : [...currentModes, mode];
-    store.setData({ serviceModes: newModes });
+  const setTypeWork = (mode: ProfessionalTypeWork) => {
+    const canInstant = !!store.category?.is_usually_urgent;
+    // Block instant/hybrid for non-urgent categories
+    if (!canInstant && (mode === "instant" || mode === "hybrid")) return;
+    store.setTypeWork(mode);
   };
 
   const toggleDay = (dayName: string) => {
@@ -116,6 +124,10 @@ export function useProfessionalForm() {
     }
   };
 
+  const setCustomPrices = (updater: (prev: Record<string, string>) => Record<string, string>) => {
+    store.setData({ customPrices: updater(store.customPrices) });
+  };
+
   // --- RETURN CON ALIAS (Soluciona tus errores de tipos) ---
   return {
     ...store,
@@ -132,11 +144,17 @@ export function useProfessionalForm() {
     loadingTags,
     isSubmitting,
 
+    // Templates & pricing
+    templates,
+    loadingTemplates,
+    customPrices: store.customPrices,
+    setCustomPrices,
+
     // Acciones
     updateField,
     addPortfolioImage,
     removeImage: removePortfolioImage,
-    toggleServiceMode,
+    setTypeWork,
     toggleDay,
     submitProfile,
 

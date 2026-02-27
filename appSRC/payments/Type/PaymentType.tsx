@@ -121,7 +121,8 @@ export interface EdgeFunctionResponse<T = undefined> {
 export interface CreatePaymentResponseData {
   reservation_id: string;
   payment_id: number; // ID numérico de Mercado Pago
-  status: string;
+  status: string; // Estado de la reserva (pending_approval, etc.)
+  payment_status: "approved" | "pending"; // Estado del pago (approved = cobrado, pending = en verificación)
 }
 
 /** Respuesta tipada completa de la Edge Function de creación de pago. */

@@ -7,8 +7,7 @@ import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { PaymentMethodsService } from "../Service/PaymentMethodService";
 
-// Usa tu Public Key de prueba
-const MP_PUBLIC_KEY = "TEST-35317e28-b429-4385-8257-f0cc4c278f2c";
+const MP_PUBLIC_KEY = process.env.EXPO_PUBLIC_MP_PUBLIC_KEY!;
 
 export const useCreatePaymentMethod = () => {
   const router = useRouter();
@@ -17,48 +16,25 @@ export const useCreatePaymentMethod = () => {
   const [error, setError] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
-  // PASO A: IDENTIFICAR TARJETA (Corrige errores de Sandbox)
+  // PASO A: IDENTIFICAR TARJETA (via MP API)
   // ---------------------------------------------------------------------------
   const fetchCardInfo = async (bin: string) => {
     try {
-      console.log(`🔎 [1. Identificar] Consultando BIN ${bin}...`);
-
-      // --- CORRECCIÓN MANUAL (SANITY CHECK) ---
-      // Sandbox a veces se equivoca. Si empieza con 5 es Master, con 4 es Visa.
-      if (bin.startsWith("5")) {
-        console.warn(
-          "⚠️ [Sandbox Fix] BIN 5xxx detectado -> Forzando Mastercard (Issuer 2032)"
-        );
-        return { payment_method_id: "master", issuer_id: 2032 };
-      }
-      if (bin.startsWith("4")) {
-        console.warn(
-          "⚠️ [Sandbox Fix] BIN 4xxx detectado -> Forzando Visa (Issuer Genérico)"
-        );
-        return { payment_method_id: "visa", issuer_id: null };
-      }
-      if (bin.startsWith("3")) {
-        console.warn("⚠️ [Sandbox Fix] BIN 3xxx detectado -> Forzando Amex");
-        return { payment_method_id: "amex", issuer_id: null };
-      }
-
-      // Si no es una conocida, preguntamos a la API
       const response = await fetch(
         `https://api.mercadopago.com/v1/payment_methods/search?public_key=${MP_PUBLIC_KEY}&bin=${bin}`
       );
       const data = await response.json();
       const result = data.results && data.results[0];
 
-      if (!result) throw new Error("Tarjeta no identificada");
+      if (!result) throw new Error("Tarjeta no identificada por Mercado Pago.");
 
-      console.log("✅ [1. Identificar] MP Respondió:", result.id);
       return {
         payment_method_id: result.id,
-        issuer_id: result.issuer?.id,
+        issuer_id: result.issuer?.id ?? null,
       };
     } catch (e) {
-      console.warn("⚠️ Error identificando, usando default Master:", e);
-      return { payment_method_id: "master", issuer_id: 2032 };
+      console.error("Error identificando tarjeta:", e);
+      throw new Error("No se pudo identificar la tarjeta. Verificá los datos.");
     }
   };
 
@@ -126,31 +102,21 @@ export const useCreatePaymentMethod = () => {
 
       const bin = formValues.number.replace(/\s/g, "").substring(0, 6);
 
-      // 1. Identificar Tarjeta (Fix Sandbox)
+      // 1. Identificar Tarjeta
       const cardInfo = await fetchCardInfo(bin);
 
-      // 2. Crear Token (Inyectando Info)
+      // 2. Crear Token
       const token = await createCardToken(formValues, cardInfo);
-      console.log("🔑 [Token Generado]:", token);
 
-      // 3. Enviar a Backend (SOLO EL TOKEN)
-      // Usamos el truco del email fake para evitar conflictos de usuarios previos en Sandbox
-      const timestamp = new Date().getTime();
-      const fakeEmail = `clean_test_${timestamp}@zolver.dev`;
-
-      console.log("🚀 [3. Backend] Enviando a Edge Function...");
-      console.log("📦 Payload DB:", {
-        email: fakeEmail,
-        token: token,
-        dni: formValues.dni,
-      });
+      // 3. Enviar a Backend
+      const userEmail = user.email;
+      if (!userEmail) throw new Error("Se necesita un email asociado a tu cuenta.");
 
       const newCard = await PaymentMethodsService.savePaymentMethod({
-        user_id: user.uid || user.id, // Ajusta según tu AuthStore
-        email: fakeEmail, // Email limpio
-        token: token, // Token con info dentro
+        user_id: user.uid || user.id,
+        email: userEmail,
+        token: token,
         dni: formValues.dni,
-        // NO ENVIAMOS payment_method_id NI issuer_id AQUÍ para no confundir al backend
       });
 
       console.log("🎉 [EXITO FINAL]:", newCard);

@@ -71,32 +71,29 @@ serve(async (req: Request): Promise<Response> => {
     const { phone } = await req.json().catch(() => ({} as any));
     console.log("📞 Incoming phone:", phone);
 
-    // --- 🛡️ ZOLVER ARCHITECTURE: DEV BYPASS CONFIG ---
-    // LISTA MAESTRA DE NÚMEROS DE DESARROLLO
-    const WHITELIST_NUMBERS = [
-      "+542616837340",
-      "+542616837341",
-      "+542616837342",
-      "+542616837344", // Tu número principal
-      "+542616837345",
-      "+542616837346",
-      "+542616837347",
-      "+542616837348",
-      "+542616837349",
-      "+542616837350",
-      "+542616837351",
-      "+542616837352",
-    ];
-
-    // Limpieza básica del número para comparar
+    // --- DEV BYPASS CONFIG ---
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
     // @ts-ignore
-    const DEV_BYPASS_ENABLED = Deno.env.get("DEV_BYPASS_ENABLED") === "true";
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
+    // @ts-ignore
+    const DEV_BYPASS_ENABLED = ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
 
-    // 1. BYPASS LOGIC (solo activo con DEV_BYPASS_ENABLED=true)
-    if (DEV_BYPASS_ENABLED && WHITELIST_NUMBERS.some((num) => cleanPhone.includes(num))) {
-      console.log(`⚠️ DEV MODE: Mocking SEND for whitelist number: ${phone}`);
+    const DEFAULT_WHITELIST = [
+      "+542616837340","+542616837341","+542616837342","+542616837344",
+      "+542616837345","+542616837346","+542616837347","+542616837348",
+      "+542616837349","+542616837350","+542616837351","+542616837352",
+    ];
+    // @ts-ignore
+    const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
+    const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : DEFAULT_WHITELIST;
+
+    if (
+      DEV_BYPASS_ENABLED &&
+      ENVIRONMENT !== "production" &&
+      WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
+    ) {
+      console.log(`[DEV] Mocking SEND for whitelist number: ${phone}`);
 
       return json(
         {
@@ -105,7 +102,6 @@ serve(async (req: Request): Promise<Response> => {
           account_sid: "dev_bypass_account_sid",
           status: "pending",
           valid: true,
-          message: "Development bypass active. Use code: 123456",
         },
         200
       );

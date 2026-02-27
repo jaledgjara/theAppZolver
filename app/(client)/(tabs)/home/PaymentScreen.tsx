@@ -9,7 +9,7 @@ import { useCheckoutPayment } from "@/appSRC/payments/Hooks/useCheckoutPayment";
  * Esta vista solo renderiza el selector de tarjetas con el resumen.
  */
 export default function PaymentScreen() {
-  const { subtotal, hoursLabel, handleConfirmPayment, loading } =
+  const { subtotal, hoursLabel, platformFeeRate, handleConfirmPayment, loading } =
     useCheckoutPayment();
 
   return (
@@ -17,6 +17,7 @@ export default function PaymentScreen() {
       mode="checkout"
       subtotal={subtotal}
       hoursLabel={hoursLabel}
+      feeRate={platformFeeRate}
       onConfirmSelection={handleConfirmPayment}
       paymentLoading={loading}
     />

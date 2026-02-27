@@ -1,18 +1,21 @@
 import { create } from "zustand";
-import type { AuthUser } from "../Type/AuthUser";
+import type { AuthUser, AuthStatus } from "../Type/AuthUser";
 import { TransitionDirection } from "../Type/TransitionDirection";
 
-export type AuthStatus =
-  | "unknown"
-  | "anonymous"
-  | "preAuth" // logged in, phone NOT verified
-  | "phoneVerified" // phone verified, missing role
-  | "preProfessionalForm" // professional missing extra form
-  | "authenticated"
-  | "pendingReview"
-  | "rejected"
-  | "authenticatedProfessional"
-  | "authenticatedAdmin";
+const VALID_TRANSITIONS: Record<AuthStatus, AuthStatus[]> = {
+  unknown: ["anonymous", "preAuth", "phoneVerified", "authenticated", "authenticatedProfessional", "authenticatedAdmin", "preProfessionalForm", "pendingReview", "rejected"],
+  anonymous: ["preAuth", "unknown"],
+  preAuth: ["phoneVerified", "anonymous", "unknown"],
+  phoneVerified: ["authenticated", "preProfessionalForm", "pendingReview", "rejected", "authenticatedProfessional", "anonymous", "unknown"],
+  preProfessionalForm: ["pendingReview", "anonymous", "unknown"],
+  pendingReview: ["authenticatedProfessional", "rejected", "anonymous", "unknown"],
+  rejected: ["preProfessionalForm", "anonymous", "unknown"],
+  authenticated: ["anonymous", "unknown"],
+  authenticatedProfessional: ["anonymous", "unknown"],
+  authenticatedAdmin: ["anonymous", "unknown"],
+};
+
+const BOOT_LOADING_TIMEOUT_MS = 15_000;
 
 type AuthState = {
   status: AuthStatus;
@@ -31,6 +34,8 @@ type AuthState = {
   reset: () => void;
 };
 
+let bootLoadingTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   status: "unknown",
   user: null,
@@ -41,9 +46,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   tempPhoneNumber: null,
   setTempPhoneNumber: (phone) => set({ tempPhoneNumber: phone }),
 
-  // 👇 YA NO toca la dirección, solo cambia el status
   setStatus: (status) => {
     const prev = get().status;
+    const allowed = VALID_TRANSITIONS[prev];
+    if (allowed && !allowed.includes(status)) {
+      console.warn(
+        `[AuthStore] Invalid transition: "${prev}" → "${status}". Proceeding anyway.`
+      );
+    }
     set({
       status,
       lastStatus: prev,
@@ -51,10 +61,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
-  setBootLoading: (value) => set({ isBootLoading: value }),
+
+  setBootLoading: (value) => {
+    if (value) {
+      // Start safety timeout
+      if (bootLoadingTimer) clearTimeout(bootLoadingTimer);
+      bootLoadingTimer = setTimeout(() => {
+        const current = get().isBootLoading;
+        if (current) {
+          console.warn("[AuthStore] Boot loading timeout reached (15s). Forcing unlock.");
+          set({ isBootLoading: false });
+        }
+      }, BOOT_LOADING_TIMEOUT_MS);
+    } else {
+      if (bootLoadingTimer) {
+        clearTimeout(bootLoadingTimer);
+        bootLoadingTimer = null;
+      }
+    }
+    set({ isBootLoading: value });
+  },
+
   setTransitionDirection: (dir) => set({ transitionDirection: dir }),
 
-  reset: () =>
+  reset: () => {
+    if (bootLoadingTimer) {
+      clearTimeout(bootLoadingTimer);
+      bootLoadingTimer = null;
+    }
     set({
       status: "anonymous",
       user: null,
@@ -62,5 +96,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       transitionDirection: "back",
       lastStatus: null,
       tempPhoneNumber: null,
-    }),
+    });
+  },
 }));

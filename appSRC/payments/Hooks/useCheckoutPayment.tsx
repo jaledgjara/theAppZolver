@@ -9,18 +9,19 @@ import { PaymentService } from "../Service/PaymentService";
 import { CreatePaymentPayload } from "../Type/PaymentType";
 import { updateBudgetMessageStatusService } from "@/appSRC/messages/Service/MessageService";
 import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
+import { usePlatformFeeRate } from "./usePlatformFeeRate";
 
 // ============================================================================
 // CONSTANTES
 // ============================================================================
-const PLATFORM_FEE_RATE = 0.05;
-const MP_PUBLIC_KEY = "TEST-35317e28-b429-4385-8257-f0cc4c278f2c";
+const MP_PUBLIC_KEY = process.env.EXPO_PUBLIC_MP_PUBLIC_KEY!;
 
 // ============================================================================
 // UTILIDAD: Re-tokenizar tarjeta guardada via MP Public API
 // ============================================================================
 const createSavedCardToken = async (
   providerCardId: string,
+  cvv: string,
 ): Promise<string> => {
   console.log("[useCheckoutPayment] Re-tokenizando tarjeta guardada...");
 
@@ -31,7 +32,7 @@ const createSavedCardToken = async (
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         card_id: providerCardId,
-        security_code: "123", // TODO PROD: Reemplazar con input real del CVV
+        security_code: cvv,
       }),
     },
   );
@@ -99,6 +100,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const platformFeeRate = usePlatformFeeRate();
 
   // --- Resolver datos: config explícita tiene prioridad sobre nav params ---
   const subtotal = (config?.subtotal ?? Number(navParams.subtotal)) || 0;
@@ -116,12 +118,19 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
   const budgetPayload = config?.budgetPayload;
 
   // --- Calculo de precio ---
-  const platformFee = Math.round(subtotal * PLATFORM_FEE_RATE);
+  const platformFee = Math.round(subtotal * platformFeeRate);
   const totalAmount = subtotal + platformFee;
+
+  console.log("[useCheckoutPayment] Precio:", {
+    subtotal,
+    platformFee,
+    totalAmount,
+    feeRate: `${Math.round(platformFeeRate * 100)}%`,
+  });
 
   // --- Handler principal ---
   const handleConfirmPayment = useCallback(
-    async (selectedCardId: string) => {
+    async (selectedCardId: string, cvv: string) => {
       // LOCK: Prevenir doble-tap
       if (submittingRef.current) {
         console.warn(
@@ -159,9 +168,10 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           brand: providerDetails.brand,
         });
 
-        // STEP 2: Re-tokenizar
+        // STEP 2: Re-tokenizar con CVV real
         const realToken = await createSavedCardToken(
           providerDetails.provider_card_id,
+          cvv,
         );
 
         // STEP 3: Construir payload
@@ -199,26 +209,32 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
 
         // STEP 4: Procesar pago via Edge Function
         const data = await PaymentService.createPayment(payload);
+        const isPaymentPending = data.payment_status === "pending";
+
         console.log(
-          "[useCheckoutPayment] Payment success:",
+          `[useCheckoutPayment] Payment ${isPaymentPending ? "PENDING" : "APPROVED"}:`,
           data.reservation_id,
         );
 
         // STEP 5: Notificar al profesional (fire & forget)
-        createNotification({
-          user_id: professionalId,
-          title: "Pago recibido",
-          body: `Se procesó un pago de $${totalAmount} por un servicio.`,
-          type: "payment_received",
-          data: { reservation_id: data.reservation_id, screen: "/(professional)/(tabs)/home" },
-        });
+        // Solo notificamos inmediatamente si el pago fue aprobado.
+        // Si está pendiente, el webhook notificará cuando MP confirme.
+        if (!isPaymentPending) {
+          createNotification({
+            user_id: professionalId,
+            title: "Pago recibido",
+            body: `Se procesó un pago de $${totalAmount} por un servicio.`,
+            type: "payment_received",
+            data: { reservation_id: data.reservation_id, screen: "/(professional)/(tabs)/home" },
+          });
+        }
 
         // STEP 6 (Budget only): Actualizar mensaje a "confirmed"
         if (messageId) {
           try {
             const updatedPayload = {
               ...(budgetPayload || {}),
-              status: "confirmed",
+              status: isPaymentPending ? "pending_payment" : "confirmed",
             };
             const updated = await updateBudgetMessageStatusService(
               messageId,
@@ -232,17 +248,33 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
               "[useCheckoutPayment] Failed to update message status:",
               msgErr,
             );
-            // No bloqueamos: el pago ya fue exitoso
           }
         }
 
-        // STEP 7: Navegar al tab de reservas
-        Alert.alert("Pago procesado", "Tu reserva fue creada exitosamente.", [
-          {
-            text: "Ver mis reservas",
-            onPress: () => router.replace("/(client)/(tabs)/reservations"),
-          },
-        ]);
+        // STEP 7: Feedback al usuario según estado del pago
+        if (isPaymentPending) {
+          Alert.alert(
+            "Pago en proceso",
+            "Tu pago está siendo verificado por la entidad bancaria. Te notificaremos cuando se confirme. Esto puede demorar unos minutos.",
+            [
+              {
+                text: "Ver mis reservas",
+                onPress: () => router.replace("/(client)/(tabs)/reservations"),
+              },
+            ],
+          );
+        } else {
+          Alert.alert(
+            "Pago procesado",
+            "Tu reserva fue creada exitosamente.",
+            [
+              {
+                text: "Ver mis reservas",
+                onPress: () => router.replace("/(client)/(tabs)/reservations"),
+              },
+            ],
+          );
+        }
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Error procesando el pago.";
@@ -272,6 +304,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
     error,
     subtotal,
     hoursLabel,
+    platformFeeRate,
     handleConfirmPayment,
   };
 };

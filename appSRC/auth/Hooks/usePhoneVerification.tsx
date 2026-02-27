@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export function usePhoneVerification() {
   const [loading, setLoading] = useState(false);
@@ -43,15 +42,18 @@ export function usePhoneVerification() {
         data = { error: "Invalid JSON", raw };
       }
 
+      console.log("[sendCode] Response status:", res.status, "data:", JSON.stringify(data));
+
       if (!res.ok || data.error) {
-        throw new Error(data.error || "No se pudo enviar el código");
+        const errorMsg = data.error || data.details?.message || `Error del servidor (${res.status})`;
+        throw new Error(errorMsg);
       }
 
-      return { ok: true };
+      return { ok: true, error: null };
     } catch (e: any) {
+      console.error("[sendCode] Error:", e.message);
       setError(e.message);
-      Alert.alert("Error", e.message);
-      return { ok: false };
+      return { ok: false, error: e.message };
     } finally {
       setLoading(false);
     }
@@ -88,8 +90,6 @@ const verifyCode = async (phone: string, code: string) => {
     if (!res.ok || data.error || !data.valid) {
       throw new Error(data.error || "Código incorrecto o expirado");
     }
-
-    await AsyncStorage.setItem("profileComplete", "false");
 
     setUser({
       ...(user as any),

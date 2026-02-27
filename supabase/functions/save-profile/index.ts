@@ -1,30 +1,13 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 
 // Clientes
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
-
-function decodeJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
 
 serve(async (req: Request) => {
   // Manejo de CORS (Opcional si lo maneja Supabase, pero recomendado)
@@ -39,14 +22,12 @@ serve(async (req: Request) => {
   }
 
   try {
-    // 1. Validar Token
+    // 1. Validar Token (verificación criptográfica)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing Auth Header");
 
-    const token = authHeader.replace("Bearer ", "");
-    const payload = decodeJwt(token);
-
-    if (!payload || !payload.sub) throw new Error("Invalid Token");
+    const token = authHeader.replace("Bearer ", "").trim();
+    const payload = await verifyFirebaseJWT(token);
     const userId = payload.sub;
 
     // 2. Obtener datos
@@ -55,8 +36,8 @@ serve(async (req: Request) => {
 
     console.log(`[save-profile] Guardando perfil para: ${userId}`);
 
-    // 🔥 CORRECCIÓN: Faltaba definir esta variable
-    const hasZolverYa = profileData.serviceModes?.includes("zolver_ya");
+    const hasZolverYa =
+      profileData.typeWork === "instant" || profileData.typeWork === "hybrid";
 
     const finalPrice =
       hasZolverYa && profileData.instantServicePrice
@@ -109,9 +90,10 @@ serve(async (req: Request) => {
     });
   } catch (err: any) {
     console.error("Error saving profile:", err);
+    const isAuthError = err.message?.includes("JWT") || err.message?.includes("signature") || err.message?.includes("audience");
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { "Content-Type": "application/json" },
-      status: 500,
+      status: isAuthError ? 401 : 500,
     });
   }
 });

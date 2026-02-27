@@ -166,16 +166,47 @@ serve(async (req) => {
 
     const paymentResult = await mpResponse.json();
 
-    if (
-      paymentResult.status !== "approved" &&
-      paymentResult.status !== "in_process"
-    ) {
-      console.error("Pago fallido MP:", paymentResult);
+    // -----------------------------------------------------------------------
+    // LAYER 4b: CLASIFICACIÓN DE RESULTADO MP
+    //
+    // Production-grade status handling:
+    //   approved   → Pago confirmado. Crear reserva + registro de pago.
+    //   in_process → Pago pendiente (3D Secure, revisión manual, etc.).
+    //                Crear reserva + registro con status "pending".
+    //                El webhook de MP confirmará/rechazará después.
+    //   rejected   → Pago rechazado. NO crear reserva. Devolver error con detalle.
+    //   other      → Estado inesperado. Tratar como rechazo.
+    // -----------------------------------------------------------------------
+    const mpStatus = paymentResult.status;
+    const isApproved = mpStatus === "approved";
+    const isPending = mpStatus === "in_process";
+
+    if (!isApproved && !isPending) {
+      // Construir mensaje de error descriptivo para el usuario
+      const statusDetail = paymentResult.status_detail || "";
+      const rejectionMessages: Record<string, string> = {
+        cc_rejected_bad_filled_card_number: "Número de tarjeta incorrecto.",
+        cc_rejected_bad_filled_date: "Fecha de vencimiento incorrecta.",
+        cc_rejected_bad_filled_other: "Datos de la tarjeta incorrectos.",
+        cc_rejected_bad_filled_security_code: "Código de seguridad incorrecto.",
+        cc_rejected_blacklist: "Tu tarjeta no puede ser utilizada.",
+        cc_rejected_call_for_authorize: "Debés autorizar el pago con tu banco.",
+        cc_rejected_card_disabled: "Tarjeta deshabilitada. Contactá a tu banco.",
+        cc_rejected_duplicated_payment: "Ya procesaste un pago por este monto. Esperá unos minutos.",
+        cc_rejected_high_risk: "Pago rechazado por seguridad. Intentá con otra tarjeta.",
+        cc_rejected_insufficient_amount: "Fondos insuficientes.",
+        cc_rejected_invalid_installments: "Cantidad de cuotas no válida.",
+        cc_rejected_max_attempts: "Superaste el máximo de intentos. Intentá en unos minutos.",
+        cc_rejected_other_reason: "La tarjeta no pudo procesar el pago.",
+      };
+      const userMessage =
+        rejectionMessages[statusDetail] ||
+        paymentResult.message ||
+        "No se pudo procesar el pago. Intentá con otra tarjeta.";
+
+      console.error(`[Zolver-Edge] Pago rechazado. Status: ${mpStatus}, Detail: ${statusDetail}`);
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: paymentResult.message || "No se pudo procesar el pago.",
-        }),
+        JSON.stringify({ success: false, error: userMessage }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
@@ -183,15 +214,32 @@ serve(async (req) => {
       );
     }
 
+    // Status para persistir según resultado de MP
+    const paymentDbStatus = isApproved ? "approved" : "pending";
+    const reservationStatus = "pending_approval";
+
+    console.log(
+      `[Zolver-Edge] MP Result → status: ${mpStatus}, paymentDb: ${paymentDbStatus}, reservation: ${reservationStatus}`
+    );
+
     // -----------------------------------------------------------------------
     // LAYER 5: PERSISTENCIA ATÓMICA Y CONSISTENCIA DE DATOS
     // -----------------------------------------------------------------------
 
     // A. Calcular desglose de precio (el frontend envía el total con fee incluida)
-    // totalAmount = subtotal * 1.10 → subtotal = totalAmount / 1.10
+    // Leemos el fee rate de la DB para que sea consistente con el admin dashboard.
+    const { data: settingRow } = await supabaseClient
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "platform_fee_rate")
+      .single();
+
+    const feeRate = parseFloat(settingRow?.value ?? "0.10") || 0.10;
     const totalAmount = Number(amount);
-    const subtotalCalc = Math.round(totalAmount / 1.10);
+    const subtotalCalc = Math.round(totalAmount / (1 + feeRate));
     const platformFeeCalc = totalAmount - subtotalCalc;
+
+    console.log(`[Zolver-Edge] Fee breakdown: total=${totalAmount}, subtotal=${subtotalCalc}, fee=${platformFeeCalc} (${(feeRate * 100).toFixed(0)}%)`);
 
     // B. Insertar Reserva via RPC (misma función que usa el frontend)
     // Esto garantiza compatibilidad con triggers, defaults y NOT NULL constraints.
@@ -208,7 +256,7 @@ serve(async (req) => {
         p_address_display: address_display,
         p_address_coords: pointFormat,
         p_range: scheduledRangeFormat,
-        p_status: "pending_approval",
+        p_status: reservationStatus,
         p_price_estimated: subtotalCalc,
         p_price_final: totalAmount,
         p_platform_fee: platformFeeCalc,
@@ -258,7 +306,7 @@ serve(async (req) => {
       professional_id: professional_id,
       amount: amount,
       currency: "ARS",
-      status: "approved",
+      status: paymentDbStatus,
       method: method || "credit_card", // DB enum: credit_card | debit_card | platform_credit
       payment_method_id: saved_card_id || null, // FK -> user_payment_methods (null for new cards)
       provider_payment_id: paymentResult.id.toString(), // ID MP para futuros reembolsos
@@ -279,7 +327,8 @@ serve(async (req) => {
         data: {
           reservation_id: reservationId,
           payment_id: paymentResult.id,
-          status: "pending_approval",
+          status: reservationStatus,
+          payment_status: paymentDbStatus,
         },
       }),
       {

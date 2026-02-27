@@ -1,28 +1,53 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/appASSETS/theme"; // Asegúrate que la ruta sea correcta
-import { ServiceMode } from "@/appSRC/users/Model/ServiceMode";
+import { COLORS } from "@/appASSETS/theme";
+import { ProfessionalTypeWork } from "@/appSRC/auth/Type/ProfessionalAuthUser";
 
 interface Props {
-  modes: string[]; // ['instant'] | ['quote'] | ['instant', 'quote']
+  typeWork: ProfessionalTypeWork;
   isDisabled?: boolean;
-  onToggle: (mode: "instant" | "quote") => void;
+  allowHybrid?: boolean;
+  onSelect: (mode: ProfessionalTypeWork) => void;
 }
 
 export const ServiceSwitcherCatalog: React.FC<Props> = ({
-  modes,
+  typeWork,
   isDisabled,
-  onToggle,
+  allowHybrid = false,
+  onSelect,
 }) => {
-  const getModeDescriptionText = () => {
-    const hasInstant = modes.includes("instant");
-    const hasQuote = modes.includes("quote");
+  const isInstant = typeWork === "instant" || typeWork === "hybrid";
+  const isQuote = typeWork === "quote" || typeWork === "hybrid";
 
-    if (hasInstant && hasQuote) {
+  const handleInstantPress = () => {
+    if (isDisabled) return;
+    if (allowHybrid) {
+      // Toggle instant on/off. If quote is also on, result is hybrid or quote-only.
+      if (isInstant && isQuote) onSelect("quote");       // was hybrid → remove instant
+      else if (isInstant) return;                          // can't deselect both
+      else onSelect(isQuote ? "hybrid" : "instant");       // add instant
+    } else {
+      onSelect("instant");
+    }
+  };
+
+  const handleQuotePress = () => {
+    if (allowHybrid) {
+      // Toggle quote on/off. If instant is also on, result is hybrid or instant-only.
+      if (isQuote && isInstant) onSelect("instant");      // was hybrid → remove quote
+      else if (isQuote) return;                             // can't deselect both
+      else onSelect(isInstant ? "hybrid" : "quote");       // add quote
+    } else {
+      onSelect("quote");
+    }
+  };
+
+  const getModeDescriptionText = () => {
+    if (typeWork === "hybrid") {
       return "Ideal para emergencias con tarifas base y proyectos a medida que requieren una cotización detallada previa.";
     }
-    if (hasInstant) {
+    if (typeWork === "instant") {
       return "Los clientes te contratan al instante para emergencias o tareas rápidas con tarifas predefinidas.";
     }
     return "Recibes solicitudes detalladas, evalúas el trabajo y envías tu presupuesto antes de ser contratado.";
@@ -35,12 +60,12 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
         <TouchableOpacity
           style={[
             styles.switchButton,
-            modes.includes("instant") && styles.switchButtonActive,
+            isInstant && styles.switchButtonActive,
             isDisabled && styles.switchButtonDisabled,
           ]}
-          onPress={() => !isDisabled && onToggle("instant")}
+          onPress={handleInstantPress}
           activeOpacity={isDisabled ? 1 : 0.8}>
-          {modes.includes("instant") && (
+          {isInstant && (
             <Ionicons
               name="flash"
               size={16}
@@ -51,7 +76,7 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
           <Text
             style={[
               styles.switchText,
-              modes.includes("instant") && styles.switchTextActive,
+              isInstant && styles.switchTextActive,
               isDisabled && { color: "#CCC" },
             ]}>
             Zolver Ya
@@ -62,11 +87,11 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
         <TouchableOpacity
           style={[
             styles.switchButton,
-            modes.includes("quote") && styles.switchButtonActive,
+            isQuote && styles.switchButtonActive,
           ]}
-          onPress={() => onToggle("quote")}
+          onPress={handleQuotePress}
           activeOpacity={0.8}>
-          {modes.includes("quote") && (
+          {isQuote && (
             <Ionicons
               name="document-text"
               size={16}
@@ -77,7 +102,7 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
           <Text
             style={[
               styles.switchText,
-              modes.includes("quote") && styles.switchTextActive,
+              isQuote && styles.switchTextActive,
             ]}>
             Presupuesto
           </Text>
@@ -115,7 +140,7 @@ const styles = StyleSheet.create({
   },
   switchButtonActive: {
     marginHorizontal: 5,
-    backgroundColor: "#FFFFFF", // O COLORS.white
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,

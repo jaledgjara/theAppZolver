@@ -355,6 +355,57 @@ export async function signOutFirebase(): Promise<void> {
 }
 // ... imports anteriores
 
+// =========================================================
+// 4. Passwordless Email Sign-In
+// =========================================================
+
+const ACTION_CODE_SETTINGS = {
+  url: process.env.EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL ?? "https://thezolverapp.web.app/auth/email-link",
+  handleCodeInApp: true,
+  iOS: { bundleId: process.env.EXPO_PUBLIC_IOS_BUNDLE_ID ?? "com.zolver.app" },
+  android: {
+    packageName: process.env.EXPO_PUBLIC_ANDROID_PACKAGE ?? "com.zolver.app",
+    installApp: true,
+  },
+};
+
+export async function sendSignInLinkToEmailFirebase(
+  email: string
+): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await sendSignInLinkToEmail(auth, email, ACTION_CODE_SETTINGS);
+    await AsyncStorage.setItem("emailForSignIn", email);
+    return { ok: true };
+  } catch (e: unknown) {
+    const error = e as { message?: string };
+    return { ok: false, message: error.message ?? "Error sending email link" };
+  }
+}
+
+export async function handleSignInWithEmailLinkFirebase(
+  url: string
+): Promise<SignInResult> {
+  try {
+    if (!isSignInWithEmailLink(auth, url)) {
+      return { ok: false, message: "URL is not a valid sign-in link" };
+    }
+
+    let email = await AsyncStorage.getItem("emailForSignIn");
+    if (!email) {
+      return { ok: false, message: "No email found. Please enter your email again." };
+    }
+
+    await signInWithEmailLink(auth, email, url);
+    await AsyncStorage.removeItem("emailForSignIn");
+
+    // The AuthListener will handle the rest (sync, status, etc.)
+    return { ok: true, user: mapFirebaseUserToAuthUser(auth.currentUser!) };
+  } catch (e: unknown) {
+    const error = e as { code?: string; message?: string };
+    return { ok: false, code: error.code, message: error.message ?? String(e) };
+  }
+}
+
 export async function deleteUserAccount(): Promise<{
   ok: boolean;
   message?: string;

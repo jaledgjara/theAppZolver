@@ -7,11 +7,17 @@ import { useSelectUserType } from '@/appSRC/auth/Hooks/useSelectUserType'
 
 const TypeOfUserScreen = () => {
   const [selectedType, setSelectedType] = useState<"client" | "professional" | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { selectRole } = useSelectUserType();
 
   const handleConfirmUserType = async () => {
-    if (!selectedType) return;
-    await selectRole(selectedType);
+    if (!selectedType || isLoading) return;
+    setIsLoading(true);
+    try {
+      await selectRole(selectedType);
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <View style={styles.container}>

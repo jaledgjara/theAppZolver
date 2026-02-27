@@ -24,8 +24,8 @@ const ProfessionalSettingsWorkScreen = () => {
     templates,
     customPrices,
     setCustomPrices,
-    activeModes,
-    handleToggleMode, // Usamos la función del hook
+    typeWork,
+    handleSelectMode,
     handleSave,
     loading,
     isSaving,
@@ -55,13 +55,13 @@ const ProfessionalSettingsWorkScreen = () => {
           </Text>
           {/* Conectado al Hook centralizado */}
           <ServiceSwitcherCatalog
-            modes={activeModes}
-            onToggle={(mode) => handleToggleMode(mode)}
+            typeWork={typeWork}
+            onSelect={handleSelectMode}
           />
         </View>
 
         {/* SECCIÓN 2: TARIFAS */}
-        {activeModes.includes("instant") && (
+        {(typeWork === "instant" || typeWork === "hybrid") && (
           <View>
             <Text style={styles.label}>Tus Tarifas Zolver Ya</Text>
             <Text style={styles.subLabel}>

@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { InstantModeService } from "../Service/InstantProfessionalService";
 import { useRouter } from "expo-router";
+import { ProfessionalTypeWork } from "@/appSRC/auth/Type/ProfessionalAuthUser";
 
 export const useProfessionalSettings = () => {
   const { user } = useAuthStore();
@@ -13,20 +14,15 @@ export const useProfessionalSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
-  const [activeModes, setActiveModes] = useState<string[]>([]);
+  const [typeWork, setTypeWork] = useState<ProfessionalTypeWork>("instant");
 
   const resolveIdentity = useCallback(async (uid: string) => {
     setLoading(true);
     try {
       const profile = await InstantModeService.getProfessionalProfileByUid(uid);
       if (profile) {
-        const modes =
-          profile.type_work === "hybrid"
-            ? ["instant", "quote"]
-            : [profile.type_work || "instant"];
-        setActiveModes(modes);
+        setTypeWork((profile.type_work as ProfessionalTypeWork) || "instant");
 
-        // Fetch usando UID de Firebase
         const [allTemplates, currentPrices] = await Promise.all([
           InstantModeService.getTemplatesByCategory(profile.main_category_id),
           InstantModeService.getProfessionalPrices(uid),
@@ -48,19 +44,8 @@ export const useProfessionalSettings = () => {
     if (user?.uid) resolveIdentity(user.uid);
   }, [user?.uid, resolveIdentity]);
 
-  /**
-   * REGLA DE NEGOCIO: Toggle de modalidades
-   * Impide que el profesional desactive ambos modos.
-   */
-  const handleToggleMode = (mode: string) => {
-    setActiveModes((prev) => {
-      if (prev.includes(mode)) {
-        // Si el modo ya está activo, solo permitir quitarlo si hay otro activo
-        return prev.length > 1 ? prev.filter((m) => m !== mode) : prev;
-      }
-      // Si no está activo, lo agregamos
-      return [...prev, mode];
-    });
+  const handleSelectMode = (mode: ProfessionalTypeWork) => {
+    setTypeWork(mode);
   };
 
   const handleSave = async () => {
@@ -68,8 +53,6 @@ export const useProfessionalSettings = () => {
     setIsSaving(true);
 
     try {
-      const typeWork = activeModes.length === 2 ? "hybrid" : activeModes[0];
-
       // 1. Guardar modo
       await InstantModeService.updateWorkProfile(user.uid, typeWork);
 
@@ -99,10 +82,10 @@ export const useProfessionalSettings = () => {
     templates,
     customPrices,
     setCustomPrices,
-    activeModes,
+    typeWork,
     handleSave,
     loading,
     isSaving,
-    handleToggleMode,
+    handleSelectMode,
   };
 };

@@ -85,13 +85,18 @@ export function useAuthGuard() {
           const currentSimple = normalize(pathname);
           const expectedSimple = normalize(expectedPath);
 
-          // Excepciones (Verificación Teléfono / Email)
+          // Excepciones: sub-pantallas permitidas dentro de un mismo status
           if (
             status === "preAuth" &&
             currentSimple === "/PhoneVerificationScreen"
           )
             return;
           if (status === "anonymous" && currentSimple === "/SignInEmailScreen")
+            return;
+          if (
+            status === "preProfessionalForm" &&
+            currentSimple.startsWith("/FormProfessional")
+          )
             return;
 
           if (currentSimple !== expectedSimple) {

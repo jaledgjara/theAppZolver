@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { ServiceCategory } from "@/appSRC/categories/Hooks/useServiceCatalog";
+import CategoryIcon from "@/appCOMP/icons/CategoryIcon";
 
 interface Props {
   visible: boolean;
@@ -66,8 +67,8 @@ export const CategorySelectorModal: React.FC<Props> = ({
                         styles.iconBox,
                         isSelected && { backgroundColor: COLORS.primary },
                       ]}>
-                      <Ionicons
-                        name={(item.icon_slug as any) || "cube"}
+                      <CategoryIcon
+                        categoryName={item.name}
                         size={20}
                         color={isSelected ? "white" : COLORS.textSecondary}
                       />

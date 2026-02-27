@@ -30,6 +30,7 @@ const INITIAL_DATA = {
   typeWork: "instant" as ProfessionalTypeWork,
 
   instantServicePrice: "",
+  customPrices: {} as Record<string, string>,
   location: null,
   radiusKm: 5,
   schedule: INITIAL_SCHEDULE,
@@ -50,6 +51,7 @@ interface OnboardingState {
   typeWork: ProfessionalTypeWork;
 
   instantServicePrice: string;
+  customPrices: Record<string, string>;
   location: { latitude: number; longitude: number } | null;
   radiusKm: number;
   schedule: typeof INITIAL_SCHEDULE;

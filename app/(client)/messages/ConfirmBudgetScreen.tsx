@@ -51,7 +51,7 @@ const ConfirmBudgetScreen = () => {
   };
 
   // 3. Hook de checkout reutilizable
-  const { subtotal, hoursLabel, handleConfirmPayment, loading } =
+  const { subtotal, hoursLabel, platformFeeRate, handleConfirmPayment, loading } =
     useCheckoutPayment(checkoutConfig);
 
   // --- Estado: Validando presupuesto ---
@@ -79,6 +79,7 @@ const ConfirmBudgetScreen = () => {
       mode="checkout"
       subtotal={subtotal}
       hoursLabel={hoursLabel}
+      feeRate={platformFeeRate}
       infoLabel="Servicio"
       infoSuffix=""
       onConfirmSelection={handleConfirmPayment}

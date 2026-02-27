@@ -14,7 +14,7 @@ export interface ServiceTag {
   id: string;
   category_id: string;
   label: string;
-  is_urgent_tag: boolean;
+  is_urgent_template: boolean;
   estimated_minutes: number;
 }
 
@@ -51,11 +51,11 @@ export const MasterDataService = {
     return data;
   },
 
-  // 3. Obtener Tags por Categoría (Para el Formulario)
+  // 3. Obtener Tags por Categoría (desde service_templates)
   async getTagsByCategory(categoryId: string): Promise<ServiceTag[]> {
     const { data, error } = await supabase
-      .from("service_tags")
-      .select("*")
+      .from("service_templates")
+      .select("id, category_id, label, is_urgent_template, estimated_minutes")
       .eq("category_id", categoryId)
       .order("label");
 

@@ -8,11 +8,11 @@ import { LargeButton } from "@/appCOMP/button/LargeButton";
 // INTERFACE
 // =============================================================================
 
-const PLATFORM_FEE_RATE = 0.10; // 10% Zolver platform fee
-
 interface CheckoutSummaryCardProps {
   /** Service subtotal (what the professional charges). */
   subtotal: number;
+  /** Platform fee rate (0.10 = 10%). Fetched from DB by the parent. */
+  feeRate?: number;
   /** Generic info value (hours, service name, etc.). */
   hoursLabel?: string;
   /** Left-side label for the info row. Defaults to "Tiempo estimado". */
@@ -37,6 +37,7 @@ interface CheckoutSummaryCardProps {
 
 export const CheckoutSummaryCard = ({
   subtotal,
+  feeRate = 0.10,
   hoursLabel,
   infoLabel = "Tiempo estimado",
   infoSuffix = " hs",
@@ -46,8 +47,9 @@ export const CheckoutSummaryCard = ({
   loading = false,
   disclaimer,
 }: CheckoutSummaryCardProps) => {
-  const platformFee = Math.round(subtotal * PLATFORM_FEE_RATE);
+  const platformFee = Math.round(subtotal * feeRate);
   const total = subtotal + platformFee;
+  const feePercent = Math.round(feeRate * 100);
 
   return (
     <View style={styles.container}>
@@ -70,7 +72,7 @@ export const CheckoutSummaryCard = ({
 
       {/* Platform fee */}
       <View style={styles.row}>
-        <Text style={styles.label}>Comisión Zolver (10%)</Text>
+        <Text style={styles.label}>Comisión Zolver ({feePercent}%)</Text>
         <Text style={styles.feeValue}>${platformFee.toLocaleString()}</Text>
       </View>
 

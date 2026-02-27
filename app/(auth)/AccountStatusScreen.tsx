@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Animated, Linking } from "react-native";
-import { AntDesign } from "@expo/vector-icons"; // 👈 Usamos AntDesign según tu captura
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet, Animated, Linking, Alert } from "react-native";
+import { AntDesign } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { syncUserSession } from "@/appSRC/auth/Service/SessionService";
 
 // Tipos de iconos disponibles en AntDesign
 type AntDesignIconName = React.ComponentProps<typeof AntDesign>["name"];
@@ -79,16 +80,34 @@ export default function AccountStatusScreen() {
     ]).start();
   }, [visualStatus]);
 
+  const [verifying, setVerifying] = useState(false);
+
   // 3. Acción del botón
-  const handlePress = () => {
+  const handlePress = async () => {
     if (visualStatus === "approved") {
-      setStatus("authenticatedProfessional");
-      router.replace("/(professional)/(tabs)/home");
+      // Verificar con backend antes de conceder acceso
+      setVerifying(true);
+      try {
+        const session = await syncUserSession();
+        if (
+          session?.ok &&
+          (session.identityStatus === "approved" ||
+            session.identityStatus === "verified")
+        ) {
+          setStatus("authenticatedProfessional");
+        } else {
+          Alert.alert(
+            "Verificación pendiente",
+            "Tu perfil aún no ha sido aprobado. Intenta más tarde."
+          );
+        }
+      } catch {
+        Alert.alert("Error", "No se pudo verificar el estado de tu cuenta.");
+      } finally {
+        setVerifying(false);
+      }
     } else if (visualStatus === "rejected") {
       Linking.openURL("mailto:soporte@zolver.app");
-    } else {
-      console.log("En espera...");
-      // Opcional: router.back() si quieres permitir salir
     }
   };
 

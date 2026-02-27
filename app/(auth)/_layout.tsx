@@ -46,17 +46,17 @@ const _layout = () => {
 
       <Stack.Screen
         name="FormProfessionalTwo"
-        options={{ headerShown: false, animation }}
+        options={{ headerShown: false, animation: "slide_from_right" }}
       />
 
       <Stack.Screen
         name="FormProfessionalThree"
-        options={{ headerShown: false, animation }}
+        options={{ headerShown: false, animation: "slide_from_right" }}
       />
 
       <Stack.Screen
         name="FormProfessionalFour"
-        options={{ headerShown: false, animation }}
+        options={{ headerShown: false, animation: "slide_from_right" }}
       />
 
       <Stack.Screen

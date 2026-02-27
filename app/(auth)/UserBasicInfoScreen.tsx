@@ -86,7 +86,7 @@ const UserBasicInfoScreen = () => {
       const res = await sendCode(phone);
 
       if (!res.ok) {
-        throw new Error(res.ok || "No se pudo enviar el código SMS.");
+        throw new Error(res.error || "No se pudo enviar el código SMS.");
       }
 
       // 4. Guardar temporalmente y Navegar

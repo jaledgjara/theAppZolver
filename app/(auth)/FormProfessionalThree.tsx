@@ -3,14 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Alert,
-  Linking,
   ActivityIndicator,
-  Switch,
-  Platform,
-  TouchableOpacity,
-  Modal,
+  Pressable,
 } from "react-native";
 import {
   MapView,
@@ -21,110 +16,23 @@ import * as Location from "expo-location";
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
+import { COLORS, SIZES } from "@/appASSETS/theme";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { Pressable } from "react-native";
 import { useProfessionalForm } from "@/appSRC/auth/Hooks/useProfessionalForm";
 
-// Helper para mostrar nombres completos
-const getFullDayName = (shortDay: string) => {
-  const map: Record<string, string> = {
-    Lun: "Lunes",
-    Mar: "Martes",
-    Mié: "Miércoles",
-    Jue: "Jueves",
-    Vie: "Viernes",
-    Sáb: "Sábado",
-    Dom: "Domingo",
-  };
-  return map[shortDay] || shortDay;
-};
-
-// Helper para convertir string "HH:mm" a Date
-const parseTime = (timeStr: string) => {
-  const [hours, minutes] = timeStr.split(":").map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-};
-
-const FormProfessionalLocationTime = () => {
+const FormProfessionalThree = () => {
   const router = useRouter();
-
-  const { location, coverageRadius, schedule, updateField, toggleDay } =
-    useProfessionalForm();
-
-  const [region, setRegion] = useState({
-    latitude: -34.6037,
-    longitude: -58.3816,
-    latitudeDelta: 0.2,
-    longitudeDelta: 0.2,
-  });
+  const { location, coverageRadius, updateField } = useProfessionalForm();
 
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [region, setRegion] = useState({
+    latitude: -32.8894,
+    longitude: -68.8441,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
 
-  // --- Lógica del TimePicker ---
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerConfig, setPickerConfig] = useState<{
-    day: string;
-    type: "from" | "to";
-    value: Date;
-  } | null>(null);
-
-  // Abrir el picker
-  const openTimePicker = (
-    day: string,
-    type: "from" | "to",
-    currentTime: string,
-  ) => {
-    setPickerConfig({
-      day,
-      type,
-      value: parseTime(currentTime),
-    });
-    setShowPicker(true);
-  };
-
-  // Confirmar cambio de hora
-  const handleTimeChange = (event: any, selectedDate?: Date) => {
-    // En Android el picker se cierra solo al seleccionar
-    if (Platform.OS === "android") setShowPicker(false);
-
-    if (selectedDate && pickerConfig) {
-      // Formato HH:mm
-      const hours = selectedDate.getHours().toString().padStart(2, "0");
-      const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
-      const newTimeStr = `${hours}:${minutes}`;
-
-      // Actualizar el estado global
-      const newSchedule = schedule.map((item) => {
-        if (item.day === pickerConfig.day) {
-          return { ...item, [pickerConfig.type]: newTimeStr };
-        }
-        return item;
-      });
-
-      updateField("schedule", newSchedule);
-
-      // Actualizar valor local temporal (para iOS UX)
-      if (Platform.OS === "ios") {
-        setPickerConfig({ ...pickerConfig, value: selectedDate });
-      }
-    } else if (!selectedDate && Platform.OS === "android") {
-      // Cancelado en Android
-      setShowPicker(false);
-    }
-  };
-
-  // Cerrar modal (iOS)
-  const closePicker = () => {
-    setShowPicker(false);
-    setPickerConfig(null);
-  };
-
-  // --- Geolocalización ---
   const handleGetCurrentLocation = async () => {
     setLoadingLocation(true);
     try {
@@ -132,7 +40,7 @@ const FormProfessionalLocationTime = () => {
       if (status !== "granted") {
         Alert.alert(
           "Permiso denegado",
-          "Habilita la ubicación en configuración.",
+          "Habilita la ubicación en configuración."
         );
         setLoadingLocation(false);
         return;
@@ -143,8 +51,8 @@ const FormProfessionalLocationTime = () => {
       const newRegion = {
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
-        latitudeDelta: 0.25,
-        longitudeDelta: 0.25,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
       };
       setRegion(newRegion);
       updateField("location", {
@@ -162,153 +70,108 @@ const FormProfessionalLocationTime = () => {
     handleGetCurrentLocation();
   }, []);
 
+  const handleZoom = (type: "in" | "out") => {
+    const multiplier = type === "in" ? 0.7 : 1.5;
+    setRegion({
+      ...region,
+      latitudeDelta: region.latitudeDelta * multiplier,
+      longitudeDelta: region.longitudeDelta * multiplier,
+    });
+  };
+
   const handleContinue = () => {
     router.push("/(auth)/FormProfessionalFour");
   };
 
-  const circleCenter = location
-    ? { latitude: location.latitude, longitude: location.longitude }
-    : { latitude: region.latitude, longitude: region.longitude };
-
   return (
     <View style={styles.container}>
-      <ToolBarTitle titleText="Horario y Cobertura" showBackButton />
+      <ToolBarTitle titleText="Área de Servicio" showBackButton={true} />
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 60 }}
-        showsVerticalScrollIndicator={false}>
-        {/* --- MAPA --- */}
-        <View style={styles.sectionContainer}>
+      <View style={styles.content}>
+        <View style={styles.headerText}>
           <Text style={styles.sectionTitle}>Zona de Cobertura</Text>
           <Text style={styles.sectionSubtitle}>
-            Define el radio máximo (en km) donde ofreces tus servicios.
+            Ubica el centro de tu actividad y define el radio de alcance.
           </Text>
+        </View>
 
-          <View style={styles.mapContainer}>
-            <MapView
-              style={styles.map}
-              region={region}
-              onRegionChange={(reg) => setRegion(reg)}
-              onRegionChangeComplete={(reg) => {
-                setRegion(reg);
-                updateField("location", {
-                  latitude: reg.latitude,
-                  longitude: reg.longitude,
-                });
-              }}>
-              <Marker coordinate={circleCenter} />
-              <Circle
-                key={(circleCenter.latitude + coverageRadius).toString()}
-                center={circleCenter}
-                radius={coverageRadius * 1000}
-                fillColor="rgba(255, 193, 7, 0.3)"
-                strokeColor={COLORS.primary}
-                strokeWidth={2}
-              />
-            </MapView>
+        <View style={styles.mapWrapper}>
+          <MapView
+            style={styles.map}
+            region={region}
+            onRegionChangeComplete={(reg: typeof region) => {
+              setRegion(reg);
+              updateField("location", {
+                latitude: reg.latitude,
+                longitude: reg.longitude,
+              });
+            }}>
+            <Marker
+              coordinate={{
+                latitude: region.latitude,
+                longitude: region.longitude,
+              }}
+            />
+            <Circle
+              center={{
+                latitude: region.latitude,
+                longitude: region.longitude,
+              }}
+              radius={coverageRadius * 1000}
+              fillColor="rgba(255, 193, 7, 0.2)"
+              strokeColor={COLORS.primary}
+            />
+          </MapView>
 
+          <View style={styles.mapControls}>
+            <Pressable style={styles.zoomBtn} onPress={() => handleZoom("in")}>
+              <Ionicons name="add" size={18} color={COLORS.textPrimary} />
+            </Pressable>
+            <Pressable style={styles.zoomBtn} onPress={() => handleZoom("out")}>
+              <Ionicons name="remove" size={18} color={COLORS.textPrimary} />
+            </Pressable>
             <Pressable
-              style={styles.myLocationBtn}
-              onPress={handleGetCurrentLocation}
-              disabled={loadingLocation}>
+              style={[styles.zoomBtn, styles.locationBtn]}
+              onPress={handleGetCurrentLocation}>
               {loadingLocation ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
               ) : (
-                <Ionicons name="locate" size={24} color={COLORS.textPrimary} />
+                <Ionicons name="locate" size={20} color={COLORS.primary} />
               )}
             </Pressable>
-
-            <View style={styles.floatingSliderCard}>
-              <Text style={styles.sliderLabel}>Radio: {coverageRadius} km</Text>
-              <Slider
-                style={{ width: "100%", height: 30 }}
-                minimumValue={1}
-                maximumValue={50}
-                step={1}
-                value={coverageRadius}
-                onValueChange={(val) => updateField("coverageRadius", val)}
-                minimumTrackTintColor={COLORS.primary}
-                maximumTrackTintColor="#E0E0E0"
-                thumbTintColor={COLORS.primary}
-              />
-            </View>
           </View>
         </View>
 
-        {/* --- HORARIOS --- */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Disponibilidad Horaria</Text>
-          <Text style={styles.sectionSubtitle}>
-            Selecciona los días y el rango horario en que trabajas.
-          </Text>
+        <View style={styles.layerCard}>
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.cardLabel}>Radio de Trabajo</Text>
+              <Text style={styles.cardSubtitle}>
+                Distancia máxima de viaje
+              </Text>
+            </View>
+            <View style={styles.radiusBadge}>
+              <Text style={styles.radiusText}>{coverageRadius} km</Text>
+            </View>
+          </View>
 
-          <View style={styles.scheduleList}>
-            {schedule.map((item, index) => (
-              <View
-                key={item.day}
-                style={[
-                  styles.scheduleRow,
-                  index !== schedule.length - 1 && styles.borderBottom,
-                ]}>
-                {/* Nombre del día */}
-                <Text style={styles.dayNameLabel}>
-                  {getFullDayName(item.day)}
-                </Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={1}
+            maximumValue={50}
+            step={1}
+            value={coverageRadius}
+            onValueChange={(val) => updateField("coverageRadius", val)}
+            minimumTrackTintColor={COLORS.primary}
+            maximumTrackTintColor="#F0F0F0"
+            thumbTintColor={COLORS.primary}
+          />
 
-                <View style={styles.rightRow}>
-                  {/* Selector de Horas (Clickeable solo si está activo) */}
-                  <View style={styles.timeWrapper}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        item.active &&
-                        openTimePicker(item.day, "from", item.from)
-                      }
-                      disabled={!item.active}>
-                      <Text
-                        style={[
-                          styles.timeLabel,
-                          !item.active && { color: "#ccc" },
-                        ]}>
-                        {item.from}
-                      </Text>
-                    </TouchableOpacity>
-
-                    <Text
-                      style={[
-                        styles.timeSeparator,
-                        !item.active && { color: "#ccc" },
-                      ]}>
-                      {" "}
-                      -{" "}
-                    </Text>
-
-                    <TouchableOpacity
-                      onPress={() =>
-                        item.active && openTimePicker(item.day, "to", item.to)
-                      }
-                      disabled={!item.active}>
-                      <Text
-                        style={[
-                          styles.timeLabel,
-                          !item.active && { color: "#ccc" },
-                        ]}>
-                        {item.to}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Switch */}
-                  <Switch
-                    trackColor={{ false: "white", true: COLORS.tertiary }}
-                    thumbColor={"white"}
-                    ios_backgroundColor="#E0E0E0"
-                    onValueChange={() => toggleDay(item.day)}
-                    value={item.active}
-                    style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
-                  />
-                </View>
-              </View>
-            ))}
+          <View style={styles.cardFooterInfo}>
+            <Ionicons name="location" size={18} color={COLORS.tertiary} />
+            <Text style={styles.footerText}>
+              Los clientes te verán si están dentro de este radio.
+            </Text>
           </View>
         </View>
 
@@ -320,201 +183,100 @@ const FormProfessionalLocationTime = () => {
             disabled={!location}
           />
         </View>
-      </ScrollView>
-
-      {/* --- TIME PICKER MODAL (Cross Platform) --- */}
-      {/* --- TIME PICKER MODAL (Cross Platform) --- */}
-      {showPicker &&
-        pickerConfig &&
-        (Platform.OS === "ios" ? (
-          <Modal transparent animationType="fade" visible={showPicker}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.iosPickerContainer}>
-                <View style={styles.iosPickerHeader}>
-                  <Text style={styles.iosPickerTitle}>
-                    {pickerConfig.type === "from"
-                      ? "Hora de inicio"
-                      : "Hora de fin"}{" "}
-                    - {getFullDayName(pickerConfig.day)}
-                  </Text>
-                </View>
-
-                {/* 👇 CAMBIO CLAVE: Estilo explícito para forzar renderizado en iOS */}
-                <DateTimePicker
-                  value={pickerConfig.value}
-                  mode="time"
-                  display="spinner"
-                  onChange={handleTimeChange}
-                  textColor="black"
-                  locale="es-ES"
-                  is24Hour={true}
-                  style={styles.iosPicker} // <--- AÑADIDO
-                />
-
-                <TouchableOpacity
-                  onPress={closePicker}
-                  style={styles.iosConfirmButton}>
-                  <Text style={styles.iosConfirmText}>Confirmar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-        ) : (
-          <DateTimePicker
-            value={pickerConfig.value}
-            mode="time"
-            display="default"
-            onChange={handleTimeChange}
-            is24Hour={true}
-          />
-        ))}
+      </View>
     </View>
   );
 };
 
-export default FormProfessionalLocationTime;
+export default FormProfessionalThree;
 
 const styles = StyleSheet.create({
-  // ... (tus otros estilos anteriores se mantienen igual) ...
-  container: { flex: 1, backgroundColor: "#F9F9F9" },
-  sectionContainer: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
+  container: { flex: 1, backgroundColor: "#FBFBFB" },
+  content: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
+  headerText: { marginBottom: 20 },
   sectionTitle: {
-    ...FONTS.h3,
     fontSize: SIZES.h3,
     color: COLORS.textPrimary,
-    marginBottom: 7,
     fontWeight: "600",
+    marginTop: 10,
+    marginBottom: 5,
   },
   sectionSubtitle: {
-    ...FONTS.body3,
+    fontSize: SIZES.h4,
     color: COLORS.textSecondary,
-    marginBottom: 12,
-    fontSize: SIZES.body3,
+    lineHeight: 18,
   },
-  mapContainer: {
-    height: 350,
+  mapWrapper: {
+    height: "40%",
     borderRadius: 20,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "white",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: "#EEE",
   },
   map: { width: "100%", height: "100%" },
-  myLocationBtn: {
+  mapControls: {
     position: "absolute",
-    top: 15,
-    right: 15,
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 25,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    right: 12,
+    top: 12,
+    gap: 10,
   },
-  floatingSliderCard: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+  zoomBtn: {
     backgroundColor: "white",
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  locationBtn: { marginTop: 4 },
+  layerCard: {
+    marginTop: 30,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
   },
-  sliderLabel: {
-    textAlign: "center",
-    fontSize: 16,
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  cardLabel: {
+    fontSize: SIZES.h3,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 5,
+    color: COLORS.textPrimary,
   },
-  scheduleList: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+  cardSubtitle: {
+    fontSize: SIZES.h4,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
-  scheduleRow: {
+  radiusBadge: {
+    backgroundColor: COLORS.backgroundLight,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  radiusText: { fontSize: 15, fontWeight: "600", color: COLORS.primary },
+  slider: { width: "100%", height: 50 },
+  cardFooterInfo: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 12,
   },
-  borderBottom: { borderBottomWidth: 1, borderBottomColor: "#F0F0F0" },
-  dayNameLabel: { fontSize: 16, fontWeight: "500", color: "#333" },
-  rightRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  timeWrapper: { flexDirection: "row", alignItems: "center" },
-  timeLabel: {
-    fontSize: 15,
-    color: "#333",
-    fontWeight: "600",
-    paddingHorizontal: 4,
-  },
-  timeSeparator: { fontSize: 15, color: "#333", fontWeight: "600" },
-  buttonWrapper: { paddingHorizontal: 20, marginTop: 30 },
-
-  // --- MODAL STYLES ---
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  iosPickerContainer: {
-    backgroundColor: "white",
-    paddingBottom: 30, // Un poco más de padding abajo
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    alignItems: "center", // Centrar hijos
-  },
-  iosPickerHeader: {
-    width: "100%",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  iosPickerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#666",
-  },
-  // 👇 ESTILO NUEVO PARA EL PICKER
-  iosPicker: {
-    width: "100%",
-    height: 200, // Altura explícita necesaria en iOS
-    backgroundColor: "white",
-  },
-  iosConfirmButton: {
-    backgroundColor: COLORS.primary,
-    width: "90%", // Botón ancho
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 15,
-  },
-  iosConfirmText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
+  footerText: { fontSize: SIZES.radius, color: COLORS.textSecondary },
+  buttonWrapper: { marginTop: 30 },
 });

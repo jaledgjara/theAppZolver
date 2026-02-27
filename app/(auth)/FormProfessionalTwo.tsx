@@ -5,68 +5,66 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
+import { COLORS, SIZES } from "@/appASSETS/theme";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { ResizableInput } from "@/appCOMP/inputs/Screens/ResizableInput";
-import QuickChips from "@/appCOMP/quickChips/QuickChips";
+import { BaseCard } from "@/appCOMP/cards/BaseCard";
 import { ServiceSwitcherCatalog } from "@/appSRC/auth/Screen/ServiceSwitcherCatalog";
 import { PortfolioManager } from "@/appSRC/auth/Screen/PortofolioManager";
 import { CategorySelectorModal } from "@/appSRC/auth/Screen/CategorySelectorModal";
 import { useProfessionalForm } from "@/appSRC/auth/Hooks/useProfessionalForm";
 import { useImagePicker } from "@/appCOMP/images/Hooks/useImagePicker";
 
-// --- MÓDULOS ---
-
 const FormProfessionalTwo = () => {
   const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
 
-  // 🔥 EL CEREBRO (Hook)
   const {
-    portfolioImages, // Ahora funciona gracias al alias en el hook
-    addPortfolioImage, // Nueva función del hook
+    portfolioImages,
+    addPortfolioImage,
     removeImage,
-    // Estado
-    serviceModes,
+    typeWork,
     selectedCategory,
     specialization,
     licenseNumber,
     biography,
-    // Datos
-    tags,
-    loadingTags,
     categories,
     loadingCategories,
-    // Acciones
-    toggleServiceMode,
+    templates,
+    loadingTemplates,
+    customPrices,
+    setCustomPrices,
+    setTypeWork,
     updateField,
-    // Validaciones
     isZolverYaDisabled,
     isProfileValid,
   } = useProfessionalForm();
 
   const portfolioPicker = useImagePicker();
 
-  // 📸 FUNCIÓN PUENTE:
-  // Toma la foto del picker local y la guarda INMEDIATAMENTE en el Store Global
   const handleAddPortfolio = async () => {
     const uri = await portfolioPicker.pickImage();
     if (uri) {
-      console.log("📸 Foto agregada al portafolio global:", uri);
       addPortfolioImage(uri);
     }
   };
 
   const handleContinue = () => {
-    // Como los datos ya están en el Store, solo navegamos
     router.push("/(auth)/FormProfessionalThree");
   };
+
+  const showPricing = typeWork === "instant" || typeWork === "hybrid";
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}>
       <ToolBarTitle titleText="Perfil Profesional" showBackButton={true} />
 
       <ScrollView
@@ -94,29 +92,6 @@ const FormProfessionalTwo = () => {
         {/* 2. ESPECIALIZACIÓN */}
         <View style={styles.section}>
           <Text style={styles.label}>Especialización / Título</Text>
-
-          {selectedCategory && (
-            <View style={{ marginBottom: 10 }}>
-              {loadingTags ? (
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.primary}
-                  style={{ alignSelf: "flex-start" }}
-                />
-              ) : (
-                <QuickChips
-                  items={tags.map((t) => t.label)}
-                  onPress={(txt) => {
-                    const newVal = specialization
-                      ? `${specialization}, ${txt}`
-                      : txt;
-                    updateField("specialization", newVal);
-                  }}
-                />
-              )}
-            </View>
-          )}
-
           <ResizableInput
             placeholder={
               selectedCategory
@@ -163,17 +138,20 @@ const FormProfessionalTwo = () => {
           </View>
         )}
 
-        {/* 4. MODO DE TRABAJO (Componente Modular) */}
+        {/* 4. MODO DE TRABAJO */}
         <View style={styles.section}>
           <Text style={styles.label}>Modalidad de Trabajo</Text>
           <Text style={styles.subLabel}>
-            Puedes seleccionar ambas opciones si la categoría lo permite.
+            {selectedCategory?.is_usually_urgent
+              ? "Esta categoría permite ambas modalidades. Toca cada una para activarla."
+              : "Selecciona cómo quieres recibir solicitudes."}
           </Text>
 
           <ServiceSwitcherCatalog
-            modes={serviceModes}
+            typeWork={typeWork}
             isDisabled={isZolverYaDisabled}
-            onToggle={toggleServiceMode}
+            allowHybrid={!!selectedCategory?.is_usually_urgent}
+            onSelect={setTypeWork}
           />
 
           {isZolverYaDisabled && (
@@ -184,7 +162,47 @@ const FormProfessionalTwo = () => {
           )}
         </View>
 
-        {/* 5. BIOGRAFÍA */}
+        {/* 5. TARIFAS ZOLVER YA (Condicional) */}
+        {showPricing && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Tus Tarifas Zolver Ya</Text>
+            <Text style={styles.subLabel}>
+              Ajusta tus precios para competir mejor.
+            </Text>
+
+            {loadingTemplates ? (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.primary}
+                style={{ alignSelf: "center", marginVertical: 20 }}
+              />
+            ) : (
+              templates.map((item) => (
+                <BaseCard key={item.id} style={styles.skuCard}>
+                  <View style={styles.skuHeader}>
+                    <Text style={styles.skuLabel}>{item.label}</Text>
+                    <Text style={styles.suggestedLabel}>
+                      Sugerido: ${item.basePrice}
+                    </Text>
+                  </View>
+                  <ResizableInput
+                    value={customPrices[item.id] || ""}
+                    onChangeText={(val) =>
+                      setCustomPrices((prev) => ({
+                        ...prev,
+                        [item.id]: val,
+                      }))
+                    }
+                    keyboardType="numeric"
+                    icon={<Text style={styles.currency}>$</Text>}
+                  />
+                </BaseCard>
+              ))
+            )}
+          </View>
+        )}
+
+        {/* 6. BIOGRAFÍA */}
         <View style={styles.section}>
           <Text style={styles.label}>Acerca de ti</Text>
           <ResizableInput
@@ -202,20 +220,20 @@ const FormProfessionalTwo = () => {
           />
         </View>
 
-        {/* 6. PORTAFOLIO (Componente Modular) */}
+        {/* 7. PORTAFOLIO (Mis Trabajos) */}
         <PortfolioManager
           images={portfolioImages}
-          onAdd={handleAddPortfolio} // Usamos la función puente
+          onAdd={handleAddPortfolio}
           onRemove={removeImage}
         />
 
         {/* FOOTER */}
         <View style={styles.footer}>
           <LargeButton
-            title="FINALIZAR PERFIL"
+            title="CONTINUAR"
             onPress={handleContinue}
             disabled={!isProfileValid}
-            iconName="checkmark-circle-outline"
+            iconName="arrow-forward-circle-outline"
           />
         </View>
       </ScrollView>
@@ -233,28 +251,26 @@ const FormProfessionalTwo = () => {
           updateField("specialization", "");
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
 export default FormProfessionalTwo;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FAFAFA" },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 25, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: COLORS.white },
+  scrollContent: { padding: 20, paddingBottom: 40 },
   section: { marginBottom: 24 },
   label: {
-    ...FONTS.h3,
     fontSize: SIZES.h3,
+    fontWeight: "700",
     color: COLORS.textPrimary,
     marginBottom: 7,
-    fontWeight: "600",
   },
   subLabel: {
-    ...FONTS.body3,
+    fontSize: SIZES.body4,
     color: COLORS.textSecondary,
-    marginBottom: 12,
-    fontSize: SIZES.body3,
+    marginBottom: 16,
   },
   badgeRequired: {
     backgroundColor: "#FEE2E2",
@@ -270,5 +286,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: "italic",
   },
+  skuCard: { padding: 16, marginBottom: 12, backgroundColor: "#F9F9FB" },
+  skuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  skuLabel: { fontSize: 16, fontWeight: "600", color: COLORS.textPrimary },
+  suggestedLabel: { fontSize: 12, color: COLORS.primary, fontWeight: "500" },
+  currency: { fontSize: 18, fontWeight: "bold", color: COLORS.textPrimary },
   footer: { marginTop: 10, paddingBottom: 30 },
 });
