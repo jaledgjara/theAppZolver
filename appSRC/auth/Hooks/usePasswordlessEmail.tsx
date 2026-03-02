@@ -9,7 +9,8 @@ export function usePasswordlessEmail() {
   const [sent, setSent] = useState(false);
 
   const sendEmailLink = async (email: string) => {
-    if (!email.includes("@")) {
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_REGEX.test(email)) {
       setError("Por favor, ingresa un email válido.");
       return;
     }

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 
 /**
  * CONFIGURACIÓN DE CABECERAS (CORS)
@@ -18,6 +19,18 @@ serve(async (req) => {
   }
 
   try {
+    // 2a. Verify Firebase JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing Authorization header" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    const jwtToken = authHeader.replace("Bearer ", "").trim();
+    const jwtPayload = await verifyFirebaseJWT(jwtToken);
+    const verifiedUid = jwtPayload.sub;
+
     // 2. Inicialización de Clientes
     // [ARQUITECTURA]: Usamos Service Role para garantizar permisos de escritura en 'payments'
     // independientemente de las reglas RLS del usuario.
@@ -57,6 +70,15 @@ serve(async (req) => {
       saved_card_id, // Zolver DB uuid (from user_payment_methods.id) for FK in payments table
       method, // 'credit_card' | 'debit_card' | 'platform_credit'
     } = rawData;
+
+    // Verify user_id matches the authenticated user
+    if (user_id !== verifiedUid) {
+      console.error(`[Zolver-Edge] user_id mismatch: body=${user_id}, jwt=${verifiedUid}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "user_id does not match authenticated user" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
 
     const isSavedCard = !!customer_id;
     console.log(

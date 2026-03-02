@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,18 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Verify Firebase JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing Authorization header" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    const jwtToken = authHeader.replace("Bearer ", "").trim();
+    const jwtPayload = await verifyFirebaseJWT(jwtToken);
+    const verifiedUid = jwtPayload.sub;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -26,6 +39,15 @@ serve(async (req) => {
     console.log("📍 [Backend] Payload Recibido:", JSON.stringify(body));
 
     const { user_id, token, email, dni } = body;
+
+    // Verify user_id matches the authenticated user
+    if (user_id !== verifiedUid) {
+      console.error(`[save-payment-method] user_id mismatch: body=${user_id}, jwt=${verifiedUid}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "user_id does not match authenticated user" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
 
     // 1. GESTIÓN DE CUSTOMER (Buscar o Crear)
     let customerId;

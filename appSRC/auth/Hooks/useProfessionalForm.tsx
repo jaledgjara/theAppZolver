@@ -92,13 +92,6 @@ export function useProfessionalForm() {
     store.setTypeWork(mode);
   };
 
-  const toggleDay = (dayName: string) => {
-    const newSchedule = store.schedule.map((d) =>
-      d.day === dayName ? { ...d, active: !d.active } : d
-    );
-    store.setData({ schedule: newSchedule });
-  };
-
   const submitProfile = async () => {
     if (!user?.uid) return;
     setIsSubmitting(true);
@@ -155,7 +148,6 @@ export function useProfessionalForm() {
     addPortfolioImage,
     removeImage: removePortfolioImage,
     setTypeWork,
-    toggleDay,
     submitProfile,
 
     // Validaciones

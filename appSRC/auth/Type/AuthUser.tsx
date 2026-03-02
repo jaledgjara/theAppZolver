@@ -1,4 +1,4 @@
-export type UserRole = "client" | "professional" | "employer" | "admin";
+export type UserRole = "client" | "professional" | "admin";
 
 export type AuthStatus =
   | "unknown"

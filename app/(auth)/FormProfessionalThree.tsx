@@ -180,7 +180,8 @@ const FormProfessionalThree = () => {
             title="CONTINUAR"
             onPress={handleContinue}
             iconName="arrow-forward-circle-outline"
-            disabled={!location}
+            disabled={!location || loadingLocation}
+            loading={loadingLocation}
           />
         </View>
       </View>

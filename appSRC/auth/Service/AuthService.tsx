@@ -25,6 +25,48 @@ import {
   setSupabaseAuthToken,
   supabase,
 } from "@/appSRC/services/supabaseClient";
+import { AppState } from "react-native";
+
+// =========================================================
+// 0. Token Refresh (JWT expires in 24h, refresh after 20h)
+// =========================================================
+
+const TOKEN_STALE_MS = 20 * 60 * 60 * 1000; // 20 hours
+let lastTokenSyncTimestamp = 0;
+
+function markTokenSynced(): void {
+  lastTokenSyncTimestamp = Date.now();
+}
+
+function isTokenStale(): boolean {
+  return lastTokenSyncTimestamp > 0 && Date.now() - lastTokenSyncTimestamp > TOKEN_STALE_MS;
+}
+
+async function refreshTokenIfNeeded(): Promise<void> {
+  if (!isTokenStale()) return;
+  if (!auth.currentUser) return;
+
+  try {
+    console.log("[TokenRefresh] Token is stale, refreshing...");
+    const session = await syncUserSession();
+    if (session?.token) {
+      await setSupabaseAuthToken(session.token);
+      markTokenSynced();
+      console.log("[TokenRefresh] Token refreshed successfully");
+    }
+  } catch (err) {
+    console.warn("[TokenRefresh] Failed to refresh token:", err);
+  }
+}
+
+export function initializeTokenRefreshListener(): () => void {
+  const subscription = AppState.addEventListener("change", (nextState) => {
+    if (nextState === "active") {
+      refreshTokenIfNeeded();
+    }
+  });
+  return () => subscription.remove();
+}
 
 // =========================================================
 // 1. Mappers & Helpers
@@ -55,7 +97,7 @@ export function mapFirebaseUserToAuthUser(
   };
 }
 
-function decideAuthStatus(params: {
+export function decideAuthStatus(params: {
   hasPhone: boolean;
   role: "client" | "professional" | "admin" | null;
   profileComplete: boolean;
@@ -138,7 +180,8 @@ export function initializeAuthListener() {
       // 👇👇👇 AQUÍ ESTÁ LA SOLUCIÓN 👇👇👇
       // Inyectamos el token que nos dio la Edge Function en el cliente de Supabase
       if (backendSession.token) {
-        setSupabaseAuthToken(backendSession.token);
+        await setSupabaseAuthToken(backendSession.token);
+        markTokenSynced();
       } else {
         console.warn(
           "   ⚠️ [AuthListener] El backend no devolvió un token JWT."
@@ -178,7 +221,7 @@ export function initializeAuthListener() {
       console.log(`║ 🎭 Rol:          ${backendSession.role || "❌ Sin Rol"}`);
 
       if (backendSession.role === "professional") {
-        const profType = (backendSession as any).type_work;
+        const profType = backendSession.type_work;
         console.log(
           `║ 🛠  Modo Trabajo: ${profType ? profType.toUpperCase() : "N/A"}`
         );

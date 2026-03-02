@@ -4,7 +4,12 @@
       "mcp__ide__getDiagnostics",
       "Bash(xargs:*)",
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(supabase migration:*)",
+      "Bash(supabase db:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase functions:*)",
+      "Bash(wc:*)"
     ]
   }
 }

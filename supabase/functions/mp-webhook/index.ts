@@ -155,8 +155,18 @@ serve(async (req) => {
     // Si tenemos el webhook secret configurado, RECHAZAMOS firmas inválidas.
     // ─────────────────────────────────────────────────────────────────────
     const webhookSecret = Deno.env.get("MP_WEBHOOK_SECRET");
+    const environment = Deno.env.get("ENVIRONMENT") || "development";
     const xSignature = req.headers.get("x-signature");
     const xRequestId = req.headers.get("x-request-id");
+
+    // In production, webhook secret MUST be configured
+    if (environment === "production" && !webhookSecret) {
+      console.error("[mp-webhook] CRITICAL: MP_WEBHOOK_SECRET not set in production.");
+      return new Response(
+        JSON.stringify({ error: "Server misconfiguration" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (webhookSecret && xSignature) {
       const isValid = await validateSignature(
@@ -175,8 +185,9 @@ serve(async (req) => {
       console.log("[mp-webhook] Firma validada correctamente.");
     } else if (webhookSecret && !xSignature) {
       console.warn(
-        "[mp-webhook] Secret configurado pero request sin X-Signature. Procesando igualmente."
+        "[mp-webhook] Secret configurado pero request sin X-Signature. Rechazando."
       );
+      return new Response("Unauthorized: missing X-Signature", { status: 401 });
     }
 
     // ─────────────────────────────────────────────────────────────────────

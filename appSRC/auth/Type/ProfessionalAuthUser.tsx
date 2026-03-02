@@ -1,25 +1,15 @@
 import { create } from "zustand";
+import type { ServiceCategory } from "@/appSRC/categories/Service/ProfessionalCatalog";
 
 // 1. Definición de Arquitectura: Enum para Tipos de Trabajo
 export type ProfessionalTypeWork = "instant" | "quote" | "hybrid";
 
-// 2. Definimos la estructura de los días por defecto (Sin cambios)
-const INITIAL_SCHEDULE = [
-  { day: "Lun", active: true, from: "09:00", to: "18:00" },
-  { day: "Mar", active: true, from: "09:00", to: "18:00" },
-  { day: "Mié", active: true, from: "09:00", to: "18:00" },
-  { day: "Jue", active: true, from: "09:00", to: "18:00" },
-  { day: "Vie", active: true, from: "09:00", to: "18:00" },
-  { day: "Sáb", active: false, from: "10:00", to: "14:00" },
-  { day: "Dom", active: false, from: "10:00", to: "14:00" },
-];
-
-// 3. Estado inicial
+// 2. Estado inicial
 const INITIAL_DATA = {
   dniFrontUri: null,
   dniBackUri: null,
   selfieUri: null,
-  category: null,
+  category: null as ServiceCategory | null,
   specialization: "",
   licenseNumber: "",
   biography: "",
@@ -29,19 +19,17 @@ const INITIAL_DATA = {
   // Inicializamos en "instant" como solicitaste
   typeWork: "instant" as ProfessionalTypeWork,
 
-  instantServicePrice: "",
   customPrices: {} as Record<string, string>,
   location: null,
   radiusKm: 5,
-  schedule: INITIAL_SCHEDULE,
   cbuAlias: "",
 };
 
-interface OnboardingState {
+export interface OnboardingState {
   dniFrontUri: string | null;
   dniBackUri: string | null;
   selfieUri: string | null;
-  category: any | null;
+  category: ServiceCategory | null;
   specialization: string;
   licenseNumber: string;
   biography: string;
@@ -50,11 +38,9 @@ interface OnboardingState {
   // ARQUITECTURA: Propiedad fuertemente tipada
   typeWork: ProfessionalTypeWork;
 
-  instantServicePrice: string;
   customPrices: Record<string, string>;
   location: { latitude: number; longitude: number } | null;
   radiusKm: number;
-  schedule: typeof INITIAL_SCHEDULE;
   cbuAlias: string;
 
   // Agregamos la acción explícita para el Switcher

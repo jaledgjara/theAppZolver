@@ -29,11 +29,12 @@ const SignInEmailScreen = () => {
           error={error ?? undefined}
         />
 
-        <LargeButton 
-          title={'ENVIAR EMAIL'} 
+        <LargeButton
+          title={'ENVIAR EMAIL'}
           iconName='mail'
-          onPress={() => sendEmailLink(email)} 
+          onPress={() => sendEmailLink(email)}
           loading={loading}
+          disabled={loading || !email.trim()}
         />
       </View>
 

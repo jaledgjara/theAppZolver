@@ -62,56 +62,52 @@ export function usePhoneVerification() {
   // -------------------------------
   // 2) VERIFY CODE
   // -------------------------------
-// -------------------------------
-// 2) VERIFY CODE
-// -------------------------------
-const verifyCode = async (phone: string, code: string) => {
-  try {
-    setLoading(true);
-    setError(null);
-
-    const res = await fetch(`${functionsBase}/check-verification`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ phone, code }),
-    });
-
-    const raw = await res.text();
-    let data: any;
+  const verifyCode = async (phone: string, code: string) => {
     try {
-      data = JSON.parse(raw);
-    } catch {
-      data = { error: "Invalid JSON", raw };
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch(`${functionsBase}/check-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ phone, code }),
+      });
+
+      const raw = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = { error: "Invalid JSON", raw };
+      }
+
+      if (!res.ok || data.error || !data.valid) {
+        throw new Error(data.error || "Código incorrecto o expirado");
+      }
+
+      setUser({
+        ...(user as any),
+        phoneNumber: phone,
+        profileComplete: false,
+      });
+
+      // 🔥 Dispara al AuthGuard
+      setStatus("phoneVerified");
+
+      Alert.alert("Éxito", "Teléfono verificado correctamente");
+
+      return { ok: true };
+    } catch (e: any) {
+      setError(e.message);
+      Alert.alert("Error", e.message);
+      return { ok: false };
+    } finally {
+      setLoading(false);
     }
-
-    if (!res.ok || data.error || !data.valid) {
-      throw new Error(data.error || "Código incorrecto o expirado");
-    }
-
-    setUser({
-      ...(user as any),
-      phoneNumber: phone,
-      profileComplete: false,
-    });
-
-    // 🔥 Dispara al AuthGuard
-    setStatus("phoneVerified");
-
-    Alert.alert("Éxito", "Teléfono verificado correctamente");
-
-    return { ok: true };
-  } catch (e: any) {
-    setError(e.message);
-    Alert.alert("Error", e.message);
-    return { ok: false };
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return { sendCode, verifyCode, loading, error };
 }

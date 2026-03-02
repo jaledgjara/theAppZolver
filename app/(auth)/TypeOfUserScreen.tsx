@@ -44,10 +44,12 @@ const TypeOfUserScreen = () => {
         </View>
 
 
-        <LargeButton 
-          title="COMENZAR" 
+        <LargeButton
+          title={isLoading ? "Procesando..." : "COMENZAR"}
           iconName="arrow-forward-circle-outline"
-          onPress={handleConfirmUserType}          
+          onPress={handleConfirmUserType}
+          disabled={!selectedType || isLoading}
+          loading={isLoading}
         />
       </View>
 

@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { saveUserRole } from "../Service/SupabaseAuthService";
-import type { AuthStatus } from "../Type/AuthUser";
+import { decideAuthStatus } from "../Service/AuthService";
 
 export function useSelectUserType() {
   const { setStatus, setUser, user } = useAuthStore();
@@ -18,21 +18,12 @@ export function useSelectUserType() {
         identityStatus: result.identityStatus ?? null,
       });
 
-      // Use the same logic as decideAuthStatus for consistency
-      let nextStatus: AuthStatus;
-      if (role === "client") {
-        nextStatus = "authenticated";
-      } else {
-        if (!result.profile_complete) {
-          nextStatus = "preProfessionalForm";
-        } else if (result.identityStatus === "approved" || result.identityStatus === "verified") {
-          nextStatus = "authenticatedProfessional";
-        } else if (result.identityStatus === "rejected") {
-          nextStatus = "rejected";
-        } else {
-          nextStatus = "pendingReview";
-        }
-      }
+      const nextStatus = decideAuthStatus({
+        hasPhone: !!phone,
+        role,
+        profileComplete: result.profile_complete,
+        identityStatus: result.identityStatus ?? null,
+      });
 
       console.log(`🎯 [useSelectUserType] Role: ${role} | profile_complete: ${result.profile_complete} | identityStatus: ${result.identityStatus} → ${nextStatus}`);
       setStatus(nextStatus);

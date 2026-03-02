@@ -90,6 +90,7 @@ serve(async (req: Request) => {
         role: "authenticated",
         sub: shadowUUID, // Esto mantiene feliz a Supabase (es un UUID)
         firebase_uid: firebaseUid, // 👈 AGREGAMOS ESTO: Es la clave para el RLS
+        app_role: upsertedAccount.role ?? "", // For _jwt_role() RLS — breaks admin recursion
         email: email,
         exp: getNumericDate(60 * 60 * 24),
       },

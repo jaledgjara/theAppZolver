@@ -91,7 +91,7 @@ export default function PhoneVerificationScreen() {
               title={loading ? "Verificando..." : "Verificar teléfono"}
               iconName="phone-portrait-outline"
               onPress={handleConfirm}
-              disabled={loading}
+              disabled={loading || joinedCode.length !== 6}
               loading={loading}
             />
           </View>

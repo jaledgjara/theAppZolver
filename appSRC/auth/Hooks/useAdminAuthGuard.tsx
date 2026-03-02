@@ -55,12 +55,19 @@ export function useAdminAuthGuard(): AdminGuardState {
       }
 
       try {
-        // Verify against Supabase as source of truth
-        const { data, error } = await supabase
+        // Verify against Supabase as source of truth (with 5s timeout)
+        const TIMEOUT_MS = 5000;
+        const queryPromise = supabase
           .from("user_accounts")
           .select("role")
           .eq("auth_uid", user.uid)
           .single();
+
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Admin check timed out")), TIMEOUT_MS)
+        );
+
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
         if (error || data?.role !== "admin") {
           console.warn(
@@ -74,7 +81,7 @@ export function useAdminAuthGuard(): AdminGuardState {
 
         setIsAdmin(true);
       } catch (err) {
-        console.error("🛡️ [AdminGuard] Error checking admin role:", err);
+        console.warn("🛡️ [AdminGuard] Error or timeout checking admin role:", err);
         setIsAdmin(false);
         router.replace("/(client)/(tabs)/home" as any);
       } finally {

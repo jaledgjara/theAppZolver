@@ -6,7 +6,7 @@ export type BackendSession = {
   token?: string;
   email: string | null;
   phone: string | null;
-  role: "client" | "professional" | null;
+  role: "client" | "professional" | "admin" | null;
   profile_complete: boolean;
   legal_name: string | null;
   identityStatus?: string | null;

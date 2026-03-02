@@ -1,5 +1,6 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
-import { auth } from "@/APIconfig/firebaseAPIConfig"; // Importar Auth de Firebase
+import { auth } from "@/APIconfig/firebaseAPIConfig";
+import type { OnboardingState } from "../Type/ProfessionalAuthUser";
 
 // Helper robusto usando FormData (Estándar en React Native)
 const uploadFile = async (uri: string | null, path: string) => {
@@ -42,7 +43,7 @@ const uploadFile = async (uri: string | null, path: string) => {
 };
 
 export const ProfessionalProfileService = {
-  saveFullProfile: async (userId: string, profileData: any) => {
+  saveFullProfile: async (userId: string, profileData: OnboardingState) => {
     console.log("==========================================");
     console.log("🚀 [Service] INICIANDO SAVE FULL PROFILE");
     console.log("👤 User ID:", userId);
@@ -62,6 +63,13 @@ export const ProfessionalProfileService = {
       uploadFile(profileData.dniFrontUri, `${userId}/identity/dni_front.jpg`),
       uploadFile(profileData.dniBackUri, `${userId}/identity/dni_back.jpg`),
     ]);
+
+    if (profileData.dniFrontUri && !frontUrl) {
+      throw new Error("Falló la subida del frente del documento de identidad.");
+    }
+    if (profileData.dniBackUri && !backUrl) {
+      throw new Error("Falló la subida del dorso del documento de identidad.");
+    }
 
     // 3. Subir Portafolio
     console.log("📤 [Service] Subiendo portafolio...");

@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { initializeAuthListener } from "@/appSRC/auth/Service/AuthService";
+import { initializeAuthListener, initializeTokenRefreshListener } from "@/appSRC/auth/Service/AuthService";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useAuthGuard } from "@/appSRC/auth/Hooks/useAuthGuard";
 import LoadingScreen from "@/appCOMP/contentStates/LoadingScreen";
@@ -22,8 +22,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     console.log("🏗️ [RootLayout] useEffect: Initializing auth listener...");
-    const unsubscribe = initializeAuthListener();
-    return () => unsubscribe();
+    const unsubAuth = initializeAuthListener();
+    const unsubRefresh = initializeTokenRefreshListener();
+    return () => {
+      unsubAuth();
+      unsubRefresh();
+    };
   }, []);
 
   useAuthGuard();

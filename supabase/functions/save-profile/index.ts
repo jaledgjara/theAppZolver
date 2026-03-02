@@ -36,16 +36,6 @@ serve(async (req: Request) => {
 
     console.log(`[save-profile] Guardando perfil para: ${userId}`);
 
-    const hasZolverYa =
-      profileData.typeWork === "instant" || profileData.typeWork === "hybrid";
-
-    const finalPrice =
-      hasZolverYa && profileData.instantServicePrice
-        ? parseFloat(profileData.instantServicePrice)
-        : null;
-
-    console.log(`ZOLVER YA: ${hasZolverYa} | Price: ${finalPrice}`);
-
     // 3. Payload DB
     const dbPayload = {
       user_id: userId,
@@ -57,15 +47,13 @@ serve(async (req: Request) => {
       enrollment_number: profileData.licenseNumber,
       biography: profileData.biography,
       portfolio_urls: portfolioUrls,
-      // Precio instantáneo
-      instant_service_price: finalPrice,
+      type_work: profileData.typeWork || "quote",
       // Ubicación
       base_lat: profileData.location?.latitude || 0,
       base_lng: profileData.location?.longitude || 0,
       coverage_radius_km: profileData.radiusKm,
-      availability_schedule: profileData.schedule,
-      cbu_alias: profileData.cbuAlias,
-      is_active: true,
+      financial_info: { cbu_alias: profileData.cbuAlias },
+      is_active: false,
       updated_at: new Date(),
     };
 
@@ -85,14 +73,20 @@ serve(async (req: Request) => {
       .eq("auth_uid", userId);
 
     return new Response(JSON.stringify({ success: true, data }), {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
       status: 200,
     });
   } catch (err: any) {
     console.error("Error saving profile:", err);
     const isAuthError = err.message?.includes("JWT") || err.message?.includes("signature") || err.message?.includes("audience");
     return new Response(JSON.stringify({ error: err.message }), {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
       status: isAuthError ? 401 : 500,
     });
   }

@@ -145,9 +145,7 @@ export function useAuthGuard() {
       if (normalize(pathname) === normalize(target)) return;
 
       setTransitionDirection(direction);
-      requestAnimationFrame(() => {
-        router.replace(target as any);
-      });
+      router.replace(target as any);
     }
   }, [isNavReady, isBootLoading, status, pathname, segments]);
 }
