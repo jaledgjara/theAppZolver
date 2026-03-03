@@ -71,15 +71,11 @@ export async function updateUserLegalName(legalName: string) {
     const user = auth.currentUser;
     const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS;
 
-    // Reutilizamos 'set-user-role' porque sabe hacer UPDATE
-    const url = `${baseUrl}/set-user-role`;
+    // Use update-user-identity Edge Function (only updates legal_name)
+    const url = `${baseUrl}/update-user-identity`;
 
     const body = JSON.stringify({
-      uid: user?.uid,
-      email: user?.email,
-      role: "client", // Rol temporal seguro
-      legal_name: legalName, // 👈 AQUÍ SÍ enviamos el nombre explícitamente
-      phone: null, // No tocamos el teléfono
+      legal_name: legalName,
     });
 
     const res = await fetch(url, {

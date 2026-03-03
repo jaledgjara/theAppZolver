@@ -97,7 +97,8 @@ export function useProfessionalForm() {
     setIsSubmitting(true);
     try {
       // 1. Guardar en Base de Datos (vía Edge Function)
-      await ProfessionalProfileService.saveFullProfile(user.uid, store);
+      // Pass internalId for Supabase Storage path (matches auth.uid() in JWT)
+      await ProfessionalProfileService.saveFullProfile(user.uid, store, user.internalId);
 
       // 2. Actualizar usuario local
       // Marcamos profileComplete como true porque el formulario ya se llenó

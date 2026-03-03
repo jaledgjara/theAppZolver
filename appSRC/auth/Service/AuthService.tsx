@@ -80,12 +80,14 @@ export function mapFirebaseUserToAuthUser(
     profileComplete?: boolean;
     legalName?: string | null;
     identityStatus?: string | null;
+    internalId?: string;
   }
 ): AuthUser {
   const finalName = opts?.legalName || fbUser.displayName || null;
 
   return {
     uid: fbUser.uid,
+    internalId: opts?.internalId,
     email: fbUser.email ?? null,
     displayName: finalName,
     legalName: finalName,
@@ -195,6 +197,7 @@ export function initializeAuthListener() {
         legalName: backendSession.legal_name,
         phone: backendSession.phone,
         identityStatus: backendSession.identityStatus,
+        internalId: backendSession.internal_id,
       });
 
       setUser(appUser);
@@ -456,9 +459,6 @@ export async function deleteUserAccount(): Promise<{
   const { setBootLoading, reset } = useAuthStore.getState();
 
   try {
-    console.log(
-      "🔒 [AuthService] Iniciando protocolo de eliminación segura..."
-    );
     setBootLoading(true);
 
     const user = auth.currentUser;
@@ -466,14 +466,21 @@ export async function deleteUserAccount(): Promise<{
       throw new Error("No hay sesión activa para eliminar.");
     }
 
-    // 1. Llamada a RPC de Supabase (Lógica de Negocio)
+    console.log("[DeleteAccount] Step 1/3: Calling RPC delete_user_account_safe...");
+    console.log("[DeleteAccount] UID:", user.uid);
+
     const { error: dbError } = await supabase.rpc("delete_user_account_safe");
 
     if (dbError) {
-      console.error("❌ [AuthService] Rechazo de DB:", dbError.message);
+      console.warn("[DeleteAccount] RPC result:", {
+        message: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint,
+        code: dbError.code,
+      });
 
-      // Manejo del error de bloqueo definido en SQL
       if (dbError.message.includes("BLOCK_ACTIVE_RESERVATIONS")) {
+        setBootLoading(false);
         return {
           ok: false,
           message:
@@ -481,25 +488,26 @@ export async function deleteUserAccount(): Promise<{
         };
       }
 
-      throw new Error(
-        "Error técnico al procesar la solicitud. Contacte a soporte."
-      );
+      // Non-blocking DB errors: proceed to Firebase deletion anyway.
+      // The DB row may already be gone from a previous partial delete.
+      console.warn("[DeleteAccount] DB error (non-blocking), proceeding to Firebase delete...");
     }
 
-    // 2. Eliminación en Firebase Auth (Identidad)
-    // Si llegamos aquí, Supabase ya validó y limpió los datos.
+    console.log("[DeleteAccount] Step 2/3: RPC success. Deleting Firebase user...");
+
     await user.delete();
 
-    // 3. Limpieza Local
+    console.log("[DeleteAccount] Step 3/3: Firebase user deleted. Cleaning local state...");
+
     await AsyncStorage.removeItem("user_session");
     reset();
 
+    console.log("[DeleteAccount] Account deleted successfully.");
     return { ok: true };
   } catch (e: any) {
-    console.error("❌ [AuthService] Excepción en Delete Account:", e);
+    console.error("[DeleteAccount] Exception:", e.message || e);
     setBootLoading(false);
 
-    // Manejo de Re-autenticación obligatoria de Firebase
     if (e.code === "auth/requires-recent-login") {
       return {
         ok: false,

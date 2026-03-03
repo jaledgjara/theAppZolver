@@ -16,6 +16,7 @@ export type AuthStatus =
 
 export type AuthUser = {
   uid: string;
+  internalId?: string; // Postgres UUID — use for Supabase Storage paths
   email: string | null;
   displayName: string | null;
   legalName: string | null;
@@ -23,7 +24,7 @@ export type AuthUser = {
   phoneNumber: string | null;
   role: "client" | "professional" | "admin" | null;
   profileComplete: boolean;
-  identityStatus?: string | null; // 👈 NUEVO (Útil para lógica UI)
+  identityStatus?: string | null;
 };
 
 // appSRC/auth/Type/AuthUser.ts

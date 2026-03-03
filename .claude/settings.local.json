@@ -9,7 +9,11 @@
       "Bash(supabase db:*)",
       "Bash(supabase status:*)",
       "Bash(supabase functions:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(npx supabase:*)",
+      "Bash(supabase projects:*)",
+      "Bash(curl:*)",
+      "Bash(grep service_role\\\\|SERVICE_ROLE:*)"
     ]
   }
 }

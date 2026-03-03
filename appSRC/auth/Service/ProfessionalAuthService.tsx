@@ -43,7 +43,13 @@ const uploadFile = async (uri: string | null, path: string) => {
 };
 
 export const ProfessionalProfileService = {
-  saveFullProfile: async (userId: string, profileData: OnboardingState) => {
+  /**
+   * @param userId - Firebase UID (used for Edge Function auth)
+   * @param profileData - Onboarding form data
+   * @param storageId - Postgres UUID (internal_id) for Supabase Storage paths.
+   *                     Falls back to userId if not available.
+   */
+  saveFullProfile: async (userId: string, profileData: OnboardingState, storageId?: string) => {
     console.log("==========================================");
     console.log("🚀 [Service] INICIANDO SAVE FULL PROFILE");
     console.log("👤 User ID:", userId);
@@ -56,12 +62,14 @@ export const ProfessionalProfileService = {
       token.substring(0, 10) + "..."
     );
 
-    // 2. Subir Documentos (Esto puede seguir siendo cliente-lado si las políticas de Storage lo permiten,
-    // o puedes moverlo. Asumimos que Storage funciona por ahora si es público o tiene policy Auth).
-    console.log("📤 [Service] Subiendo documentos de identidad...");
+    // 2. Subir Documentos
+    // Use storageId (Postgres UUID = auth.uid() in Supabase JWT) for storage paths
+    // so they match Supabase Storage RLS policies.
+    const pathId = storageId || userId;
+    console.log("📤 [Service] Subiendo documentos de identidad... (pathId:", pathId, ")");
     const [frontUrl, backUrl] = await Promise.all([
-      uploadFile(profileData.dniFrontUri, `${userId}/identity/dni_front.jpg`),
-      uploadFile(profileData.dniBackUri, `${userId}/identity/dni_back.jpg`),
+      uploadFile(profileData.dniFrontUri, `${pathId}/identity/dni_front.jpg`),
+      uploadFile(profileData.dniBackUri, `${pathId}/identity/dni_back.jpg`),
     ]);
 
     if (profileData.dniFrontUri && !frontUrl) {
@@ -75,7 +83,7 @@ export const ProfessionalProfileService = {
     console.log("📤 [Service] Subiendo portafolio...");
     const portfolioUploads = (profileData.portfolioUris || []).map(
       (uri: string, index: number) =>
-        uploadFile(uri, `${userId}/portfolio/img_${index}.jpg`)
+        uploadFile(uri, `${pathId}/portfolio/img_${index}.jpg`)
     );
     const portfolioUrls = (await Promise.all(portfolioUploads)).filter(
       (url) => url !== null

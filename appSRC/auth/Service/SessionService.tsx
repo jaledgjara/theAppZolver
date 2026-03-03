@@ -3,6 +3,7 @@ import { auth } from "@/APIconfig/firebaseAPIConfig";
 export type BackendSession = {
   ok: boolean;
   uid: string;
+  internal_id?: string; // Postgres UUID — matches auth.uid() in Supabase JWT
   token?: string;
   email: string | null;
   phone: string | null;

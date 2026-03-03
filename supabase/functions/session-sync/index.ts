@@ -117,6 +117,7 @@ serve(async (req: Request) => {
       ok: true,
       token: supabaseToken,
       uid: firebaseUid, // Tu ID de Firebase para la UI
+      internal_id: shadowUUID, // Postgres UUID (matches auth.uid() in Supabase JWT sub)
       email: email,
       phone: upsertedAccount.phone,
       role: upsertedAccount.role,

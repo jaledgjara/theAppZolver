@@ -57,10 +57,10 @@ serve(async (req: Request) => {
       updated_at: new Date(),
     };
 
-    // 4. Upsert
+    // 4. Upsert (on conflict with user_id primary key)
     const { data, error } = await supabaseAdmin
       .from("professional_profiles")
-      .upsert(dbPayload)
+      .upsert(dbPayload, { onConflict: "user_id" })
       .select()
       .single();
 

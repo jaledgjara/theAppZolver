@@ -5,6 +5,8 @@ import {
   AdminUserFilters,
   AdminProfessionalDetail,
   PaginatedUsers,
+  PendingProfessional,
+  PendingProfessionalDTO,
 } from "../Type/AdminTypes";
 
 // DTO → Domain mapper
@@ -19,6 +21,32 @@ function mapAdminUser(dto: AdminUserDTO): AdminUser {
     profileComplete: dto.profile_complete,
     createdAt: new Date(dto.created_at),
     avatarUrl: dto.avatar_url,
+  };
+}
+
+function mapPendingProfessional(dto: PendingProfessionalDTO): PendingProfessional {
+  const ua = dto.user_accounts;
+  return {
+    authUid: ua.auth_uid,
+    legalName: ua.legal_name,
+    email: ua.email,
+    phone: ua.phone,
+    createdAt: new Date(ua.created_at),
+    userId: dto.user_id,
+    docFrontUrl: dto.doc_front_url,
+    docBackUrl: dto.doc_back_url,
+    mainCategoryId: dto.main_category_id,
+    specializationTitle: dto.specialization_title,
+    enrollmentNumber: dto.enrollment_number,
+    biography: dto.biography,
+    portfolioUrls: dto.portfolio_urls ?? [],
+    baseLat: dto.base_lat,
+    baseLng: dto.base_lng,
+    coverageRadiusKm: dto.coverage_radius_km,
+    typeWork: dto.type_work,
+    financialInfo: dto.financial_info,
+    identityStatus: dto.identity_status,
+    profileCreatedAt: new Date(dto.created_at),
   };
 }
 
@@ -101,16 +129,16 @@ export const AdminUserService = {
     if (error) throw new Error(error.message);
   },
 
-  /** Approve or reject a professional (updates identity_status + is_active) */
+  /** Approve, verify, or reject a professional (updates identity_status + is_active) */
   async updateProfessionalStatus(
     userId: string,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected" | "verified"
   ): Promise<void> {
     const { error } = await supabase
       .from("professional_profiles")
       .update({
         identity_status: status,
-        is_active: status === "approved",
+        is_active: status !== "rejected",
       })
       .eq("user_id", userId);
 
@@ -138,6 +166,41 @@ export const AdminUserService = {
       .from("platform_settings")
       .update({ value, updated_at: new Date().toISOString() })
       .eq("key", key);
+
+    if (error) throw new Error(error.message);
+  },
+
+  /** Fetch all pending professionals with user account data */
+  async fetchPendingProfessionals(): Promise<PendingProfessional[]> {
+    const { data, error } = await supabase
+      .from("professional_profiles")
+      .select(
+        "*, user_accounts!inner(auth_uid, legal_name, email, phone, created_at)"
+      )
+      .eq("identity_status", "pending")
+      .order("created_at", { ascending: true });
+
+    if (error) throw new Error(error.message);
+
+    return ((data as PendingProfessionalDTO[]) || []).map(
+      mapPendingProfessional
+    );
+  },
+
+  /** Update editable fields on a professional profile */
+  async updateProfessionalProfile(
+    userId: string,
+    fields: Partial<{
+      specialization_title: string;
+      biography: string;
+      enrollment_number: string;
+      coverage_radius_km: number;
+    }>
+  ): Promise<void> {
+    const { error } = await supabase
+      .from("professional_profiles")
+      .update(fields)
+      .eq("user_id", userId);
 
     if (error) throw new Error(error.message);
   },
