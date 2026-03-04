@@ -36,12 +36,7 @@ serve(async (req) => {
     // independientemente de las reglas RLS del usuario.
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
@@ -168,8 +163,10 @@ serve(async (req) => {
     console.log(`[Zolver-Edge] Fee breakdown: subtotal=${serviceSubtotal}, fee=${platformFeeAmount}, total=${totalAmount}`);
 
     // B. Build payer object: include customer ID for saved cards so MP links the payment
+    // type: "customer" is required by MP when charging a saved card — without it MP
+    // treats the payment as a new-card attempt and may reject with cc_rejected_other_reason.
     const payer = isSavedCard
-      ? { id: customer_id, email: payer_email }
+      ? { type: "customer", id: customer_id, email: payer_email }
       : { email: payer_email };
 
     // C. Build payment body with additional_info, notification_url, external_reference
@@ -336,7 +333,9 @@ serve(async (req) => {
     console.log(`[Zolver-Edge] Reserva creada: ${reservationId}`);
 
     // C. Insertar Registro de Pago (columnas alineadas a tabla 'payments' real)
-    const { error: payDbError } = await supabaseClient.from("payments").insert({
+    console.log(`[Zolver-Edge] Inserting payment: reservation=${reservationId}, mp_id=${paymentResult.id}, status=${paymentDbStatus}`);
+
+    const { data: paymentRow, error: payDbError } = await supabaseClient.from("payments").insert({
       reservation_id: reservationId,
       client_id: user_id,
       professional_id: professional_id,
@@ -346,13 +345,13 @@ serve(async (req) => {
       method: method || "credit_card", // DB enum: credit_card | debit_card | platform_credit
       payment_method_id: saved_card_id || null, // FK -> user_payment_methods (null for new cards)
       provider_payment_id: paymentResult.id.toString(), // ID MP para futuros reembolsos
-    });
+    }).select("id").single();
 
     if (payDbError) {
       // CRITICAL: Money was charged, reservation created, but no payment record.
       // We MUST rollback: refund MP + delete reservation to prevent orphaned charges.
       console.error(
-        `[Zolver-Edge] CRITICAL: Payment insert failed. Rolling back. Error: ${payDbError.message}. MP ID: ${paymentResult.id}`
+        `[Zolver-Edge] CRITICAL: Payment insert failed. Rolling back. Error: ${JSON.stringify(payDbError)}. MP ID: ${paymentResult.id}`
       );
 
       // Rollback 1: Refund Mercado Pago
@@ -381,6 +380,8 @@ serve(async (req) => {
 
       throw new Error("Error interno guardando el registro de pago. Se procesó un reembolso automático.");
     }
+
+    console.log(`[Zolver-Edge] Payment inserted: ${paymentRow.id}`);
 
     // ÉXITO TOTAL
     return new Response(

@@ -40,4 +40,7 @@ export const setSupabaseAuthToken = (token: string | null) => {
 
   // Inyectar en Functions para supabase.functions.invoke()
   (supabase as any).functions.headers["Authorization"] = authHeader;
+
+  // Inyectar en Storage para uploads/downloads (supabase.storage.from().upload())
+  (supabase.storage as any).headers["Authorization"] = authHeader;
 };
