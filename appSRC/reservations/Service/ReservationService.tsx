@@ -86,7 +86,14 @@ export const rejectReservationWithRefund = async (
     }
   );
 
-  if (error || !data.success) throw new Error("Error procesando el reembolso.");
+  if (error) {
+    console.error("[ReservationService] Edge Function error:", error);
+    throw new Error(error.message || "Error invocando cancel-reservation-refund.");
+  }
+  if (!data?.success) {
+    console.error("[ReservationService] Refund rejected:", data?.error);
+    throw new Error(data?.error || "Error procesando el reembolso.");
+  }
   return data;
 };
 
@@ -621,34 +628,20 @@ export const confirmInstantReservationService = async (
   reservationId: string,
   professionalId: string
 ) => {
-  console.log("Service - Confirming Instant Reservation");
+  console.log("Service - Confirming Instant Reservation (RPC)");
 
   try {
-    const { data: reservationData, error: resError } = await supabase
-      .from("reservations")
-      .update({
-        status: "confirmed",
-        professional_id: professionalId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", reservationId)
-      .select()
-      .single();
+    // Atomic RPC: updates reservation status + sets is_active=false in one call
+    const { error } = await supabase.rpc("accept_instant_reservation", {
+      p_reservation_id: reservationId,
+      p_professional_id: professionalId,
+    });
 
-    if (resError) throw resError;
+    if (error) throw error;
 
-    const { error: statusError } = await supabase
-      .from("professional_profiles")
-      .update({ is_active: false })
-      .eq("user_id", professionalId);
-
-    if (statusError) {
-      console.warn("Warning: Could not update is_active status");
-    }
-
-    // ✅ FIX: Retornamos como vista Profesional
-    return mapReservationFromDTO(reservationData as any, "professional");
-  } catch (err: any) {
+    // Fetch the updated reservation for the UI
+    return await fetchReservationByIdForProfessional(reservationId);
+  } catch (err: unknown) {
     console.error("Exception confirming instant reservation:", err);
     throw err;
   }

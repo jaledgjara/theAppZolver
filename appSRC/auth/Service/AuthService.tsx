@@ -113,7 +113,7 @@ export function decideAuthStatus(params: {
   if (role === "client") return "authenticated";
   if (role === "professional") {
     if (!profileComplete) return "preProfessionalForm";
-    if (identityStatus === "approved" || identityStatus === "verified") {
+    if (identityStatus === "approved" || identityStatus === "verified" || identityStatus === "verifiedProfessional") {
       return "authenticatedProfessional";
     }
     if (identityStatus === "rejected") return "rejected";

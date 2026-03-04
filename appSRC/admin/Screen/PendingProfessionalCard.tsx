@@ -23,9 +23,36 @@ export default function PendingProfessionalCard({
     verifyProfessional,
     rejectProfessional,
     isUpdatingStatus,
+    updateStatusError,
     updateProfile,
     isUpdatingProfile,
   } = useAdminUserActions();
+
+  const handleVerify = () => {
+    console.log(`[Card] handleVerify pressed for userId: ${p.userId}`);
+    const confirmed = window.confirm(
+      `¿Estás seguro de verificar a ${p.legalName ?? p.email}?`
+    );
+    if (confirmed) {
+      console.log(`[Card] Confirmed — calling verifyProfessional(${p.userId})`);
+      verifyProfessional(p.userId);
+    } else {
+      console.log(`[Card] Cancelled verify`);
+    }
+  };
+
+  const handleReject = () => {
+    console.log(`[Card] handleReject pressed for userId: ${p.userId}`);
+    const confirmed = window.confirm(
+      `¿Estás seguro de rechazar a ${p.legalName ?? p.email}?`
+    );
+    if (confirmed) {
+      console.log(`[Card] Confirmed — calling rejectProfessional(${p.userId})`);
+      rejectProfessional(p.userId);
+    } else {
+      console.log(`[Card] Cancelled reject`);
+    }
+  };
 
   // Editable fields
   const [specialization, setSpecialization] = useState(p.specializationTitle);
@@ -203,11 +230,24 @@ export default function PendingProfessionalCard({
         </Pressable>
       )}
 
+      {/* Error banner */}
+      {updateStatusError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>
+            Error: {updateStatusError.message}
+          </Text>
+        </View>
+      )}
+
       {/* Action buttons */}
       <View style={styles.actionRow}>
         <Pressable
-          style={[styles.actionButton, styles.verifyButton]}
-          onPress={() => verifyProfessional(p.userId)}
+          style={[
+            styles.actionButton,
+            styles.verifyButton,
+            isUpdatingStatus && styles.actionButtonDisabled,
+          ]}
+          onPress={handleVerify}
           disabled={isUpdatingStatus}
         >
           {isUpdatingStatus ? (
@@ -217,11 +257,19 @@ export default function PendingProfessionalCard({
           )}
         </Pressable>
         <Pressable
-          style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => rejectProfessional(p.userId)}
+          style={[
+            styles.actionButton,
+            styles.rejectButton,
+            isUpdatingStatus && styles.actionButtonDisabled,
+          ]}
+          onPress={handleReject}
           disabled={isUpdatingStatus}
         >
-          <Text style={styles.actionButtonText}>Rechazar</Text>
+          {isUpdatingStatus ? (
+            <ActivityIndicator color={COLORS.white} size="small" />
+          ) : (
+            <Text style={styles.actionButtonText}>Rechazar</Text>
+          )}
         </Pressable>
       </View>
 
@@ -386,6 +434,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: SIZES.body4,
   },
+  // Error banner
+  errorBanner: {
+    backgroundColor: "#FFF0F0",
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  errorBannerText: {
+    color: COLORS.error,
+    fontSize: SIZES.body4,
+    fontWeight: "500",
+  },
   // Actions
   actionRow: {
     flexDirection: "row",
@@ -397,6 +459,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: SIZES.radius,
     alignItems: "center",
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
   verifyButton: {
     backgroundColor: COLORS.success,

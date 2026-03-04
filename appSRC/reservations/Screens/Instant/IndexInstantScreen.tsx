@@ -8,16 +8,15 @@ import {
   ScrollView,
 } from "react-native";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import { useRouter } from "expo-router";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { COLORS } from "@/appASSETS/theme";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
 // --- HOOKS ---
-import { useConfirmInstantReservation } from "../../Hooks/useConfirmInstantReservation";
 import { useProIncomingRequests } from "../../Hooks/useProIncomingRequests";
 import { useCurrentActiveJob } from "../../Hooks/useCurrentActiveJob";
-import { useRejectByProfessional } from "../../Hooks/useRejectByProfessional";
 
 // --- CARDS & UTILS ---
 import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
@@ -27,14 +26,14 @@ import { useIsActive } from "@/appSRC/users/Professional/General/Hooks/useIsActi
 import { useMapNavigation } from "@/appSRC/maps/Hooks/openMapMenu";
 
 const IndexInstantScreen = () => {
+  const router = useRouter();
+
   // 1. Trabajo Activo
   const {
     currentJob,
     isLoading: loadingJob,
     refresh: refreshActiveJob,
   } = useCurrentActiveJob();
-
-  const { rejectReservation } = useRejectByProfessional();
 
   // 2. Radar y Solicitudes
   const { isActive, toggleStatus, isLoading: switchingStatus } = useIsActive();
@@ -48,26 +47,14 @@ const IndexInstantScreen = () => {
     refresh: refreshRequests,
   } = useProIncomingRequests(shouldFetchRequests);
 
-  // 3. Acciones
-  const { confirmRequest } = useConfirmInstantReservation();
-
   const handleManualRefresh = useCallback(() => {
-    console.log("🔄 Refrescando tablero...");
+    console.log("Refrescando tablero...");
     refreshActiveJob();
     if (shouldFetchRequests) refreshRequests();
   }, [refreshActiveJob, refreshRequests, shouldFetchRequests]);
 
-  const handleAccept = async (reservationId: string) => {
-    await confirmRequest(reservationId, () => {
-      refreshActiveJob();
-    });
-  };
-
-  const handleReject = async (reservationId: string) => {
-    rejectReservation(reservationId, () => {
-      console.log("🗑️ Rechazado. Actualizando lista...");
-      refreshRequests();
-    });
+  const handleCardPress = (reservationId: string) => {
+    router.push(`/(professional)/(tabs)/home/InstantRequestDetail/${reservationId}`);
   };
 
   // --- VISTA ---
@@ -92,7 +79,6 @@ const IndexInstantScreen = () => {
           />
           <Text style={styles.hintText}>Desliza para actualizar</Text>
 
-          {/* --- NUEVO BOTÓN PARA MAPAS --- */}
           <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
             <LargeButton
               title="Ver dirección en Mapa"
@@ -101,7 +87,6 @@ const IndexInstantScreen = () => {
               backgroundColor={COLORS.tertiary}
             />
           </View>
-          {/* ----------------------------- */}
         </ScrollView>
       </View>
     );
@@ -175,8 +160,6 @@ const IndexInstantScreen = () => {
             />
           }
           renderItem={({ item }) => {
-            // ✅ FIX: Usar TimeEngine para la hora
-            // Si es instantánea, usamos createdAt. Si no, scheduledStart.
             const targetDate =
               item.modality === "instant"
                 ? item.createdAt
@@ -185,14 +168,12 @@ const IndexInstantScreen = () => {
 
             return (
               <ServiceRequestCard
-                category={item.serviceTitle} // Usamos serviceTitle mapeado
-                price={`$${item.financials.price.toLocaleString()}`} // Usamos financials mapeado
-                distance="📍 Cerca"
-                location={item.address} // ✅ Usamos la nueva prop address
-                title={item.roleName} // El nombre del cliente
-                timeAgo={time} // Hora formateada limpia
-                onAccept={() => handleAccept(item.id)}
-                onDecline={() => handleReject(item.id)}
+                clientName={item.roleName}
+                serviceTitle={item.serviceTitle}
+                price={`$${item.financials.price.toLocaleString()}`}
+                location={item.address}
+                timeAgo={time}
+                onPress={() => handleCardPress(item.id)}
               />
             );
           }}

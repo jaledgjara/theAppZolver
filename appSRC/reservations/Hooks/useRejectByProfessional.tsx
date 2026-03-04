@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { rejectReservationByPro } from "@/appSRC/reservations/Service/ReservationService";
-import { Alert } from "react-native";
+import { rejectReservationWithRefund } from "@/appSRC/reservations/Service/ReservationService";
 import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 
 export const useRejectByProfessional = () => {
@@ -10,60 +9,53 @@ export const useRejectByProfessional = () => {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Ejecuta el rechazo de la reserva.
-   * @param reservationId ID de la reserva a rechazar.
-   * @param onSuccess Callback opcional para refrescar listas o navegar.
+   * Ejecuta el rechazo de la reserva con reembolso al cliente.
+   * Fire-and-forget: No espera la respuesta del refund para dar feedback inmediato.
    */
-  const rejectReservation = async (
+  const rejectReservation = (
     reservationId: string,
     onSuccess?: () => void,
     clientId?: string
   ) => {
-    // 1. Validación de Seguridad Local
     if (!user?.uid) {
-      console.error("❌ [HOOK] Intento de rechazo sin sesión activa.");
+      console.error("[HOOK] Intento de rechazo sin sesion activa.");
       return;
     }
 
     setIsRejecting(true);
     setError(null);
 
-    try {
-      // 2. Llamada al Servicio
-      console.log(`🛡️ [HOOK] Rechazando reserva ${reservationId}...`);
-      await rejectReservationByPro(reservationId, user.uid);
+    console.log(`[HOOK] Rechazando reserva ${reservationId} (fire-and-forget)...`);
 
-      // 3. Side-effect: Notificar al cliente (fire & forget)
-      if (clientId) {
-        createNotification({
-          user_id: clientId,
-          title: "Solicitud rechazada",
-          body: "El profesional no puede tomar el servicio en este momento.",
-          type: "reservation_rejected",
-          data: { reservation_id: reservationId, screen: "/(client)/(tabs)/reservations" },
-        });
-      }
+    // Fire-and-forget: lanzamos el refund en background
+    rejectReservationWithRefund(reservationId, "Rechazado por profesional", "professional")
+      .then(() => {
+        console.log("[HOOK] Refund procesado en background.");
+      })
+      .catch((err) => {
+        console.error("[HOOK] Refund background error:", err);
+      });
 
-      // 4. Feedback Exitoso
-      console.log("✅ [HOOK] Reserva rechazada correctamente.");
-      if (onSuccess) onSuccess();
-    } catch (err: any) {
-      // 4. Manejo de Errores
-      console.error("❌ [HOOK] Error al rechazar:", err);
-      const msg = err.message || "No se pudo rechazar la reserva.";
-      setError(msg);
-      Alert.alert(
-        "Error",
-        "Ocurrió un problema al rechazar la solicitud. Intenta nuevamente."
-      );
-    } finally {
-      setIsRejecting(false);
+    // Side-effect: Notificar al cliente (fire & forget)
+    if (clientId) {
+      createNotification({
+        user_id: clientId,
+        title: "Solicitud rechazada",
+        body: "El profesional no puede tomar el servicio en este momento. Tu pago sera reembolsado.",
+        type: "reservation_rejected",
+        data: { reservation_id: reservationId, screen: "/(client)/(tabs)/reservations" },
+      });
     }
+
+    // Feedback inmediato
+    console.log("[HOOK] Reserva rechazada. Refund en proceso.");
+    if (onSuccess) onSuccess();
+    setIsRejecting(false);
   };
 
   return {
     rejectReservation,
-    isRejecting, // Úsalo para mostrar un Spinner en el botón
+    isRejecting,
     error,
   };
 };

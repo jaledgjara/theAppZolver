@@ -13,7 +13,11 @@
       "Bash(npx supabase:*)",
       "Bash(supabase projects:*)",
       "Bash(curl:*)",
-      "Bash(grep service_role\\\\|SERVICE_ROLE:*)"
+      "Bash(grep service_role\\\\|SERVICE_ROLE:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "WebFetch(domain:www.mercadopago.com.mx)"
     ]
   }
 }

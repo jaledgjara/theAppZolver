@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -17,14 +17,14 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "").trim();
     let payload;
     try {
-      payload = await verifyFirebaseJWT(token);
+      payload = await verifySupabaseJWT(token);
     } catch (e) {
       return Response.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const uid = payload.sub;
+    const uid = payload.firebase_uid;
     const email = payload.email ?? null;
-    const provider = payload.firebase?.sign_in_provider ?? "unknown";
+    const provider = "firebase";
 
     // LEEMOS EL BODY
     const body = await req.json().catch(() => ({}));

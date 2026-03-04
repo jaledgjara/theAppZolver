@@ -3,7 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,8 +25,8 @@ serve(async (req) => {
       );
     }
     const jwtToken = authHeader.replace("Bearer ", "").trim();
-    const jwtPayload = await verifyFirebaseJWT(jwtToken);
-    const verifiedUid = jwtPayload.sub;
+    const jwtPayload = await verifySupabaseJWT(jwtToken);
+    const verifiedUid = jwtPayload.firebase_uid;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",

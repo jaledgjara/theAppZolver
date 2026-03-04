@@ -14,14 +14,14 @@ export const ConversationService = {
       .select(
         `
         *,
-        p1:user_accounts!participant1_id (
-          auth_uid, 
+        p1:user_accounts!conversations_participant1_id_fkey (
+          auth_uid,
           legal_name,
           role,
           professional_profiles (photo_url)
         ),
-        p2:user_accounts!participant2_id (
-          auth_uid, 
+        p2:user_accounts!conversations_participant2_id_fkey (
+          auth_uid,
           legal_name,
           role,
           professional_profiles (photo_url)
@@ -30,6 +30,9 @@ export const ConversationService = {
       )
       .or(`participant1_id.eq.${authUserId},participant2_id.eq.${authUserId}`)
       .order("updated_at", { ascending: false });
+
+    console.log("[ConversationService] RAW query error:", error ? JSON.stringify(error) : "none");
+    console.log("[ConversationService] RAW first row:", data?.[0] ? JSON.stringify(data[0]) : "no data");
 
     if (error) throw new Error(error.message);
     if (!data) return [];
@@ -50,12 +53,19 @@ export const ConversationService = {
         }
       }
 
+      // If the embedded join returned null, fall back to the raw participant ID
+      const partnerId = rawPartner?.auth_uid
+        || (isP1Me ? row.participant2_id : row.participant1_id)
+        || "deleted";
+
       const partnerProfile: PartnerProfileSummary = {
-        id: rawPartner?.auth_uid || "deleted",
+        id: partnerId,
         name: rawPartner?.legal_name || "Usuario Zolver",
         role: (rawPartner?.role as "client" | "professional") || "client",
         avatar: partnerPhoto,
       };
+
+      console.log(`[ConversationService] Partner resolved — id: ${partnerId} | name: ${partnerProfile.name} | rawPartner null: ${!rawPartner}`);
 
       // LOG DE CONTROL FINAL
       console.log(

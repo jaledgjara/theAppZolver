@@ -24,10 +24,22 @@ export function useAdminUserActions() {
       status,
     }: {
       userId: string;
-      status: "approved" | "rejected" | "verified";
+      status: "approved" | "rejected" | "verifiedProfessional";
     }) => AdminUserService.updateProfessionalStatus(userId, status),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      console.log(`[AdminActions] onSuccess — status: ${variables.status}`);
       queryClient.invalidateQueries({ queryKey: ["admin"] });
+      const msg =
+        variables.status === "verifiedProfessional"
+          ? "Profesional verificado exitosamente."
+          : variables.status === "rejected"
+            ? "Profesional rechazado."
+            : "Estado actualizado.";
+      window.alert(msg);
+    },
+    onError: (error: Error) => {
+      console.error("[AdminActions] onError:", error.message);
+      window.alert(`Error: ${error.message}`);
     },
   });
 
@@ -58,7 +70,7 @@ export function useAdminUserActions() {
     rejectProfessional: (userId: string) =>
       updateStatusMutation.mutate({ userId, status: "rejected" }),
     verifyProfessional: (userId: string) =>
-      updateStatusMutation.mutate({ userId, status: "verified" }),
+      updateStatusMutation.mutate({ userId, status: "verifiedProfessional" }),
     isUpdatingStatus: updateStatusMutation.isPending,
     updateStatusError: updateStatusMutation.error,
     updateProfile: updateProfileMutation.mutate,

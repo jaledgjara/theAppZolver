@@ -60,6 +60,7 @@ export interface Reservation {
   serviceTitle: string;
   description: string;
   modality: "instant" | "quote";
+  addressCoords: { x: number; y: number } | null;
   financials: {
     price: number;
     currency: string;

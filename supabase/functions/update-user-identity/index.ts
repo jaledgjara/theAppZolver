@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -31,7 +31,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "").trim();
     let payload;
     try {
-      payload = await verifyFirebaseJWT(token);
+      payload = await verifySupabaseJWT(token);
     } catch (e) {
       return Response.json(
         { error: "Invalid token" },
@@ -39,7 +39,7 @@ serve(async (req) => {
       );
     }
 
-    const uid = payload.sub;
+    const uid = payload.firebase_uid;
 
     const body = await req.json().catch(() => ({}));
     const legalName = body.legal_name;
@@ -65,7 +65,7 @@ serve(async (req) => {
     if (!existing) {
       // User record doesn't exist yet — create with minimal data
       const email = payload.email ?? null;
-      const provider = payload.firebase?.sign_in_provider ?? "unknown";
+      const provider = "firebase";
 
       const { data, error } = await supabaseAdmin
         .from("user_accounts")

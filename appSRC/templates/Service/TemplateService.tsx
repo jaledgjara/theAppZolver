@@ -11,7 +11,21 @@ export const TemplateService = {
   ): Promise<ProfessionalTemplate[]> {
     console.log(
       "📡 [TemplateService] Consultando Supabase para ID:",
-      professionalId
+      professionalId,
+      "| type:", typeof professionalId,
+      "| length:", professionalId?.length
+    );
+
+    // Diagnostic: count total rows (ignoring is_active) to distinguish "no data" from "all inactive"
+    const { count: totalRows, error: countError } = await supabase
+      .from("professional_service_prices")
+      .select("*", { count: "exact", head: true })
+      .eq("professional_id", professionalId);
+
+    console.log(
+      "🔢 [TemplateService] Total rows (any is_active):",
+      totalRows,
+      countError ? `| countError: ${countError.message}` : ""
     );
 
     const { data, error } = await supabase

@@ -79,7 +79,8 @@ export interface Payment {
 export interface CreatePaymentPayload {
   // --- Required ---
   card_token: string; // New card: full token | Saved card: CVV-only token
-  amount: number;
+  amount: number; // Platform fee (charged via MP)
+  subtotal: number; // Service price (P2P, not charged via MP)
   payer_email: string;
   payment_method_id: string; // MP brand: 'visa', 'mastercard', etc.
   user_id: string;
@@ -97,6 +98,7 @@ export interface CreatePaymentPayload {
   customer_id?: string; // MP Customer ID (provider_customer_id in DB)
   saved_card_id?: string; // Zolver DB uuid (user_payment_methods.id) for FK
   method?: PaymentMethodTypeDTO; // defaults to 'credit_card' in Edge Function
+  device_id?: string; // Device fingerprint for MP fraud prevention
 }
 
 /** Payload para cancelar/reembolsar via Edge Function 'cancel-reservation-refund'. */

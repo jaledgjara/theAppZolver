@@ -63,6 +63,7 @@ export const mapReservationFromDTO = (
     createdAt,
     scheduledStart,
     address: dto.address_display || "Ubicación a coordinar",
+    addressCoords: dto.address_coords || null,
     statusDTO: dto.status as ReservationStatusDTO,
     statusUI: convertStatusToUI(dto.status as ReservationStatusDTO),
 

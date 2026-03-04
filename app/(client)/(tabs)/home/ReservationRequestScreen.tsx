@@ -29,6 +29,7 @@ import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
 import { formatAddress } from "@/appSRC/location/Type/LocationType";
 import { ProfessionalTemplate } from "@/appSRC/templates/Type/TemplateType";
 import { useProfessionalServices } from "@/appSRC/templates/Hooks/useProfessionalServices";
+import { usePlatformFeeRate } from "@/appSRC/payments/Hooks/usePlatformFeeRate";
 
 const ReservationRequestScreen = () => {
   const params = useLocalSearchParams();
@@ -51,6 +52,7 @@ const ReservationRequestScreen = () => {
   const [description, setDescription] = useState("");
 
   const estimates = useReservationPricing(selectedServices, isInstant);
+  const platformFeeRate = usePlatformFeeRate();
 
   useEffect(() => {
     console.log("🛠 [ReservationRequestScreen] ID:", professionalId);
@@ -197,6 +199,7 @@ const ReservationRequestScreen = () => {
               {/* Summary Box */}
               <CheckoutSummaryCard
                 subtotal={estimates.finalPrice}
+                feeRate={platformFeeRate}
                 hoursLabel={estimates.hoursLabel}
                 buttonTitle={isInstant ? "Ir a Pagar" : "Enviar Solicitud"}
                 onPress={handlePreSend}

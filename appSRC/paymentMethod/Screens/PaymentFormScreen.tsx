@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,26 @@ import { PaymentTypeSelector } from "@/appSRC/payments/Screens/PaymentTypeSelect
 import { useCreatePaymentMethod } from "@/appSRC/paymentMethod/Hooks/useCreatePaymentMethod";
 import { PaymentMethodType } from "@/appSRC/paymentMethod/Type/PaymentMethodType";
 import { PaymentFormProps } from "../Type/PaymentMethodScreenType";
+
+// ---------- Web-only: Mercado Pago Secure Fields ----------
+const MP_PUBLIC_KEY = process.env.EXPO_PUBLIC_MP_PUBLIC_KEY!;
+
+let CardPaymentWeb: React.ComponentType<{
+  initialization: { amount: number };
+  onSubmit: (formData: Record<string, unknown>) => Promise<void>;
+}> | null = null;
+
+if (Platform.OS === "web") {
+  try {
+    // Dynamic import: only loads on web, tree-shaken on native
+    const mpSdk = require("@mercadopago/sdk-react");
+    const { initMercadoPago, CardPayment } = mpSdk;
+    initMercadoPago(MP_PUBLIC_KEY, { locale: "es-AR" });
+    CardPaymentWeb = CardPayment;
+  } catch {
+    // SDK not available — fallback to manual form
+  }
+}
 
 export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
   // 2. ESTADOS DEL FORMULARIO
@@ -83,7 +103,23 @@ export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
 
           {/* 2. FORMULARIO DINÁMICO */}
           <View style={styles.formContainer}>
-            {newMethodType !== "platform_credit" ? (
+            {newMethodType !== "platform_credit" && Platform.OS === "web" && CardPaymentWeb ? (
+              /* Web: MP Secure Fields (PCI-compliant) */
+              <CardPaymentWeb
+                initialization={{ amount: 1 }}
+                onSubmit={async (formData) => {
+                  console.log("[PaymentFormScreen] MP Web form submitted:", formData);
+                  await createMethod(newMethodType, {
+                    number: "",
+                    expiry: "",
+                    cvc: "",
+                    holder: "",
+                    dni: "",
+                    mpWebFormData: formData,
+                  });
+                }}
+              />
+            ) : newMethodType !== "platform_credit" ? (
               <View style={styles.inputsWrapper}>
                 <Text style={styles.label}>Datos de la tarjeta</Text>
 

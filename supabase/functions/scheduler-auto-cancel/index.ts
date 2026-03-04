@@ -11,7 +11,7 @@ serve(async (req) => {
     );
 
     // 2. Definir el límite de tiempo (ej: 30 minutos atrás)
-    const timeLimit = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const timeLimit = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
     // 3. Buscar reservas expiradas
     // Estado 'pending_approval' Y creadas antes del límite

@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, Animated, Linking, Alert } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
-import { COLORS, FONTS } from "@/appASSETS/theme";
+import { COLORS } from "@/appASSETS/theme";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { syncUserSession } from "@/appSRC/auth/Service/SessionService";
@@ -24,31 +23,32 @@ interface StatusConfig {
 // Configuración Visual con AntDesign
 const STATUS_CONFIG: Record<VisualStatusType, StatusConfig> = {
   pending: {
-    icon: "clock-circle", // 🕒 Reloj (según tu captura)
+    icon: "clock-circle",
     color: COLORS.warning ?? "#FFB300",
     title: "Verificación en Proceso",
     desc: "Tu perfil ha sido enviado. Estamos revisando tus datos. Te notificaremos pronto.",
-    btnText: "Entendido",
+    btnText: "Verificar estado",
   },
   approved: {
-    icon: "check-circle", // ✅ Check
+    icon: "check-circle",
     color: COLORS.success ?? "#4CAF50",
     title: "¡Perfil Aprobado!",
     desc: "Tus datos han sido validados correctamente. Ya puedes comenzar a ofrecer servicios.",
     btnText: "Ir al Inicio",
   },
   rejected: {
-    icon: "close-circle", // ❌ Cruz
+    icon: "close-circle",
     color: COLORS.error ?? "#F44336",
     title: "Solicitud Rechazada",
-    desc: "Hubo un problema con la validación. Por favor, contacta a soporte para más detalles.",
-    btnText: "Contactar Soporte",
+    desc: "Tu solicitud fue rechazada. Por favor ingresa a www.zolver.com y contacta al soporte al cliente.",
+    btnText: "Ir a Zolver",
   },
 };
 
 export default function AccountStatusScreen() {
-  const router = useRouter();
   const { status: authStatus, setStatus } = useAuthStore();
+
+  console.log(`[AccountStatusScreen] authStatus: ${authStatus}`);
 
   // 1. Determinar estado visual
   const getVisualStatus = (): VisualStatusType => {
@@ -59,6 +59,8 @@ export default function AccountStatusScreen() {
 
   const visualStatus = getVisualStatus();
   const config = STATUS_CONFIG[visualStatus];
+
+  console.log(`[AccountStatusScreen] visualStatus: ${visualStatus}`);
 
   // 2. Animaciones simples (Scale & Opacity)
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
@@ -80,19 +82,53 @@ export default function AccountStatusScreen() {
     ]).start();
   }, [visualStatus]);
 
-  const [verifying, setVerifying] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // 3. Acción del botón
   const handlePress = async () => {
-    if (visualStatus === "approved") {
-      // Verificar con backend antes de conceder acceso
-      setVerifying(true);
+    console.log(`[AccountStatusScreen] handlePress — visualStatus: ${visualStatus}`);
+
+    if (visualStatus === "pending") {
+      // Re-sync con backend para ver si el admin ya aprobó
+      setLoading(true);
+      try {
+        console.log(`[AccountStatusScreen] Syncing session...`);
+        const session = await syncUserSession();
+        console.log(`[AccountStatusScreen] Session result:`, JSON.stringify(session));
+
+        if (
+          session?.ok &&
+          (session.identityStatus === "approved" ||
+            session.identityStatus === "verified" ||
+            session.identityStatus === "verifiedProfessional")
+        ) {
+          console.log(`[AccountStatusScreen] Status is approved/verified — redirecting`);
+          setStatus("authenticatedProfessional");
+        } else if (session?.ok && session.identityStatus === "rejected") {
+          console.log(`[AccountStatusScreen] Status is rejected`);
+          setStatus("rejected");
+        } else {
+          Alert.alert(
+            "Verificación pendiente",
+            "Tu perfil aún no ha sido aprobado. Intenta más tarde."
+          );
+        }
+      } catch (err) {
+        console.error(`[AccountStatusScreen] Error syncing:`, err);
+        Alert.alert("Error", "No se pudo verificar el estado de tu cuenta.");
+      } finally {
+        setLoading(false);
+      }
+    } else if (visualStatus === "approved") {
+      // Ya está aprobado — re-sync y redirigir
+      setLoading(true);
       try {
         const session = await syncUserSession();
         if (
           session?.ok &&
           (session.identityStatus === "approved" ||
-            session.identityStatus === "verified")
+            session.identityStatus === "verified" ||
+            session.identityStatus === "verifiedProfessional")
         ) {
           setStatus("authenticatedProfessional");
         } else {
@@ -104,10 +140,11 @@ export default function AccountStatusScreen() {
       } catch {
         Alert.alert("Error", "No se pudo verificar el estado de tu cuenta.");
       } finally {
-        setVerifying(false);
+        setLoading(false);
       }
     } else if (visualStatus === "rejected") {
-      Linking.openURL("mailto:soporte@zolver.app");
+      console.log(`[AccountStatusScreen] Opening www.zolver.com`);
+      Linking.openURL("https://www.zolver.com");
     }
   };
 
@@ -136,7 +173,9 @@ export default function AccountStatusScreen() {
           <LargeButton
             title={config.btnText}
             onPress={handlePress}
-            style={{ backgroundColor: COLORS.primary }}
+            loading={loading}
+            disabled={loading}
+            backgroundColor={config.color}
           />
         </View>
       </View>
@@ -158,10 +197,6 @@ const styles = StyleSheet.create({
   },
   iconWrapper: {
     marginBottom: 30,
-    // Opcional: Si quieres un fondo circular suave detrás del icono
-    // backgroundColor: "#F5F5F5",
-    // borderRadius: 100,
-    // padding: 20,
   },
   textContainer: {
     alignItems: "center",

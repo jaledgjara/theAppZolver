@@ -28,13 +28,31 @@ export const MessageService = {
   },
 
   async _persistMessage(payload: any, inboxPreview: string) {
+    console.log("[MessageService] _persistMessage payload:", JSON.stringify({
+      conversation_id: payload.conversation_id,
+      sender_id: payload.sender_id,
+      receiver_id: payload.receiver_id,
+      type: payload.type,
+    }));
+
+    // DEBUG: Check if receiver exists in user_accounts
+    const { data: receiverCheck } = await supabase
+      .from("user_accounts")
+      .select("auth_uid, email, role")
+      .eq("auth_uid", payload.receiver_id)
+      .maybeSingle();
+    console.log("[MessageService] Receiver lookup:", receiverCheck ? JSON.stringify(receiverCheck) : "NOT FOUND in user_accounts");
+
     const { data, error } = await supabase
       .from("messages")
       .insert(payload)
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("[MessageService] Insert error:", JSON.stringify(error));
+      throw error;
+    }
 
     // Actualización asíncrona del Inbox (Escalabilidad Operativa)
     this._updateConversationMetadata(payload.conversation_id, inboxPreview);

@@ -1,6 +1,8 @@
-import { useState, useCallback, useRef } from "react";
-import { Alert } from "react-native";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Alert, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useLocationStore } from "@/appSRC/location/Store/LocationStore";
 import { formatAddress } from "@/appSRC/location/Type/LocationType";
@@ -99,8 +101,23 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
   // --- Estado ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<string | undefined>(undefined);
   const submittingRef = useRef(false);
   const platformFeeRate = usePlatformFeeRate();
+
+  // --- Device fingerprint for MP fraud prevention ---
+  useEffect(() => {
+    const STORAGE_KEY = "@zolver/device_id";
+    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+      if (stored) {
+        setDeviceId(stored);
+      } else {
+        const newId = Crypto.randomUUID();
+        AsyncStorage.setItem(STORAGE_KEY, newId);
+        setDeviceId(newId);
+      }
+    });
+  }, []);
 
   // --- Resolver datos: config explícita tiene prioridad sobre nav params ---
   const subtotal = (config?.subtotal ?? Number(navParams.subtotal)) || 0;
@@ -118,13 +135,16 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
   const budgetPayload = config?.budgetPayload;
 
   // --- Calculo de precio ---
+  // Solo se cobra la comisión via MP. El subtotal es P2P entre cliente y profesional.
   const platformFee = Math.round(subtotal * platformFeeRate);
-  const totalAmount = subtotal + platformFee;
+  const chargeAmount = platformFee; // Lo que se cobra via MP
+  const totalDisplay = subtotal + platformFee; // Lo que se muestra al usuario
 
   console.log("[useCheckoutPayment] Precio:", {
     subtotal,
     platformFee,
-    totalAmount,
+    chargeAmount,
+    totalDisplay,
     feeRate: `${Math.round(platformFeeRate * 100)}%`,
   });
 
@@ -148,7 +168,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
         Alert.alert("Error", "No se encontró el profesional.");
         return;
       }
-      if (totalAmount <= 0) {
+      if (chargeAmount <= 0) {
         Alert.alert("Error", "El monto no es válido.");
         return;
       }
@@ -175,9 +195,12 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
         );
 
         // STEP 3: Construir payload
+        // amount = solo la comisión (lo que se cobra via MP)
+        // subtotal = precio del servicio (P2P, no se cobra via MP)
         const payload: CreatePaymentPayload = {
           card_token: realToken,
-          amount: totalAmount,
+          amount: chargeAmount,
+          subtotal,
           payer_email: user.email || "",
           payment_method_id: providerDetails.brand,
           user_id: user.uid,
@@ -198,10 +221,12 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           customer_id: providerDetails.provider_customer_id,
           saved_card_id: selectedCardId,
           method: "credit_card",
+          device_id: deviceId,
         };
 
         console.log("[useCheckoutPayment] Initiating payment:", {
-          amount: totalAmount,
+          chargeAmount,
+          subtotal,
           card: providerDetails.brand,
           professional: professionalId,
           mode: messageId ? "BUDGET" : "INSTANT",
@@ -223,7 +248,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           createNotification({
             user_id: professionalId,
             title: "Pago recibido",
-            body: `Se procesó un pago de $${totalAmount} por un servicio.`,
+            body: `Se procesó un pago de $${totalDisplay} por un servicio.`,
             type: "payment_received",
             data: { reservation_id: data.reservation_id, screen: "/(professional)/(tabs)/home" },
           });
@@ -289,12 +314,15 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
     [
       user,
       professionalId,
-      totalAmount,
+      chargeAmount,
+      subtotal,
+      totalDisplay,
       activeAddress,
       serviceCategory,
       serviceModality,
       messageId,
       budgetPayload,
+      deviceId,
       router,
     ],
   );

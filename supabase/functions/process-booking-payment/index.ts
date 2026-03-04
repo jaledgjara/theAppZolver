@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 
 /**
  * CONFIGURACIÓN DE CABECERAS (CORS)
@@ -28,8 +28,8 @@ serve(async (req) => {
       );
     }
     const jwtToken = authHeader.replace("Bearer ", "").trim();
-    const jwtPayload = await verifyFirebaseJWT(jwtToken);
-    const verifiedUid = jwtPayload.sub;
+    const jwtPayload = await verifySupabaseJWT(jwtToken);
+    const verifiedUid = jwtPayload.firebase_uid;
 
     // 2. Inicialización de Clientes
     // [ARQUITECTURA]: Usamos Service Role para garantizar permisos de escritura en 'payments'
@@ -54,7 +54,8 @@ serve(async (req) => {
     const {
       // --- Required fields ---
       card_token,
-      amount,
+      amount, // Platform fee only (what MP charges)
+      subtotal, // Service price (P2P between client and professional)
       payer_email,
       payment_method_id, // MP brand: 'visa', 'mastercard', etc.
       user_id,
@@ -69,6 +70,7 @@ serve(async (req) => {
       customer_id, // MP Customer ID (from user_payment_methods.provider_customer_id)
       saved_card_id, // Zolver DB uuid (from user_payment_methods.id) for FK in payments table
       method, // 'credit_card' | 'debit_card' | 'platform_credit'
+      device_id, // Device fingerprint for MP fraud prevention
     } = rawData;
 
     // Verify user_id matches the authenticated user
@@ -157,18 +159,44 @@ serve(async (req) => {
     // -----------------------------------------------------------------------
     // LAYER 4: PROCESAMIENTO DE PAGO (Mercado Pago)
     // -----------------------------------------------------------------------
-    // Build payer object: include customer ID for saved cards so MP links the payment
+
+    // A. Fee calculation (must happen BEFORE payment body)
+    const platformFeeAmount = Number(amount);
+    const serviceSubtotal = Number(subtotal) || 0;
+    const totalAmount = serviceSubtotal + platformFeeAmount;
+
+    console.log(`[Zolver-Edge] Fee breakdown: subtotal=${serviceSubtotal}, fee=${platformFeeAmount}, total=${totalAmount}`);
+
+    // B. Build payer object: include customer ID for saved cards so MP links the payment
     const payer = isSavedCard
       ? { id: customer_id, email: payer_email }
       : { email: payer_email };
 
+    // C. Build payment body with additional_info, notification_url, external_reference
     const paymentBody = {
-      transaction_amount: Number(amount),
+      transaction_amount: platformFeeAmount, // Solo se cobra la comisión via MP
       token: card_token, // New card: full token | Saved card: CVV-only token
-      description: `Zolver: ${service_category}`,
+      description: `Comisión Zolver: ${service_category}`,
       installments: 1,
       payment_method_id: payment_method_id,
       payer,
+      notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,
+      external_reference: `zolver_${user_id}_${Date.now()}`,
+      additional_info: {
+        items: [{
+          id: service_category,
+          title: `Comisión Zolver: ${service_category}`,
+          description: `Comisión de plataforma por servicio de ${service_category}`,
+          category_id: "services",
+          quantity: 1,
+          unit_price: platformFeeAmount,
+        }],
+        ...(device_id ? {
+          payer: {
+            first_name: payer_email.split("@")[0],
+          },
+        } : {}),
+      },
     };
 
     console.log(
@@ -176,12 +204,13 @@ serve(async (req) => {
       JSON.stringify({ ...paymentBody, token: "[REDACTED]" })
     );
 
+    // D. Process payment via MP REST API
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${mpAccessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": crypto.randomUUID(), // Evita cobros dobles por retry
+        "X-Idempotency-Key": crypto.randomUUID(),
       },
       body: JSON.stringify(paymentBody),
     });
@@ -248,22 +277,7 @@ serve(async (req) => {
     // LAYER 5: PERSISTENCIA ATÓMICA Y CONSISTENCIA DE DATOS
     // -----------------------------------------------------------------------
 
-    // A. Calcular desglose de precio (el frontend envía el total con fee incluida)
-    // Leemos el fee rate de la DB para que sea consistente con el admin dashboard.
-    const { data: settingRow } = await supabaseClient
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "platform_fee_rate")
-      .single();
-
-    const feeRate = parseFloat(settingRow?.value ?? "0.10") || 0.10;
-    const totalAmount = Number(amount);
-    const subtotalCalc = Math.round(totalAmount / (1 + feeRate));
-    const platformFeeCalc = totalAmount - subtotalCalc;
-
-    console.log(`[Zolver-Edge] Fee breakdown: total=${totalAmount}, subtotal=${subtotalCalc}, fee=${platformFeeCalc} (${(feeRate * 100).toFixed(0)}%)`);
-
-    // B. Insertar Reserva via RPC (misma función que usa el frontend)
+    // A. Insertar Reserva via RPC (misma función que usa el frontend)
     // Esto garantiza compatibilidad con triggers, defaults y NOT NULL constraints.
     const { data: rpcResult, error: resError } = await supabaseClient.rpc(
       "create_reservation_bypass",
@@ -279,9 +293,9 @@ serve(async (req) => {
         p_address_coords: pointFormat,
         p_range: scheduledRangeFormat,
         p_status: reservationStatus,
-        p_price_estimated: subtotalCalc,
+        p_price_estimated: serviceSubtotal,
         p_price_final: totalAmount,
-        p_platform_fee: platformFeeCalc,
+        p_platform_fee: platformFeeAmount,
       }
     );
 
@@ -326,7 +340,7 @@ serve(async (req) => {
       reservation_id: reservationId,
       client_id: user_id,
       professional_id: professional_id,
-      amount: amount,
+      amount: platformFeeAmount,
       currency: "ARS",
       status: paymentDbStatus,
       method: method || "credit_card", // DB enum: credit_card | debit_card | platform_credit
@@ -335,11 +349,37 @@ serve(async (req) => {
     });
 
     if (payDbError) {
-      // Alerta severa: Dinero cobrado, Reserva creada, pero sin registro de pago.
-      // Esto requiere intervención manual o un sistema de logs robusto (Sentry).
+      // CRITICAL: Money was charged, reservation created, but no payment record.
+      // We MUST rollback: refund MP + delete reservation to prevent orphaned charges.
       console.error(
-        `[Zolver-Edge] ALERTA: Inconsistencia en tabla 'payments'. Error: ${payDbError.message}. ID MP: ${paymentResult.id}`
+        `[Zolver-Edge] CRITICAL: Payment insert failed. Rolling back. Error: ${payDbError.message}. MP ID: ${paymentResult.id}`
       );
+
+      // Rollback 1: Refund Mercado Pago
+      try {
+        await fetch(
+          `https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${mpAccessToken}`,
+              "Content-Type": "application/json",
+              "X-Idempotency-Key": crypto.randomUUID(),
+            },
+          }
+        );
+        console.log(`[Zolver-Edge] Rollback refund sent for MP ID: ${paymentResult.id}`);
+      } catch (refundErr) {
+        console.error(`[Zolver-Edge] ALERT: Rollback refund ALSO failed. MP ID: ${paymentResult.id}. REQUIRES MANUAL INTERVENTION.`, refundErr);
+      }
+
+      // Rollback 2: Delete orphan reservation
+      await supabaseClient
+        .from("reservations")
+        .delete()
+        .eq("id", reservationId);
+
+      throw new Error("Error interno guardando el registro de pago. Se procesó un reembolso automático.");
     }
 
     // ÉXITO TOTAL

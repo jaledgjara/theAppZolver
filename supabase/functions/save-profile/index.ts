@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 
 // Clientes
 const supabaseAdmin = createClient(
@@ -27,8 +27,8 @@ serve(async (req: Request) => {
     if (!authHeader) throw new Error("Missing Auth Header");
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const payload = await verifyFirebaseJWT(token);
-    const userId = payload.sub;
+    const payload = await verifySupabaseJWT(token);
+    const userId = payload.firebase_uid;
 
     // 2. Obtener datos
     const body = await req.json();

@@ -5,6 +5,7 @@ export default function HomeLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="ReservationsDetails/[id]" />
+      <Stack.Screen name="InstantRequestDetail/[id]" />
     </Stack>
   );
 }

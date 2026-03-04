@@ -28,7 +28,7 @@ export interface AdminUser {
 export interface AdminProfessionalDetail {
   userId: string;
   typeWork: "instant" | "quote" | null;
-  identityStatus: "pending" | "approved" | "rejected" | "verified";
+  identityStatus: "pending" | "approved" | "rejected" | "verified" | "verifiedProfessional";
   isActive: boolean;
   serviceArea: string | null;
 }

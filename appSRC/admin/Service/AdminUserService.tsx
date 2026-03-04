@@ -132,17 +132,35 @@ export const AdminUserService = {
   /** Approve, verify, or reject a professional (updates identity_status + is_active) */
   async updateProfessionalStatus(
     userId: string,
-    status: "approved" | "rejected" | "verified"
+    status: "approved" | "rejected" | "verifiedProfessional"
   ): Promise<void> {
-    const { error } = await supabase
+    console.log(`[AdminService] updateProfessionalStatus START — userId: ${userId}, status: ${status}`);
+
+    const { data, error, status: httpStatus, statusText } = await supabase
       .from("professional_profiles")
       .update({
         identity_status: status,
         is_active: status !== "rejected",
       })
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select("user_id");
 
-    if (error) throw new Error(error.message);
+    console.log(`[AdminService] updateProfessionalStatus RESPONSE — httpStatus: ${httpStatus}, statusText: ${statusText}`);
+    console.log(`[AdminService] data:`, JSON.stringify(data));
+    console.log(`[AdminService] error:`, JSON.stringify(error));
+
+    if (error) {
+      console.error(`[AdminService] Supabase error:`, error.message, error.code, error.details);
+      throw new Error(error.message);
+    }
+    if (!data || data.length === 0) {
+      console.error(`[AdminService] 0 rows updated — RLS blocked or user_id not found`);
+      throw new Error(
+        "No se pudo actualizar el perfil. Verifica permisos de administrador (RLS)."
+      );
+    }
+
+    console.log(`[AdminService] updateProfessionalStatus SUCCESS — ${data.length} row(s) updated`);
   },
 
   /** Fetch a platform setting by key */

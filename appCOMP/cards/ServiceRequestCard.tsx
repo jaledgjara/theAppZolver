@@ -1,117 +1,138 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BaseCard } from "@/appCOMP/cards/BaseCard";
-import { COLORS } from "@/appASSETS/theme";
+import { UserAvatar } from "@/appCOMP/avatar/UserAvatar";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 
 export interface ServiceRequestCardProps {
-  category: string;
-  title: string;
+  clientName: string;
+  serviceTitle: string;
   price: string;
-  distance: string;
   location: string;
   timeAgo: string;
-  onAccept: () => void;
-  onDecline: () => void;
-  onPress?: () => void;
+  onPress: () => void;
 }
 
 export const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
-  category,
-  title,
+  clientName,
+  serviceTitle,
   price,
-  distance,
   location,
   timeAgo,
-  onAccept,
-  onDecline,
   onPress,
 }) => {
   return (
     <BaseCard onPress={onPress}>
-      {/* Top: Categoría y Tiempo */}
-      <View style={styles.topRow}>
-        <Text style={styles.category}>{category}</Text>
-        <Text style={styles.time}>{timeAgo}</Text>
-      </View>
+      <View style={styles.cardPadding}>
+        {/* Header: Avatar + Client name + Status badge */}
+        <View style={styles.header}>
+          <View style={styles.clientRow}>
+            <UserAvatar name={clientName} size={42} />
+            <View>
+              <Text style={styles.clientName} numberOfLines={1}>
+                {clientName}
+              </Text>
+              <Text style={styles.clientLabel}>Cliente</Text>
+            </View>
+          </View>
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>Pendiente</Text>
+          </View>
+        </View>
 
-      {/* Main: Título y Precio */}
-      <View style={styles.mainInfo}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.price}>{price}</Text>
-      </View>
+        <View style={styles.divider} />
 
-      {/* Location */}
-      <View style={styles.locationRow}>
-        <Ionicons
-          name="navigate-circle-outline"
-          size={18}
-          color={COLORS.tertiary}
-        />
-        <View>
-          <Text style={styles.address} numberOfLines={1}>
+        {/* Body */}
+        <Text style={styles.serviceTitle} numberOfLines={2}>
+          {serviceTitle}
+        </Text>
+
+        <View style={styles.infoRow}>
+          <Ionicons name="time-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.infoText}>{timeAgo}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Ionicons name="location-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.infoText} numberOfLines={1}>
             {location}
           </Text>
-          <Text style={styles.distance}>{distance} de tu ubicación</Text>
         </View>
-      </View>
 
-      {/* Botones de Acción */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.declineButton} onPress={onDecline}>
-          <Text style={styles.declineText}>Rechazar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
-          <Text style={styles.acceptText}>Aceptar Trabajo</Text>
-        </TouchableOpacity>
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>{price}</Text>
+        </View>
       </View>
     </BaseCard>
   );
 };
 
 const styles = StyleSheet.create({
-  topRow: {
+  cardPadding: {
+    padding: 2,
+  },
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 12,
   },
-  category: {
-    fontSize: 10,
-    color: COLORS.primary,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    backgroundColor: "#E3F2FD",
-    padding: 4,
-    borderRadius: 4,
-  },
-  time: { fontSize: 11, color: "#888" },
-  mainInfo: { marginBottom: 12 },
-  title: { fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 2 },
-  price: { fontSize: 18, fontWeight: "800", color: COLORS.textPrimary },
-  locationRow: {
+  clientRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
   },
-  address: { fontSize: 13, color: "#444", flex: 1 },
-  distance: { fontSize: 11, color: "#888" },
-  actionRow: { flexDirection: "row", gap: 10 },
-  declineButton: {
+  clientName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.textPrimary,
+  },
+  clientLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  statusBadge: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#F59E0B",
+    textTransform: "uppercase",
+    fontFamily: "Roboto-Bold",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginBottom: 12,
+  },
+  serviceTitle: {
+    ...FONTS.h3,
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  infoText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
     flex: 1,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#DDD",
-    alignItems: "center",
+    fontFamily: "Roboto-Regular",
   },
-  declineText: { color: "#666", fontWeight: "600" },
-  acceptButton: {
-    flex: 2,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
+  priceRow: {
+    alignItems: "flex-end",
+    marginTop: 8,
   },
-  acceptText: { color: "white", fontWeight: "700" },
+  price: {
+    ...FONTS.h3,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+  },
 });

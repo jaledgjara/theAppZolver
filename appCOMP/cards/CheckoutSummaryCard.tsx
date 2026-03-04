@@ -78,13 +78,13 @@ export const CheckoutSummaryCard = ({
 
       <View style={styles.divider} />
 
-      {/* Total */}
+      {/* Fee charged via card */}
       <View style={styles.totalRow}>
         <View>
-          <Text style={styles.totalLabel}>Total a pagar</Text>
-          <Text style={styles.taxNote}>Incluye comisión de plataforma</Text>
+          <Text style={styles.totalLabel}>Cargo en tarjeta</Text>
+          <Text style={styles.taxNote}>Solo la comisión de plataforma</Text>
         </View>
-        <Text style={styles.totalValue}>${total.toLocaleString()}</Text>
+        <Text style={styles.totalValue}>${platformFee.toLocaleString()}</Text>
       </View>
 
       {/* CTA */}

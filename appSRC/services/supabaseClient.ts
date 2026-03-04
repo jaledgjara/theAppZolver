@@ -37,4 +37,7 @@ export const setSupabaseAuthToken = (token: string | null) => {
 
   // Inyectar en Realtime para subscripciones en tiempo real
   supabase.realtime.setAuth(token ?? supabaseAnonKey);
+
+  // Inyectar en Functions para supabase.functions.invoke()
+  (supabase as any).functions.headers["Authorization"] = authHeader;
 };

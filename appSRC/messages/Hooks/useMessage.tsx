@@ -124,7 +124,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
   const sendMessage = useCallback(
     async (text: string, imageUri?: string) => {
       if (!text.trim() && !imageUri) return;
-      console.log("[Hook] ✉️ Sending message...");
+      console.log(`[Hook] ✉️ Sending message — sender: ${currentUserId} | receiver (partnerId): ${professionalId} | convId: ${conversationId}`);
 
       const tempId = `temp-${Date.now()}`;
       const optimisticMsg: ChatMessage = {
