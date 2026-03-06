@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 // ============================================================================
 // EDGE FUNCTION: mp-webhook
@@ -25,8 +25,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 // ─── STATUS MAPPING: MP → Zolver ───
@@ -46,7 +45,7 @@ async function validateSignature(
   xSignature: string,
   xRequestId: string | null,
   dataId: string,
-  secret: string
+  secret: string,
 ): Promise<boolean> {
   try {
     // MP sends: x-signature: ts=1234567890,v1=abc123hex...
@@ -54,8 +53,7 @@ async function validateSignature(
     for (const segment of xSignature.split(",")) {
       const eqIndex = segment.indexOf("=");
       if (eqIndex > 0) {
-        parts[segment.substring(0, eqIndex).trim()] =
-          segment.substring(eqIndex + 1).trim();
+        parts[segment.substring(0, eqIndex).trim()] = segment.substring(eqIndex + 1).trim();
       }
     }
 
@@ -73,13 +71,13 @@ async function validateSignature(
       new TextEncoder().encode(secret),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"]
+      ["sign"],
     );
 
     const signatureBytes = await crypto.subtle.sign(
       "HMAC",
       key,
-      new TextEncoder().encode(manifest)
+      new TextEncoder().encode(manifest),
     );
 
     const computedHash = Array.from(new Uint8Array(signatureBytes))
@@ -87,7 +85,7 @@ async function validateSignature(
       .join("");
 
     return computedHash === parts.v1;
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[mp-webhook] Error validating signature:", err);
     return false;
   }
@@ -119,7 +117,7 @@ serve(async (req) => {
         paymentId = body.data?.id?.toString() ?? null;
         topic = body.type ?? body.topic ?? null;
         console.log(
-          `[mp-webhook] JSON notification → topic: ${topic}, paymentId: ${paymentId}, action: ${body.action}`
+          `[mp-webhook] JSON notification → topic: ${topic}, paymentId: ${paymentId}, action: ${body.action}`,
         );
       } catch {
         console.warn("[mp-webhook] Failed to parse JSON body.");
@@ -128,20 +126,14 @@ serve(async (req) => {
 
     // Fallback: query params (IPN v1 compatibility)
     if (!paymentId) {
-      paymentId =
-        url.searchParams.get("data.id") || url.searchParams.get("id");
-      topic =
-        url.searchParams.get("type") || url.searchParams.get("topic") || topic;
-      console.log(
-        `[mp-webhook] Query params → topic: ${topic}, paymentId: ${paymentId}`
-      );
+      paymentId = url.searchParams.get("data.id") || url.searchParams.get("id");
+      topic = url.searchParams.get("type") || url.searchParams.get("topic") || topic;
+      console.log(`[mp-webhook] Query params → topic: ${topic}, paymentId: ${paymentId}`);
     }
 
     // Solo procesamos notificaciones de tipo "payment"
     if (topic !== "payment" || !paymentId) {
-      console.log(
-        `[mp-webhook] Ignored: topic=${topic}, paymentId=${paymentId}`
-      );
+      console.log(`[mp-webhook] Ignored: topic=${topic}, paymentId=${paymentId}`);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -159,34 +151,25 @@ serve(async (req) => {
     const xSignature = req.headers.get("x-signature");
     const xRequestId = req.headers.get("x-request-id");
 
-    // In production, webhook secret MUST be configured
-    if (environment === "production" && !webhookSecret) {
-      console.error("[mp-webhook] CRITICAL: MP_WEBHOOK_SECRET not set in production.");
-      return new Response(
-        JSON.stringify({ error: "Server misconfiguration" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Webhook secret MUST be configured in non-development environments
+    if (!webhookSecret && environment !== "development") {
+      console.error("[mp-webhook] CRITICAL: MP_WEBHOOK_SECRET not set. Rejecting webhook.");
+      return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (webhookSecret && xSignature) {
-      const isValid = await validateSignature(
-        xSignature,
-        xRequestId,
-        paymentId,
-        webhookSecret
-      );
+      const isValid = await validateSignature(xSignature, xRequestId, paymentId, webhookSecret);
 
       if (!isValid) {
-        console.error(
-          `[mp-webhook] FIRMA INVÁLIDA. Posible ataque. PaymentId: ${paymentId}`
-        );
+        console.error(`[mp-webhook] FIRMA INVÁLIDA. Posible ataque. PaymentId: ${paymentId}`);
         return new Response("Unauthorized", { status: 401 });
       }
       console.log("[mp-webhook] Firma validada correctamente.");
     } else if (webhookSecret && !xSignature) {
-      console.warn(
-        "[mp-webhook] Secret configurado pero request sin X-Signature. Rechazando."
-      );
+      console.warn("[mp-webhook] Secret configurado pero request sin X-Signature. Rechazando.");
       return new Response("Unauthorized: missing X-Signature", { status: 401 });
     }
 
@@ -205,16 +188,13 @@ serve(async (req) => {
       });
     }
 
-    const mpRes = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      { headers: { Authorization: `Bearer ${mpAccessToken}` } }
-    );
+    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${mpAccessToken}` },
+    });
 
     if (!mpRes.ok) {
       const errBody = await mpRes.text();
-      console.error(
-        `[mp-webhook] MP API error (${mpRes.status}): ${errBody}`
-      );
+      console.error(`[mp-webhook] MP API error (${mpRes.status}): ${errBody}`);
       // Retornamos 200 para que MP no reintente si el pago no existe
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
@@ -228,7 +208,7 @@ serve(async (req) => {
     const zolverStatus = MP_TO_ZOLVER_STATUS[mpStatus] || "pending";
 
     console.log(
-      `[mp-webhook] MP Payment ${paymentId} → status: ${mpStatus}, detail: ${mpStatusDetail}, zolver: ${zolverStatus}`
+      `[mp-webhook] MP Payment ${paymentId} → status: ${mpStatus}, detail: ${mpStatusDetail}, zolver: ${zolverStatus}`,
     );
 
     // ─────────────────────────────────────────────────────────────────────
@@ -236,7 +216,7 @@ serve(async (req) => {
     // ─────────────────────────────────────────────────────────────────────
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const { data: existingPayment, error: findErr } = await supabase
@@ -247,7 +227,7 @@ serve(async (req) => {
 
     if (findErr || !existingPayment) {
       console.warn(
-        `[mp-webhook] Payment ${paymentId} not found in DB. Ignoring. Error: ${findErr?.message}`
+        `[mp-webhook] Payment ${paymentId} not found in DB. Ignoring. Error: ${findErr?.message}`,
       );
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
@@ -261,18 +241,14 @@ serve(async (req) => {
     // 5. ACTUALIZAR STATUS SI CAMBIÓ
     // ─────────────────────────────────────────────────────────────────────
     if (previousStatus === zolverStatus) {
-      console.log(
-        `[mp-webhook] Status unchanged (${previousStatus}). No action needed.`
-      );
+      console.log(`[mp-webhook] Status unchanged (${previousStatus}). No action needed.`);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(
-      `[mp-webhook] Status change: ${previousStatus} → ${zolverStatus}`
-    );
+    console.log(`[mp-webhook] Status change: ${previousStatus} → ${zolverStatus}`);
 
     const { error: updateErr } = await supabase
       .from("payments")
@@ -285,7 +261,7 @@ serve(async (req) => {
     if (updateErr) {
       console.error(
         `[mp-webhook] Error updating payment ${existingPayment.id}:`,
-        updateErr.message
+        updateErr.message,
       );
     }
 
@@ -295,9 +271,7 @@ serve(async (req) => {
 
     // ── A) PENDING → APPROVED (pago confirmado por banco/3D Secure)
     if (zolverStatus === "approved" && previousStatus === "pending") {
-      console.log(
-        `[mp-webhook] Confirming reservation ${existingPayment.reservation_id}`
-      );
+      console.log(`[mp-webhook] Confirming reservation ${existingPayment.reservation_id}`);
 
       // Actualizar reserva a pending_approval (el profesional debe aceptar)
       await supabase
@@ -336,7 +310,7 @@ serve(async (req) => {
       (previousStatus === "pending" || previousStatus === "approved")
     ) {
       console.warn(
-        `[mp-webhook] Payment REJECTED. Cancelling reservation ${existingPayment.reservation_id}`
+        `[mp-webhook] Payment REJECTED. Cancelling reservation ${existingPayment.reservation_id}`,
       );
 
       await supabase
@@ -362,7 +336,7 @@ serve(async (req) => {
     // ── C) APPROVED → REFUNDED (reembolso procesado — puede venir de cancel-reservation-refund o desde MP)
     if (zolverStatus === "refunded" && previousStatus === "approved") {
       console.log(
-        `[mp-webhook] Refund confirmed for reservation ${existingPayment.reservation_id}`
+        `[mp-webhook] Refund confirmed for reservation ${existingPayment.reservation_id}`,
       );
 
       // Solo notificamos, no cancelamos reserva (cancel-reservation-refund ya lo hace)
@@ -381,7 +355,7 @@ serve(async (req) => {
     // ── D) CHARGEBACK (contracargo — el cliente disputó con su banco)
     if (mpStatus === "charged_back") {
       console.error(
-        `[mp-webhook] ⚠️ CHARGEBACK on payment ${paymentId}. Reservation: ${existingPayment.reservation_id}. REQUIRES MANUAL REVIEW.`
+        `[mp-webhook] ⚠️ CHARGEBACK on payment ${paymentId}. Reservation: ${existingPayment.reservation_id}. REQUIRES MANUAL REVIEW.`,
       );
 
       // Cancelar la reserva
@@ -417,17 +391,14 @@ serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[mp-webhook] Unhandled error:", error);
     // Retornamos 200 incluso en errores internos para evitar reintentos infinitos
-    return new Response(
-      JSON.stringify({ received: true, error: "internal" }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ received: true, error: "internal" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

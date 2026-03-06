@@ -1,18 +1,17 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 );
 
 serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader)
-      return Response.json({ error: "Missing token" }, { status: 401 });
+    if (!authHeader) return Response.json({ error: "Missing token" }, { status: 401 });
 
     const token = authHeader.replace("Bearer ", "").trim();
     let payload;
@@ -76,9 +75,9 @@ serve(async (req) => {
       const isNewProfessional = existing.role !== "professional" && role === "professional";
       const finalProfileComplete = isNewProfessional
         ? false
-        : (existing.profile_complete || profileComplete);
+        : existing.profile_complete || profileComplete;
 
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         phone,
         role: finalRole,
         profile_complete: finalProfileComplete,
@@ -112,8 +111,8 @@ serve(async (req) => {
     }
 
     return Response.json({ ok: true, ...row, identityStatus }, { status: 200 });
-  } catch (err: any) {
-    console.log("🔥 ERROR:", err.message);
-    return Response.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    console.log("ERROR:", getErrorMessage(err));
+    return Response.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 });

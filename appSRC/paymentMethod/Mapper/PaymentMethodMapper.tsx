@@ -2,17 +2,11 @@
 // 5. MAPPER HELPER (Patrón Adapter)
 // Convierte DTO -> UI Model (Esto se usa en el Servicio)
 
-import {
-  CardBrand,
-  PaymentMethodDTO,
-  UISavedCard,
-} from "../Type/PaymentMethodType";
+import { CardBrand, PaymentMethodDTO, UISavedCard } from "../Type/PaymentMethodType";
 
 // =============================================================================
 export const mapDtoToUi = (dto: PaymentMethodDTO): UISavedCard => {
-  console.log(
-    `🗺️ [Mapper] Procesando tarjeta ID: ${dto.id} | Brand Original: ${dto.brand}`
-  );
+  console.log(`🗺️ [Mapper] Procesando tarjeta ID: ${dto.id} | Brand Original: ${dto.brand}`);
 
   // 1. Normalización robusta para detectar "visa_debit", etc.
   const brandLower = dto.brand.toLowerCase();
@@ -37,7 +31,7 @@ export const mapDtoToUi = (dto: PaymentMethodDTO): UISavedCard => {
     id: dto.id,
     brand: validBrand,
     last4: dto.last_four_digits,
-    type: "credit_card", // Puedes cambiar esto a la variable 'type' si tu UI lo soporta
+    type,
     titleFormatted: `${
       validBrand.charAt(0).toUpperCase() + validBrand.slice(1)
     } •••• ${dto.last_four_digits}`,

@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 // ============================================================================
 // EDGE FUNCTION: send-notification
@@ -34,8 +34,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -55,7 +54,7 @@ serve(async (req) => {
     // ------------------------------------------------------------------
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     // ------------------------------------------------------------------
@@ -66,7 +65,7 @@ serve(async (req) => {
     if (!user_id || !title || !body || !type) {
       return Response.json(
         { success: false, error: "Faltan campos requeridos: user_id, title, body, type." },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
@@ -78,22 +77,20 @@ serve(async (req) => {
     // Esto crea el registro en el historial in-app.
     // El usuario lo verá cuando abra la pantalla de notificaciones.
     // ------------------------------------------------------------------
-    const { error: insertError } = await supabaseAdmin
-      .from("notifications")
-      .insert({
-        user_id,
-        title,
-        body,
-        type,
-        data: data ?? {},
-        is_read: false,
-      });
+    const { error: insertError } = await supabaseAdmin.from("notifications").insert({
+      user_id,
+      title,
+      body,
+      type,
+      data: data ?? {},
+      is_read: false,
+    });
 
     if (insertError) {
       console.error("❌ [send-notification] Error INSERT:", insertError.message);
       return Response.json(
         { success: false, error: insertError.message },
-        { status: 500, headers: corsHeaders }
+        { status: 500, headers: corsHeaders },
       );
     }
 
@@ -117,7 +114,7 @@ serve(async (req) => {
       // No es error fatal: la notificación ya se guardó en la tabla.
       return Response.json(
         { success: true, push_sent: false, reason: "Token no encontrado." },
-        { status: 200, headers: corsHeaders }
+        { status: 200, headers: corsHeaders },
       );
     }
 
@@ -127,7 +124,7 @@ serve(async (req) => {
       console.log("⚠️ [send-notification] Usuario sin push token. Solo se guardó en DB.");
       return Response.json(
         { success: true, push_sent: false, reason: "Usuario sin push token." },
-        { status: 200, headers: corsHeaders }
+        { status: 200, headers: corsHeaders },
       );
     }
 
@@ -165,28 +162,22 @@ serve(async (req) => {
     const pushResult = await pushResponse.json();
 
     if (pushResult.data?.status === "error") {
-      console.warn(
-        "⚠️ [send-notification] Expo Push Error:",
-        pushResult.data.message
-      );
+      console.warn("⚠️ [send-notification] Expo Push Error:", pushResult.data.message);
       // No es error fatal. La notificación ya está en la tabla.
       return Response.json(
         { success: true, push_sent: false, reason: pushResult.data.message },
-        { status: 200, headers: corsHeaders }
+        { status: 200, headers: corsHeaders },
       );
     }
 
     console.log("✅ [send-notification] Push enviado exitosamente.");
 
+    return Response.json({ success: true, push_sent: true }, { status: 200, headers: corsHeaders });
+  } catch (err: unknown) {
+    console.error("[send-notification] Error fatal:", getErrorMessage(err));
     return Response.json(
-      { success: true, push_sent: true },
-      { status: 200, headers: corsHeaders }
-    );
-  } catch (err) {
-    console.error("🔥 [send-notification] Error fatal:", err.message);
-    return Response.json(
-      { success: false, error: err.message },
-      { status: 500, headers: corsHeaders }
+      { success: false, error: getErrorMessage(err) },
+      { status: 500, headers: corsHeaders },
     );
   }
 });

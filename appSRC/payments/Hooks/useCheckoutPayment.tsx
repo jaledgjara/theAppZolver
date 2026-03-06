@@ -21,10 +21,7 @@ const MP_PUBLIC_KEY = process.env.EXPO_PUBLIC_MP_PUBLIC_KEY!;
 // ============================================================================
 // UTILIDAD: Re-tokenizar tarjeta guardada via MP Public API
 // ============================================================================
-const createSavedCardToken = async (
-  providerCardId: string,
-  cvv: string,
-): Promise<string> => {
+const createSavedCardToken = async (providerCardId: string, cvv: string): Promise<string> => {
   console.log("[useCheckoutPayment] Re-tokenizando tarjeta guardada...");
 
   const response = await fetch(
@@ -44,9 +41,7 @@ const createSavedCardToken = async (
   if (!response.ok) {
     console.error("[useCheckoutPayment] MP Token Error:", data);
     throw new Error(
-      data.cause?.[0]?.description ||
-        data.message ||
-        "Error generando token de pago.",
+      data.cause?.[0]?.description || data.message || "Error generando token de pago.",
     );
   }
 
@@ -121,17 +116,12 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
 
   // --- Resolver datos: config explícita tiene prioridad sobre nav params ---
   const subtotal = (config?.subtotal ?? Number(navParams.subtotal)) || 0;
-  const hoursLabel =
-    (config?.hoursLabel ?? (navParams.hoursLabel as string)) || undefined;
-  const professionalId =
-    config?.professionalId ?? (navParams.professionalId as string);
-  const serviceCategory =
-    (config?.serviceCategory ?? (navParams.serviceCategory as string)) || "";
+  const hoursLabel = (config?.hoursLabel ?? (navParams.hoursLabel as string)) || undefined;
+  const professionalId = config?.professionalId ?? (navParams.professionalId as string);
+  const serviceCategory = (config?.serviceCategory ?? (navParams.serviceCategory as string)) || "";
   const serviceModality =
-    (config?.serviceModality ?? (navParams.serviceModality as string)) ||
-    "quote";
-  const messageId =
-    (config?.messageId ?? (navParams.messageId as string)) || undefined;
+    (config?.serviceModality ?? (navParams.serviceModality as string)) || "quote";
+  const messageId = (config?.messageId ?? (navParams.messageId as string)) || undefined;
   const budgetPayload = config?.budgetPayload;
 
   // --- Calculo de precio ---
@@ -153,9 +143,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
     async (selectedCardId: string, cvv: string) => {
       // LOCK: Prevenir doble-tap
       if (submittingRef.current) {
-        console.warn(
-          "[useCheckoutPayment] Pago ya en curso, ignorando tap duplicado.",
-        );
+        console.warn("[useCheckoutPayment] Pago ya en curso, ignorando tap duplicado.");
         return;
       }
 
@@ -189,10 +177,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
         });
 
         // STEP 2: Re-tokenizar con CVV real
-        const realToken = await createSavedCardToken(
-          providerDetails.provider_card_id,
-          cvv,
-        );
+        const realToken = await createSavedCardToken(providerDetails.provider_card_id, cvv);
 
         // STEP 3: Construir payload
         // amount = solo la comisión (lo que se cobra via MP)
@@ -209,9 +194,7 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
           service_modality: serviceModality,
           start_date: new Date().toISOString(),
           end_date: new Date(Date.now() + 3600000).toISOString(),
-          address_display: activeAddress
-            ? formatAddress(activeAddress)
-            : "Sin dirección",
+          address_display: activeAddress ? formatAddress(activeAddress) : "Sin dirección",
           coordinates: activeAddress?.coords
             ? {
                 latitude: activeAddress.coords.lat,
@@ -220,7 +203,9 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
             : undefined,
           customer_id: providerDetails.provider_customer_id,
           saved_card_id: selectedCardId,
-          method: "credit_card",
+          method: providerDetails.brand.toLowerCase().includes("debit")
+            ? "debit_card"
+            : "credit_card",
           device_id: deviceId,
         };
 
@@ -261,18 +246,10 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
               ...(budgetPayload || {}),
               status: isPaymentPending ? "pending_payment" : "confirmed",
             };
-            const updated = await updateBudgetMessageStatusService(
-              messageId,
-              updatedPayload,
-            );
-            console.log(
-              `[useCheckoutPayment] Message update: ${updated ? "OK" : "FAILED"}`,
-            );
+            const updated = await updateBudgetMessageStatusService(messageId, updatedPayload);
+            console.log(`[useCheckoutPayment] Message update: ${updated ? "OK" : "FAILED"}`);
           } catch (msgErr) {
-            console.warn(
-              "[useCheckoutPayment] Failed to update message status:",
-              msgErr,
-            );
+            console.warn("[useCheckoutPayment] Failed to update message status:", msgErr);
           }
         }
 
@@ -289,20 +266,15 @@ export const useCheckoutPayment = (config?: CheckoutConfig) => {
             ],
           );
         } else {
-          Alert.alert(
-            "Pago procesado",
-            "Tu reserva fue creada exitosamente.",
-            [
-              {
-                text: "Ver mis reservas",
-                onPress: () => router.replace("/(client)/(tabs)/reservations"),
-              },
-            ],
-          );
+          Alert.alert("Pago procesado", "Tu reserva fue creada exitosamente.", [
+            {
+              text: "Ver mis reservas",
+              onPress: () => router.replace("/(client)/(tabs)/reservations"),
+            },
+          ]);
         }
       } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Error procesando el pago.";
+        const message = err instanceof Error ? err.message : "Error procesando el pago.";
         console.error("[useCheckoutPayment] Error:", message);
         setError(message);
         Alert.alert("Error en el pago", message);

@@ -1,18 +1,17 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
 import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
-const JWT_SECRET =
-  Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
 
 // --------------------------------------------
 // Handler Principal
 // --------------------------------------------
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
 serve(async (req: Request) => {
@@ -43,7 +42,7 @@ serve(async (req: Request) => {
       .from("user_accounts")
       .upsert(
         { auth_uid: firebaseUid, email: email, auth_provider: "firebase" },
-        { onConflict: "auth_uid" }
+        { onConflict: "auth_uid" },
       )
       .select("id, role, phone, profile_complete, legal_name")
       .single();
@@ -67,10 +66,7 @@ serve(async (req: Request) => {
         user_metadata: { firebase_uid: firebaseUid },
       });
       if (createError)
-        console.warn(
-          "⚠️ Error creando shadow user (puede que ya exista):",
-          createError.message
-        );
+        console.warn("⚠️ Error creando shadow user (puede que ya exista):", createError.message);
     }
 
     // D) Generar Token Supabase Válido
@@ -80,7 +76,7 @@ serve(async (req: Request) => {
       new TextEncoder().encode(JWT_SECRET),
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"]
+      ["sign"],
     );
 
     const supabaseToken = await create(
@@ -92,9 +88,9 @@ serve(async (req: Request) => {
         firebase_uid: firebaseUid, // 👈 AGREGAMOS ESTO: Es la clave para el RLS
         app_role: upsertedAccount.role ?? "", // For _jwt_role() RLS — breaks admin recursion
         email: email,
-        exp: getNumericDate(60 * 60 * 24),
+        exp: getNumericDate(60 * 60 * 2), // 2 hours (reduced from 24h for security)
       },
-      key
+      key,
     );
 
     // E) Datos Extra
@@ -113,26 +109,32 @@ serve(async (req: Request) => {
     }
 
     // F) Respuesta
-    return Response.json({
-      ok: true,
-      token: supabaseToken,
-      uid: firebaseUid, // Tu ID de Firebase para la UI
-      internal_id: shadowUUID, // Postgres UUID (matches auth.uid() in Supabase JWT sub)
-      email: email,
-      phone: upsertedAccount.phone,
-      role: upsertedAccount.role,
-      profile_complete: upsertedAccount.profile_complete,
-      legal_name: upsertedAccount.legal_name,
-      identityStatus,
-      type_work: typeWork,
-    }, {
-      headers: { "Access-Control-Allow-Origin": "*" },
-    });
-  } catch (err: any) {
-    console.error("💥 Error:", err.message);
-    return Response.json({ ok: false, error: err.message }, {
-      status: 400,
-      headers: { "Access-Control-Allow-Origin": "*" },
-    });
+    return Response.json(
+      {
+        ok: true,
+        token: supabaseToken,
+        uid: firebaseUid, // Tu ID de Firebase para la UI
+        internal_id: shadowUUID, // Postgres UUID (matches auth.uid() in Supabase JWT sub)
+        email: email,
+        phone: upsertedAccount.phone,
+        role: upsertedAccount.role,
+        profile_complete: upsertedAccount.profile_complete,
+        legal_name: upsertedAccount.legal_name,
+        identityStatus,
+        type_work: typeWork,
+      },
+      {
+        headers: { "Access-Control-Allow-Origin": "*" },
+      },
+    );
+  } catch (err: unknown) {
+    console.error("Error:", getErrorMessage(err));
+    return Response.json(
+      { ok: false, error: getErrorMessage(err) },
+      {
+        status: 400,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      },
+    );
   }
 });

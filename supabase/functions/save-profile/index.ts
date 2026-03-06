@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 // Clientes
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 );
 
 serve(async (req: Request) => {
@@ -15,8 +15,7 @@ serve(async (req: Request) => {
     return new Response("ok", {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers":
-          "authorization, x-client-info, apikey, content-type",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
       },
     });
   }
@@ -66,6 +65,32 @@ serve(async (req: Request) => {
 
     if (error) throw error;
 
+    // 4b. Save custom prices for Zolver Ya (instant/hybrid mode)
+    const customPrices = profileData.customPrices as Record<string, string> | undefined;
+    if (customPrices && Object.keys(customPrices).length > 0) {
+      const priceRows = Object.entries(customPrices)
+        .filter(([_, val]) => val && Number(val) > 0)
+        .map(([templateId, price]) => ({
+          professional_id: userId,
+          template_id: templateId,
+          custom_price: Number(price),
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        }));
+
+      if (priceRows.length > 0) {
+        console.log(`[save-profile] Saving ${priceRows.length} custom prices`);
+        const { error: pricesError } = await supabaseAdmin
+          .from("professional_service_prices")
+          .upsert(priceRows, { onConflict: "professional_id,template_id" });
+
+        if (pricesError) {
+          console.error("[save-profile] Error saving prices:", pricesError.message);
+          // Non-fatal: profile was saved, prices can be set later from settings
+        }
+      }
+    }
+
     // 5. Update Flag
     await supabaseAdmin
       .from("user_accounts")
@@ -79,10 +104,12 @@ serve(async (req: Request) => {
       },
       status: 200,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Error saving profile:", err);
-    const isAuthError = err.message?.includes("JWT") || err.message?.includes("signature") || err.message?.includes("audience");
-    return new Response(JSON.stringify({ error: err.message }), {
+    const errMsg = getErrorMessage(err);
+    const isAuthError =
+      errMsg.includes("JWT") || errMsg.includes("signature") || errMsg.includes("audience");
+    return new Response(JSON.stringify({ error: errMsg }), {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",

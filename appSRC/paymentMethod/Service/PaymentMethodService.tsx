@@ -1,9 +1,5 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
-import {
-  PaymentMethodDTO,
-  UISavedCard,
-  SavePaymentMethodPayload,
-} from "../Type/PaymentMethodType";
+import { PaymentMethodDTO, UISavedCard, SavePaymentMethodPayload } from "../Type/PaymentMethodType";
 import { mapDtoToUi } from "../Mapper/PaymentMethodMapper";
 
 export const PaymentMethodsService = {
@@ -35,9 +31,7 @@ export const PaymentMethodsService = {
 
     // Si data tiene 0 elementos, imprimirlo claramente
     if (data.length === 0) {
-      console.log(
-        "⚠️ [Service] El array está vacío. Posibles causas: RLS o UserID incorrecto."
-      );
+      console.log("⚠️ [Service] El array está vacío. Posibles causas: RLS o UserID incorrecto.");
     }
 
     // Usamos el Mapper
@@ -56,22 +50,17 @@ export const PaymentMethodsService = {
    * Nombre anterior: save
    * Llama a la Edge Function segura.
    */
-  savePaymentMethod: async (
-    payload: SavePaymentMethodPayload
-  ): Promise<UISavedCard> => {
+  savePaymentMethod: async (payload: SavePaymentMethodPayload): Promise<UISavedCard> => {
     console.log("[PaymentService] Guardando tarjeta vía Edge Function...");
 
     console.log(
       "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀[PaymentService] Payload saliendo hacia Edge Function:",
-      JSON.stringify(payload)
+      JSON.stringify(payload),
     );
     console.log("📦 PAYLOAD FINAL:", JSON.stringify(payload));
-    const { data, error } = await supabase.functions.invoke(
-      "save-payment-method",
-      {
-        body: payload,
-      }
-    );
+    const { data, error } = await supabase.functions.invoke("save-payment-method", {
+      body: payload,
+    });
 
     // [DEBUG] Extract real error from Edge Function response
     if (error) {
@@ -142,31 +131,12 @@ export const PaymentMethodsService = {
    * luego invoca la Edge Function que borra en Mercado Pago + Supabase.
    */
   deletePaymentMethod: async (cardId: string): Promise<boolean> => {
-    console.log("[PaymentService] Iniciando delete seguro para:", cardId);
+    console.log("[PaymentService] Iniciando delete para:", cardId);
 
-    // STEP 1: Fetch provider IDs from DB (needed for MP API call in Edge Function)
-    const { data: card, error: fetchError } = await supabase
-      .from("user_payment_methods")
-      .select("provider_customer_id, provider_card_id")
-      .eq("id", cardId)
-      .single();
-
-    if (fetchError || !card) {
-      console.error("[PaymentService] No se encontró la tarjeta:", fetchError);
-      throw new Error("No se encontró la tarjeta a eliminar.");
-    }
-
-    // STEP 2: Invoke Edge Function (handles MP delete + DB delete atomically)
-    const { data, error } = await supabase.functions.invoke(
-      "delete-payment-method",
-      {
-        body: {
-          card_id: cardId,
-          provider_customer_id: card.provider_customer_id,
-          provider_card_id: card.provider_card_id,
-        },
-      }
-    );
+    // Edge Function fetches provider IDs server-side with service role (bypasses RLS)
+    const { data, error } = await supabase.functions.invoke("delete-payment-method", {
+      body: { card_id: cardId },
+    });
 
     if (error) {
       console.error("[PaymentService] Edge Function Error:", error.message);

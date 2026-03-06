@@ -1,15 +1,14 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 /**
  * CONFIGURACIÓN DE CABECERAS (CORS)
  */
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -24,7 +23,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing Authorization header" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 },
       );
     }
     const jwtToken = authHeader.replace("Bearer ", "").trim();
@@ -36,7 +35,7 @@ serve(async (req) => {
     // independientemente de las reglas RLS del usuario.
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
@@ -73,24 +72,15 @@ serve(async (req) => {
       console.error(`[Zolver-Edge] user_id mismatch: body=${user_id}, jwt=${verifiedUid}`);
       return new Response(
         JSON.stringify({ success: false, error: "user_id does not match authenticated user" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
       );
     }
 
     const isSavedCard = !!customer_id;
-    console.log(
-      `[Zolver-Edge] Mode: ${isSavedCard ? "SAVED CARD" : "NEW CARD"}`
-    );
+    console.log(`[Zolver-Edge] Mode: ${isSavedCard ? "SAVED CARD" : "NEW CARD"}`);
 
     // Validaciones mínimas
-    if (
-      !card_token ||
-      !amount ||
-      !user_id ||
-      !professional_id ||
-      !start_date ||
-      !end_date
-    ) {
+    if (!card_token || !amount || !user_id || !professional_id || !start_date || !end_date) {
       throw new Error("Faltan datos obligatorios para la transacción.");
     }
 
@@ -112,12 +102,7 @@ serve(async (req) => {
     // Solo se verifica conflicto cuando service_modality === "instant".
     // -----------------------------------------------------------------------
     if (service_modality === "instant") {
-      const ACTIVE_STATUSES = [
-        "pending_approval",
-        "confirmed",
-        "on_route",
-        "in_progress",
-      ];
+      const ACTIVE_STATUSES = ["pending_approval", "confirmed", "on_route", "in_progress"];
 
       const { data: conflicts, error: conflictError } = await supabaseClient
         .from("reservations")
@@ -127,12 +112,11 @@ serve(async (req) => {
         .in("status", ACTIVE_STATUSES)
         .overlaps("scheduled_range", scheduledRangeFormat);
 
-      if (conflictError)
-        throw new Error(`Error DB Check: ${conflictError.message}`);
+      if (conflictError) throw new Error(`Error DB Check: ${conflictError.message}`);
 
       if (conflicts && conflicts.length > 0) {
         console.warn(
-          `[Zolver-Edge] Conflicto instant detectado: ${conflicts.length} reserva(s) activa(s).`
+          `[Zolver-Edge] Conflicto instant detectado: ${conflicts.length} reserva(s) activa(s).`,
         );
         return new Response(
           JSON.stringify({
@@ -142,12 +126,12 @@ serve(async (req) => {
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 409, // Conflict
-          }
+          },
         );
       }
     } else {
       console.log(
-        `[Zolver-Edge] Modality="${service_modality}" → Skip conflict check (quotes are unlimited).`
+        `[Zolver-Edge] Modality="${service_modality}" → Skip conflict check (quotes are unlimited).`,
       );
     }
 
@@ -160,7 +144,9 @@ serve(async (req) => {
     const serviceSubtotal = Number(subtotal) || 0;
     const totalAmount = serviceSubtotal + platformFeeAmount;
 
-    console.log(`[Zolver-Edge] Fee breakdown: subtotal=${serviceSubtotal}, fee=${platformFeeAmount}, total=${totalAmount}`);
+    console.log(
+      `[Zolver-Edge] Fee breakdown: subtotal=${serviceSubtotal}, fee=${platformFeeAmount}, total=${totalAmount}`,
+    );
 
     // B. Build payer object: include customer ID for saved cards so MP links the payment
     // type: "customer" is required by MP when charging a saved card — without it MP
@@ -170,7 +156,7 @@ serve(async (req) => {
       : { email: payer_email };
 
     // C. Build payment body with additional_info, notification_url, external_reference
-    const paymentBody = {
+    const paymentBody: Record<string, unknown> = {
       transaction_amount: platformFeeAmount, // Solo se cobra la comisión via MP
       token: card_token, // New card: full token | Saved card: CVV-only token
       description: `Comisión Zolver: ${service_category}`,
@@ -180,25 +166,30 @@ serve(async (req) => {
       notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mp-webhook`,
       external_reference: `zolver_${user_id}_${Date.now()}`,
       additional_info: {
-        items: [{
-          id: service_category,
-          title: `Comisión Zolver: ${service_category}`,
-          description: `Comisión de plataforma por servicio de ${service_category}`,
-          category_id: "services",
-          quantity: 1,
-          unit_price: platformFeeAmount,
-        }],
-        ...(device_id ? {
-          payer: {
-            first_name: payer_email.split("@")[0],
+        items: [
+          {
+            id: service_category,
+            title: `Comisión Zolver: ${service_category}`,
+            description: `Comisión de plataforma por servicio de ${service_category}`,
+            category_id: "services",
+            quantity: 1,
+            unit_price: platformFeeAmount,
           },
-        } : {}),
+        ],
+        payer: {
+          first_name: payer_email.split("@")[0],
+        },
       },
     };
 
+    // Forward device fingerprint to MP fraud prevention engine
+    if (device_id) {
+      paymentBody.device_id = device_id;
+    }
+
     console.log(
       `[Zolver-Edge] MP Payment Body:`,
-      JSON.stringify({ ...paymentBody, token: "[REDACTED]" })
+      JSON.stringify({ ...paymentBody, token: "[REDACTED]" }),
     );
 
     // D. Process payment via MP REST API
@@ -240,7 +231,8 @@ serve(async (req) => {
         cc_rejected_blacklist: "Tu tarjeta no puede ser utilizada.",
         cc_rejected_call_for_authorize: "Debés autorizar el pago con tu banco.",
         cc_rejected_card_disabled: "Tarjeta deshabilitada. Contactá a tu banco.",
-        cc_rejected_duplicated_payment: "Ya procesaste un pago por este monto. Esperá unos minutos.",
+        cc_rejected_duplicated_payment:
+          "Ya procesaste un pago por este monto. Esperá unos minutos.",
         cc_rejected_high_risk: "Pago rechazado por seguridad. Intentá con otra tarjeta.",
         cc_rejected_insufficient_amount: "Fondos insuficientes.",
         cc_rejected_invalid_installments: "Cantidad de cuotas no válida.",
@@ -253,13 +245,10 @@ serve(async (req) => {
         "No se pudo procesar el pago. Intentá con otra tarjeta.";
 
       console.error(`[Zolver-Edge] Pago rechazado. Status: ${mpStatus}, Detail: ${statusDetail}`);
-      return new Response(
-        JSON.stringify({ success: false, error: userMessage }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
+      return new Response(JSON.stringify({ success: false, error: userMessage }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     // Status para persistir según resultado de MP
@@ -267,7 +256,7 @@ serve(async (req) => {
     const reservationStatus = "pending_approval";
 
     console.log(
-      `[Zolver-Edge] MP Result → status: ${mpStatus}, paymentDb: ${paymentDbStatus}, reservation: ${reservationStatus}`
+      `[Zolver-Edge] MP Result → status: ${mpStatus}, paymentDb: ${paymentDbStatus}, reservation: ${reservationStatus}`,
     );
 
     // -----------------------------------------------------------------------
@@ -293,37 +282,31 @@ serve(async (req) => {
         p_price_estimated: serviceSubtotal,
         p_price_final: totalAmount,
         p_platform_fee: platformFeeAmount,
-      }
+      },
     );
 
     // [CRITICAL LOGIC] ROLLBACK MANUAL (COMPENSATING TRANSACTION)
     if (resError) {
       console.error(
-        `[Zolver-Edge] CRITICAL: Falló DB tras cobro. Error: ${resError.message}. Iniciando reembolso.`
+        `[Zolver-Edge] CRITICAL: Falló DB tras cobro. Error: ${resError.message}. Iniciando reembolso.`,
       );
 
       // Devolvemos la plata inmediatamente porque no pudimos guardar la reserva
-      await fetch(
-        `https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${mpAccessToken}`,
-            "Content-Type": "application/json",
-            "X-Idempotency-Key": crypto.randomUUID(),
-          },
-        }
-      );
+      await fetch(`https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${mpAccessToken}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": crypto.randomUUID(),
+        },
+      });
 
-      throw new Error(
-        `Error interno guardando reserva. Se ha procesado el reembolso automático.`
-      );
+      throw new Error(`Error interno guardando reserva. Se ha procesado el reembolso automático.`);
     }
 
     // rpcResult puede ser un UUID string (frontal) o la fila completa (service role).
     // Normalizamos para extraer siempre el UUID como string.
-    const reservationId =
-      typeof rpcResult === "string" ? rpcResult : rpcResult?.id;
+    const reservationId = typeof rpcResult === "string" ? rpcResult : rpcResult?.id;
 
     if (!reservationId) {
       console.error("[Zolver-Edge] CRITICAL: RPC no devolvió ID de reserva.", rpcResult);
@@ -333,52 +316,57 @@ serve(async (req) => {
     console.log(`[Zolver-Edge] Reserva creada: ${reservationId}`);
 
     // C. Insertar Registro de Pago (columnas alineadas a tabla 'payments' real)
-    console.log(`[Zolver-Edge] Inserting payment: reservation=${reservationId}, mp_id=${paymentResult.id}, status=${paymentDbStatus}`);
+    console.log(
+      `[Zolver-Edge] Inserting payment: reservation=${reservationId}, mp_id=${paymentResult.id}, status=${paymentDbStatus}`,
+    );
 
-    const { data: paymentRow, error: payDbError } = await supabaseClient.from("payments").insert({
-      reservation_id: reservationId,
-      client_id: user_id,
-      professional_id: professional_id,
-      amount: platformFeeAmount,
-      currency: "ARS",
-      status: paymentDbStatus,
-      method: method || "credit_card", // DB enum: credit_card | debit_card | platform_credit
-      payment_method_id: saved_card_id || null, // FK -> user_payment_methods (null for new cards)
-      provider_payment_id: paymentResult.id.toString(), // ID MP para futuros reembolsos
-    }).select("id").single();
+    const { data: paymentRow, error: payDbError } = await supabaseClient
+      .from("payments")
+      .insert({
+        reservation_id: reservationId,
+        client_id: user_id,
+        professional_id: professional_id,
+        amount: platformFeeAmount,
+        currency: "ARS",
+        status: paymentDbStatus,
+        method: method || "credit_card", // DB enum: credit_card | debit_card | platform_credit
+        payment_method_id: saved_card_id || null, // FK -> user_payment_methods (null for new cards)
+        provider_payment_id: paymentResult.id.toString(), // ID MP para futuros reembolsos
+      })
+      .select("id")
+      .single();
 
     if (payDbError) {
       // CRITICAL: Money was charged, reservation created, but no payment record.
       // We MUST rollback: refund MP + delete reservation to prevent orphaned charges.
       console.error(
-        `[Zolver-Edge] CRITICAL: Payment insert failed. Rolling back. Error: ${JSON.stringify(payDbError)}. MP ID: ${paymentResult.id}`
+        `[Zolver-Edge] CRITICAL: Payment insert failed. Rolling back. Error: ${JSON.stringify(payDbError)}. MP ID: ${paymentResult.id}`,
       );
 
       // Rollback 1: Refund Mercado Pago
       try {
-        await fetch(
-          `https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${mpAccessToken}`,
-              "Content-Type": "application/json",
-              "X-Idempotency-Key": crypto.randomUUID(),
-            },
-          }
-        );
+        await fetch(`https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${mpAccessToken}`,
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": crypto.randomUUID(),
+          },
+        });
         console.log(`[Zolver-Edge] Rollback refund sent for MP ID: ${paymentResult.id}`);
-      } catch (refundErr) {
-        console.error(`[Zolver-Edge] ALERT: Rollback refund ALSO failed. MP ID: ${paymentResult.id}. REQUIRES MANUAL INTERVENTION.`, refundErr);
+      } catch (refundErr: unknown) {
+        console.error(
+          `[Zolver-Edge] ALERT: Rollback refund ALSO failed. MP ID: ${paymentResult.id}. REQUIRES MANUAL INTERVENTION.`,
+          refundErr,
+        );
       }
 
       // Rollback 2: Delete orphan reservation
-      await supabaseClient
-        .from("reservations")
-        .delete()
-        .eq("id", reservationId);
+      await supabaseClient.from("reservations").delete().eq("id", reservationId);
 
-      throw new Error("Error interno guardando el registro de pago. Se procesó un reembolso automático.");
+      throw new Error(
+        "Error interno guardando el registro de pago. Se procesó un reembolso automático.",
+      );
     }
 
     console.log(`[Zolver-Edge] Payment inserted: ${paymentRow.id}`);
@@ -397,16 +385,13 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`[Zolver-Edge] Exception:`, error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: getErrorMessage(error) }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 });

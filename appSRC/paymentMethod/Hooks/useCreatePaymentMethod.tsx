@@ -1,6 +1,3 @@
-// @ts-nocheck
-// UBICACIÓN: appSRC/paymentMethod/Hooks/useCreatePaymentMethod.tsx
-
 import { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
@@ -21,7 +18,7 @@ export const useCreatePaymentMethod = () => {
   const fetchCardInfo = async (bin: string) => {
     try {
       const response = await fetch(
-        `https://api.mercadopago.com/v1/payment_methods/search?public_key=${MP_PUBLIC_KEY}&bin=${bin}`
+        `https://api.mercadopago.com/v1/payment_methods/search?public_key=${MP_PUBLIC_KEY}&bin=${bin}`,
       );
       const data = await response.json();
       const result = data.results && data.results[0];
@@ -41,14 +38,17 @@ export const useCreatePaymentMethod = () => {
   // ---------------------------------------------------------------------------
   // PASO B: CREAR "SÚPER TOKEN" (Incluye la metadata dentro)
   // ---------------------------------------------------------------------------
-  const createCardToken = async (cardData: any, info: any) => {
+  const createCardToken = async (
+    cardData: Record<string, string>,
+    info: { payment_method_id: string; issuer_id: string | number | null },
+  ) => {
     console.log("🛠️ [2. Tokenizar] Creando payload para MP...");
 
     const [monthStr, yearStr] = cardData.expiry.split("/");
     const year = yearStr.length === 2 ? `20${yearStr}` : yearStr;
 
     // Construimos el objeto de la tarjeta
-    const mpPayload: any = {
+    const mpPayload: Record<string, unknown> = {
       card_number: cardData.number.replace(/\s/g, ""),
       security_code: cardData.cvc,
       expiration_month: parseInt(monthStr, 10),
@@ -68,7 +68,7 @@ export const useCreatePaymentMethod = () => {
     }
 
     console.log(
-      `📤 [2. Tokenizar] Enviando Metadata en Token: Brand=${info.payment_method_id}, Issuer=${info.issuer_id}`
+      `📤 [2. Tokenizar] Enviando Metadata en Token: Brand=${info.payment_method_id}, Issuer=${info.issuer_id}`,
     );
 
     const response = await fetch(
@@ -77,7 +77,7 @@ export const useCreatePaymentMethod = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mpPayload),
-      }
+      },
     );
 
     const data = await response.json();
@@ -93,7 +93,7 @@ export const useCreatePaymentMethod = () => {
   // ---------------------------------------------------------------------------
   // FUNCIÓN PRINCIPAL
   // ---------------------------------------------------------------------------
-  const createMethod = async (type: string, formValues: any) => {
+  const createMethod = async (_type: string, formValues: Record<string, string>) => {
     setLoading(true);
     setError(null);
 
@@ -113,7 +113,7 @@ export const useCreatePaymentMethod = () => {
       if (!userEmail) throw new Error("Se necesita un email asociado a tu cuenta.");
 
       const newCard = await PaymentMethodsService.savePaymentMethod({
-        user_id: user.uid || user.id,
+        user_id: user.uid,
         email: userEmail,
         token: token,
         dni: formValues.dni,
@@ -123,10 +123,11 @@ export const useCreatePaymentMethod = () => {
       Alert.alert("¡Éxito!", "Tarjeta guardada correctamente.", [
         { text: "OK", onPress: () => router.back() },
       ]);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
       console.error("🛑 Excepción:", err);
-      setError(err.message);
-      Alert.alert("Error", err.message);
+      setError(message);
+      Alert.alert("Error", message);
     } finally {
       setLoading(false);
     }

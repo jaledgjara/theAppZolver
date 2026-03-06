@@ -3,7 +3,7 @@
 
 // serve(async (req: Request): Promise<Response> => {
 //   try {
-//     const { phone } = await req.json().catch(() => ({} as any));
+//     const { phone } = await req.json().catch(() => ({}) as Record<string, unknown>);
 //     console.log("📞 Incoming phone:", phone);
 
 //     // @ts-ignore
@@ -63,30 +63,38 @@
 // }
 
 //
-// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req: Request): Promise<Response> => {
   try {
-    const { phone } = await req.json().catch(() => ({} as any));
+    const { phone } = await req.json().catch(() => ({}) as Record<string, unknown>);
     console.log("📞 Incoming phone:", phone);
 
     // --- DEV BYPASS CONFIG ---
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
-    // @ts-ignore
     const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
-    // @ts-ignore
-    const DEV_BYPASS_ENABLED = ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
+    const DEV_BYPASS_ENABLED =
+      ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
 
     const DEFAULT_WHITELIST = [
-      "+542616837340","+542616837341","+542616837342","+542616837344",
-      "+542616837345","+542616837346","+542616837347","+542616837348",
-      "+542616837349","+542616837350","+542616837351","+542616837352",
+      "+542616837340",
+      "+542616837341",
+      "+542616837342",
+      "+542616837344",
+      "+542616837345",
+      "+542616837346",
+      "+542616837347",
+      "+542616837348",
+      "+542616837349",
+      "+542616837350",
+      "+542616837351",
+      "+542616837352",
     ];
-    // @ts-ignore
     const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
-    const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : DEFAULT_WHITELIST;
+    const WHITELIST_NUMBERS = envWhitelist
+      ? envWhitelist.split(",").filter(Boolean)
+      : DEFAULT_WHITELIST;
 
     if (
       DEV_BYPASS_ENABLED &&
@@ -103,7 +111,7 @@ serve(async (req: Request): Promise<Response> => {
           status: "pending",
           valid: true,
         },
-        200
+        200,
       );
     }
     // --- END DEV BYPASS ---
@@ -112,11 +120,8 @@ serve(async (req: Request): Promise<Response> => {
     // 2. LÓGICA ORIGINAL (Twilio Real)
     // ============================================================
 
-    // @ts-ignore
     const SID = Deno.env.get("TWILIO_SID");
-    // @ts-ignore
     const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-    // @ts-ignore
     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SID");
 
     if (!phone || typeof phone !== "string") {
@@ -143,10 +148,7 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!twilioRes.ok) {
       console.error("Twilio Error:", payload);
-      return json(
-        { error: "Twilio error", details: payload },
-        twilioRes.status
-      );
+      return json({ error: "Twilio error", details: payload }, twilioRes.status);
     }
 
     return json(payload, 200);

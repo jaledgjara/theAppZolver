@@ -1,19 +1,17 @@
-// @ts-nocheck
 // UBICACIÓN: supabase/functions/save-payment-method/index.ts
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS")
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     // Verify Firebase JWT
@@ -21,7 +19,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing Authorization header" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 },
       );
     }
     const jwtToken = authHeader.replace("Bearer ", "").trim();
@@ -30,7 +28,7 @@ serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
 
@@ -45,56 +43,77 @@ serve(async (req) => {
       console.error(`[save-payment-method] user_id mismatch: body=${user_id}, jwt=${verifiedUid}`);
       return new Response(
         JSON.stringify({ success: false, error: "user_id does not match authenticated user" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
       );
     }
 
-    // 1. GESTIÓN DE CUSTOMER (Buscar o Crear)
+    // 1. GESTIÓN DE CUSTOMER (Reuse existing → Search MP → Create new)
     let customerId;
-    console.log(`🔎 [Backend] Buscando Customer: ${email}`);
+    console.log(`[save-payment-method] Buscando Customer para: ${email}`);
 
-    const searchRes = await fetch(
-      `https://api.mercadopago.com/v1/customers/search?email=${email}`,
-      { headers: { Authorization: `Bearer ${mpAccessToken}` } }
-    );
-    const searchData = await searchRes.json();
+    // First: check if this user already has a saved card with a customer_id (most reliable)
+    const { data: existingCard } = await supabase
+      .from("user_payment_methods")
+      .select("provider_customer_id")
+      .eq("user_id", user_id)
+      .not("provider_customer_id", "is", null)
+      .limit(1)
+      .maybeSingle();
 
-    if (searchData.results?.[0]) {
-      customerId = searchData.results[0].id;
-      console.log(`✅ Customer encontrado: ${customerId}`);
+    if (existingCard?.provider_customer_id) {
+      customerId = existingCard.provider_customer_id;
+      console.log(`[save-payment-method] Reusing existing customer: ${customerId}`);
     } else {
-      console.log(`🆕 Creando Customer nuevo...`);
-      const createRes = await fetch(
-        "https://api.mercadopago.com/v1/customers",
-        {
+      // Search MP by email
+      const searchRes = await fetch(
+        `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(email)}`,
+        { headers: { Authorization: `Bearer ${mpAccessToken}` } },
+      );
+      const searchData = await searchRes.json();
+
+      if (searchData.results?.length === 1) {
+        // Exactly one match — safe to use
+        customerId = searchData.results[0].id;
+        console.log(`[save-payment-method] Customer encontrado (1 match): ${customerId}`);
+      } else if (searchData.results?.length > 1) {
+        // Multiple matches — pick the most recent to avoid stale/test customers
+        const sorted = searchData.results.sort(
+          (a: { date_created: string }, b: { date_created: string }) =>
+            new Date(b.date_created).getTime() - new Date(a.date_created).getTime(),
+        );
+        customerId = sorted[0].id;
+        console.warn(
+          `[save-payment-method] Multiple customers (${searchData.results.length}) for ${email}. Using most recent: ${customerId}`,
+        );
+      } else {
+        // No match — create new customer
+        console.log(`[save-payment-method] Creando Customer nuevo...`);
+        const createRes = await fetch("https://api.mercadopago.com/v1/customers", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${mpAccessToken}`,
           },
           body: JSON.stringify({ email }),
-        }
-      );
-      const newCust = await createRes.json();
-      customerId = newCust.id;
-      console.log(`✅ Nuevo Customer ID: ${customerId}`);
+        });
+        const newCust = await createRes.json();
+        customerId = newCust.id;
+        console.log(`[save-payment-method] Nuevo Customer ID: ${customerId}`);
+      }
     }
 
     // 2. GUARDADO DE TARJETA (ESTRATEGIA "TOKEN-ONLY")
     // Como el frontend ya inyectó el issuer/brand en el token, aquí solo enviamos el token.
     console.log(`📤 [Backend] Guardando tarjeta en MP...`);
 
-    const saveRes = await fetch(
-      `https://api.mercadopago.com/v1/customers/${customerId}/cards`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${mpAccessToken}`,
-        },
-        body: JSON.stringify({ token: token }), // <--- SOLO TOKEN
-      }
-    );
+    const saveRes = await fetch(`https://api.mercadopago.com/v1/customers/${customerId}/cards`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${mpAccessToken}`,
+      },
+      body: JSON.stringify({ token: token }), // <--- SOLO TOKEN
+    });
 
     const cardData = await saveRes.json();
 
@@ -134,14 +153,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
-    console.error("💥 [Backend Exception]:", error.message);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      }
-    );
+  } catch (error: unknown) {
+    console.error("[Backend Exception]:", getErrorMessage(error));
+    return new Response(JSON.stringify({ success: false, error: getErrorMessage(error) }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400,
+    });
   }
 });

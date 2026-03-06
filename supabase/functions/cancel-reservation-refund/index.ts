@@ -1,11 +1,11 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 /**
@@ -25,13 +25,24 @@ const corsHeaders = {
  */
 
 serve(async (req) => {
-  if (req.method === "OPTIONS")
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // ── AUTH: Verify JWT and extract user identity ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing Authorization header" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 },
+      );
+    }
+    const jwtToken = authHeader.replace("Bearer ", "").trim();
+    const jwtPayload = await verifySupabaseJWT(jwtToken);
+    const verifiedUid = jwtPayload.firebase_uid;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
@@ -45,12 +56,29 @@ serve(async (req) => {
 
     const { data: reservation, error: resError } = await supabase
       .from("reservations")
-      .select("id, client_id, professional_id, status, service_modality, price_final, platform_fee, created_at")
+      .select(
+        "id, client_id, professional_id, status, service_modality, price_final, platform_fee, created_at",
+      )
       .eq("id", reservation_id)
       .maybeSingle();
 
     if (resError) {
       console.error("[Zolver-Refund] ERROR fetching reservation:", resError.message);
+    }
+
+    // ── AUTH: Only the client or professional of this reservation can cancel ──
+    if (
+      reservation &&
+      reservation.client_id !== verifiedUid &&
+      reservation.professional_id !== verifiedUid
+    ) {
+      console.error(
+        `[Zolver-Refund] Ownership mismatch: jwt=${verifiedUid}, client=${reservation.client_id}, pro=${reservation.professional_id}`,
+      );
+      return new Response(
+        JSON.stringify({ success: false, error: "No tenés permiso para cancelar esta reserva." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+      );
     }
 
     console.log("[Zolver-Refund] RESERVATION DATA:", JSON.stringify(reservation));
@@ -88,7 +116,7 @@ serve(async (req) => {
 
       if (fallbackRecord) {
         console.log(
-          `[Zolver-Refund] Fallback found: id=${fallbackRecord.id}, status=${fallbackRecord.status}, mp_id=${fallbackRecord.provider_payment_id}`
+          `[Zolver-Refund] Fallback found: id=${fallbackRecord.id}, status=${fallbackRecord.status}, mp_id=${fallbackRecord.provider_payment_id}`,
         );
         if (fallbackRecord.status !== "refunded" && fallbackRecord.status !== "canceled") {
           paymentRecord = fallbackRecord;
@@ -100,7 +128,9 @@ serve(async (req) => {
 
     // Fallback 2: If still nothing, search by client_id (maybe reservation_id FK was lost)
     if (!paymentRecord && reservation?.client_id) {
-      console.warn(`[Zolver-Refund] No payment by reservation_id. Searching by client_id=${reservation.client_id}...`);
+      console.warn(
+        `[Zolver-Refund] No payment by reservation_id. Searching by client_id=${reservation.client_id}...`,
+      );
 
       const { data: clientPayments, error: cpErr } = await supabase
         .from("payments")
@@ -115,14 +145,16 @@ serve(async (req) => {
 
       console.log(
         `[Zolver-Refund] DIAGNOSTIC — All recent payments for client ${reservation.client_id}:`,
-        JSON.stringify(clientPayments?.map(p => ({
-          id: p.id,
-          reservation_id: p.reservation_id,
-          status: p.status,
-          amount: p.amount,
-          mp_id: p.provider_payment_id,
-          created: p.created_at,
-        })) || [])
+        JSON.stringify(
+          clientPayments?.map((p) => ({
+            id: p.id,
+            reservation_id: p.reservation_id,
+            status: p.status,
+            amount: p.amount,
+            mp_id: p.provider_payment_id,
+            created: p.created_at,
+          })) || [],
+        ),
       );
 
       // Try to match by professional_id + approximate time
@@ -131,10 +163,12 @@ serve(async (req) => {
           (p) =>
             p.professional_id === reservation.professional_id &&
             p.status !== "refunded" &&
-            p.status !== "canceled"
+            p.status !== "canceled",
         );
         if (match) {
-          console.log(`[Zolver-Refund] MATCHED payment by client+professional: id=${match.id}, mp_id=${match.provider_payment_id}`);
+          console.log(
+            `[Zolver-Refund] MATCHED payment by client+professional: id=${match.id}, mp_id=${match.provider_payment_id}`,
+          );
           paymentRecord = match;
         }
       }
@@ -142,13 +176,11 @@ serve(async (req) => {
 
     // Final diagnostic: if STILL nothing, dump the payments table count
     if (!paymentRecord) {
-      const { count } = await supabase
-        .from("payments")
-        .select("*", { count: "exact", head: true });
+      const { count } = await supabase.from("payments").select("*", { count: "exact", head: true });
 
       console.error(
         `[Zolver-Refund] DIAGNOSTIC — Total rows in payments table: ${count}. ` +
-        `No payment found for reservation=${reservation_id}, client=${reservation?.client_id}.`
+          `No payment found for reservation=${reservation_id}, client=${reservation?.client_id}.`,
       );
     }
 
@@ -166,7 +198,9 @@ serve(async (req) => {
       if (dbStatus === "approved") {
         // ─── APPROVED → POST /refunds (return money to client) ───
         mpAction = "refund";
-        console.log(`[Zolver-Refund] REFUND approved payment. MP ID: ${mpPaymentId}, amount: ${paymentRecord.amount}`);
+        console.log(
+          `[Zolver-Refund] REFUND approved payment. MP ID: ${mpPaymentId}, amount: ${paymentRecord.amount}`,
+        );
 
         const refundRes = await fetch(
           `https://api.mercadopago.com/v1/payments/${mpPaymentId}/refunds`,
@@ -178,15 +212,18 @@ serve(async (req) => {
               "X-Idempotency-Key": crypto.randomUUID(),
             },
             body: JSON.stringify({ amount: paymentRecord.amount }),
-          }
+          },
         );
 
         refundData = await refundRes.json();
 
         if (refundRes.status !== 200 && refundRes.status !== 201) {
-          console.error(`[Zolver-Refund] MP refund rejected (HTTP ${refundRes.status}):`, refundData);
+          console.error(
+            `[Zolver-Refund] MP refund rejected (HTTP ${refundRes.status}):`,
+            refundData,
+          );
           throw new Error(
-            `Mercado Pago rechazó el reembolso (HTTP ${refundRes.status}). MP ID: ${mpPaymentId}`
+            `Mercado Pago rechazó el reembolso (HTTP ${refundRes.status}). MP ID: ${mpPaymentId}`,
           );
         }
 
@@ -196,30 +233,29 @@ serve(async (req) => {
           .from("payments")
           .update({ status: "refunded", updated_at: new Date() })
           .eq("id", paymentRecord.id);
-
       } else if (dbStatus === "pending" || dbStatus === "in_process") {
         // ─── PENDING/IN_PROCESS → PUT status:"cancelled" (release hold) ───
         mpAction = "cancel";
         console.log(`[Zolver-Refund] CANCEL pending payment. MP ID: ${mpPaymentId}`);
 
-        const cancelRes = await fetch(
-          `https://api.mercadopago.com/v1/payments/${mpPaymentId}`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${mpAccessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ status: "cancelled" }),
-          }
-        );
+        const cancelRes = await fetch(`https://api.mercadopago.com/v1/payments/${mpPaymentId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${mpAccessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "cancelled" }),
+        });
 
         const cancelData = await cancelRes.json();
 
         if (cancelRes.status !== 200) {
-          console.error(`[Zolver-Refund] MP cancel rejected (HTTP ${cancelRes.status}):`, cancelData);
+          console.error(
+            `[Zolver-Refund] MP cancel rejected (HTTP ${cancelRes.status}):`,
+            cancelData,
+          );
           throw new Error(
-            `Mercado Pago rechazó la cancelación (HTTP ${cancelRes.status}). MP ID: ${mpPaymentId}`
+            `Mercado Pago rechazó la cancelación (HTTP ${cancelRes.status}). MP ID: ${mpPaymentId}`,
           );
         }
 
@@ -230,14 +266,15 @@ serve(async (req) => {
           .from("payments")
           .update({ status: "canceled", updated_at: new Date() })
           .eq("id", paymentRecord.id);
-
       } else {
-        console.warn(`[Zolver-Refund] Unexpected DB status "${dbStatus}" for payment ${paymentRecord.id}. Skipping MP call.`);
+        console.warn(
+          `[Zolver-Refund] Unexpected DB status "${dbStatus}" for payment ${paymentRecord.id}. Skipping MP call.`,
+        );
       }
     } else {
       // No payment record at all
       console.error(
-        `[Zolver-Refund] CRITICAL: No payment record for reservation ${reservation_id}. REQUIRES MANUAL REVIEW.`
+        `[Zolver-Refund] CRITICAL: No payment record for reservation ${reservation_id}. REQUIRES MANUAL REVIEW.`,
       );
     }
 
@@ -250,7 +287,8 @@ serve(async (req) => {
 
     const descParts = [`Cancelado por ${triggered_by}: ${reason}`];
     if (mpAction === "refund" && refundData.id) descParts.push(`Reembolso MP: ${refundData.id}`);
-    if (mpAction === "cancel") descParts.push(`Pago cancelado en MP: ${paymentRecord?.provider_payment_id}`);
+    if (mpAction === "cancel")
+      descParts.push(`Pago cancelado en MP: ${paymentRecord?.provider_payment_id}`);
     if (!paymentRecord) descParts.push("SIN REGISTRO DE PAGO - REVISAR MANUALMENTE");
 
     const { error: resUpdateError } = await supabase
@@ -272,29 +310,27 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: mpAction === "refund"
-          ? "Reserva cancelada y dinero reembolsado."
-          : mpAction === "cancel"
-          ? "Reserva cancelada y pago anulado."
-          : paymentRecord
-          ? "Reserva cancelada (pago ya resuelto)."
-          : "Reserva cancelada. Sin pago encontrado (revisar manualmente).",
+        message:
+          mpAction === "refund"
+            ? "Reserva cancelada y dinero reembolsado."
+            : mpAction === "cancel"
+              ? "Reserva cancelada y pago anulado."
+              : paymentRecord
+                ? "Reserva cancelada (pago ya resuelto)."
+                : "Reserva cancelada. Sin pago encontrado (revisar manualmente).",
         mp_action: mpAction,
         refund_id: refundData.id || null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`[Zolver-Refund] Error Fatal:`, error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: getErrorMessage(error) }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 });

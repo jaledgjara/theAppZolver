@@ -3,16 +3,15 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "allowJs": false,
-    "paths": { "@/*": ["*"],  "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.rn.d.ts"] },
-    "types": [
-      "react",
-      "react-native",
-      "expo-router",
-      "node"
-    ],
+    "paths": {
+      "@/*": ["*"],
+      "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.rn.d.ts"]
+    },
+    "types": ["react", "react-native", "expo-router", "node"],
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
+  "exclude": ["node_modules", "supabase/functions"],
   "extends": "expo/tsconfig.base"
 }

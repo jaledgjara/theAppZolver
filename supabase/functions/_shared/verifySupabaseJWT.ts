@@ -1,9 +1,7 @@
-// @ts-nocheck
 // Verifies HMAC-SHA256 JWTs issued by session-sync (custom Supabase tokens).
 // Mirrors verifyFirebaseJWT.ts but for symmetric HMAC instead of RSA.
 
-const JWT_SECRET =
-  Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
 
 function base64urlDecode(input: string): Uint8Array {
   let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -25,9 +23,7 @@ export interface SupabaseJwtPayload {
   iat: number;
 }
 
-export async function verifySupabaseJWT(
-  token: string
-): Promise<SupabaseJwtPayload> {
+export async function verifySupabaseJWT(token: string): Promise<SupabaseJwtPayload> {
   const parts = token.split(".");
   if (parts.length !== 3) throw new Error("Malformed JWT");
 
@@ -41,7 +37,7 @@ export async function verifySupabaseJWT(
     keyData,
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["verify"]
+    ["verify"],
   );
 
   // Verify signature
@@ -53,7 +49,7 @@ export async function verifySupabaseJWT(
 
   // Decode payload
   const payload: SupabaseJwtPayload = JSON.parse(
-    new TextDecoder().decode(base64urlDecode(payloadB64))
+    new TextDecoder().decode(base64urlDecode(payloadB64)),
   );
 
   // Validate expiration

@@ -20,12 +20,7 @@
       "associatedDomains": ["applinks:thezolverapp.web.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": [
-          "comgooglemaps",
-          "waze",
-          "maps",
-          "whatsapp"
-        ]
+        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze", "maps", "whatsapp"]
       }
     },
     "android": {
@@ -68,6 +63,13 @@
         }
       ]
     ],
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9a7c3975-4a30-445a-a6ef-a9e4f70d4bd6",
+      "fallbackToCacheTimeout": 5000
+    },
     "extra": {
       "router": {},
       "eas": {

@@ -1,7 +1,6 @@
 const GOOGLE_JWKS_URL =
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 
-// @ts-ignore
 const PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "thezolverapp";
 
 let cachedJwks: any = null;
@@ -26,7 +25,7 @@ export async function importRsaKey(jwk: any): Promise<CryptoKey> {
     jwk,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
-    ["verify"]
+    ["verify"],
   );
 }
 
@@ -49,14 +48,26 @@ export async function verifyFirebaseJWT(token: string) {
   const data = new TextEncoder().encode(`${hB64}.${pB64}`);
   const signature = base64urlToBuffer(sigB64);
 
-  if (
-    !(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, data))
-  ) {
+  if (!(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, data))) {
     throw new Error("Invalid JWT signature");
   }
 
   const payload = JSON.parse(atob(pB64.replace(/-/g, "+").replace(/_/g, "/")));
+
+  // Validate audience
   if (payload.aud !== PROJECT_ID) throw new Error("Invalid audience");
+
+  // Validate issuer
+  const expectedIssuer = `https://securetoken.google.com/${PROJECT_ID}`;
+  if (payload.iss !== expectedIssuer) {
+    throw new Error(`Invalid issuer: expected ${expectedIssuer}, got ${payload.iss}`);
+  }
+
+  // Validate expiration
+  const now = Math.floor(Date.now() / 1000);
+  if (!payload.exp || payload.exp < now) {
+    throw new Error("JWT expired");
+  }
 
   return payload;
 }

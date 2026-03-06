@@ -1,0 +1,59 @@
+# Zolver — Supabase Local Development Configuration
+# Docs: https://supabase.com/docs/guides/cli/config
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[auth]
+enabled = true
+site_url = "http://localhost:8081"
+additional_redirect_urls = [
+  "https://thezolverapp.web.app",
+  "zolver://",
+  "exp://localhost:8081",
+]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+
+[auth.external.apple]
+enabled = true
+client_id = "env(APPLE_CLIENT_ID)"
+secret = "env(APPLE_CLIENT_SECRET)"
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+
+[functions.session-sync]
+verify_jwt = false
+
+[functions.mp-webhook]
+verify_jwt = false
+
+[functions.scheduler-auto-cancel]
+verify_jwt = false
+
+[functions.send-notification]
+verify_jwt = false

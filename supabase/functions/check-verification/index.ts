@@ -80,30 +80,37 @@
 // }
 
 //
-// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req: Request): Promise<Response> => {
   try {
-    const { phone, code } = await req.json().catch(() => ({} as any));
+    const { phone, code } = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     // --- DEV BYPASS CONFIG ---
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
-    // @ts-ignore
     const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
-    // @ts-ignore
-    const DEV_BYPASS_ENABLED = ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
+    const DEV_BYPASS_ENABLED =
+      ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
 
     const DEFAULT_WHITELIST = [
-      "+542616837340","+542616837341","+542616837342","+542616837344",
-      "+542616837345","+542616837346","+542616837347","+542616837348",
-      "+542616837349","+542616837350","+542616837351","+542616837352",
+      "+542616837340",
+      "+542616837341",
+      "+542616837342",
+      "+542616837344",
+      "+542616837345",
+      "+542616837346",
+      "+542616837347",
+      "+542616837348",
+      "+542616837349",
+      "+542616837350",
+      "+542616837351",
+      "+542616837352",
     ];
-    // @ts-ignore
     const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
-    const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : DEFAULT_WHITELIST;
-    // @ts-ignore
+    const WHITELIST_NUMBERS = envWhitelist
+      ? envWhitelist.split(",").filter(Boolean)
+      : DEFAULT_WHITELIST;
     const DEV_CODE = Deno.env.get("DEV_VERIFICATION_CODE") ?? "123456";
 
     if (
@@ -111,15 +118,9 @@ serve(async (req: Request): Promise<Response> => {
       WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
     ) {
       if (code === DEV_CODE) {
-        return json(
-          { valid: true, status: "approved" },
-          200
-        );
+        return json({ valid: true, status: "approved" }, 200);
       } else {
-        return json(
-          { valid: false, error: "Código incorrecto" },
-          400
-        );
+        return json({ valid: false, error: "Código incorrecto" }, 400);
       }
     }
     // --- END DEV BYPASS ---
@@ -128,11 +129,8 @@ serve(async (req: Request): Promise<Response> => {
     // 2. LÓGICA ORIGINAL (Twilio Real)
     // ==========================================
 
-    // @ts-ignore
     const SID = Deno.env.get("TWILIO_SID");
-    // @ts-ignore
     const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-    // @ts-ignore
     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SID");
 
     if (!SID || !TOKEN || !VERIFY_SID) {

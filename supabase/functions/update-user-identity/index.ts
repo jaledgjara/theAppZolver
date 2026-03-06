@@ -1,11 +1,11 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { getErrorMessage } from "../_shared/errorUtils.ts";
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
 );
 
 const CORS_HEADERS = {
@@ -22,10 +22,7 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return Response.json(
-        { error: "Missing token" },
-        { status: 401, headers: CORS_HEADERS }
-      );
+      return Response.json({ error: "Missing token" }, { status: 401, headers: CORS_HEADERS });
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
@@ -33,10 +30,7 @@ serve(async (req) => {
     try {
       payload = await verifySupabaseJWT(token);
     } catch (e) {
-      return Response.json(
-        { error: "Invalid token" },
-        { status: 401, headers: CORS_HEADERS }
-      );
+      return Response.json({ error: "Invalid token" }, { status: 401, headers: CORS_HEADERS });
     }
 
     const uid = payload.firebase_uid;
@@ -47,7 +41,7 @@ serve(async (req) => {
     if (!legalName || typeof legalName !== "string" || !legalName.trim()) {
       return Response.json(
         { error: "legal_name is required" },
-        { status: 400, headers: CORS_HEADERS }
+        { status: 400, headers: CORS_HEADERS },
       );
     }
 
@@ -95,11 +89,8 @@ serve(async (req) => {
 
     console.log(`✅ [update-user-identity] Done for ${uid}`);
     return Response.json({ ok: true, ...row }, { status: 200, headers: CORS_HEADERS });
-  } catch (err: any) {
-    console.error("🔥 [update-user-identity] ERROR:", err.message);
-    return Response.json(
-      { error: err.message },
-      { status: 500, headers: CORS_HEADERS }
-    );
+  } catch (err: unknown) {
+    console.error("[update-user-identity] ERROR:", getErrorMessage(err));
+    return Response.json({ error: getErrorMessage(err) }, { status: 500, headers: CORS_HEADERS });
   }
 });

@@ -64,12 +64,11 @@ const FormProfessionalTwo = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}>
+      style={styles.container}
+    >
       <ToolBarTitle titleText="Perfil Profesional" showBackButton={true} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* 1. CATEGORÍA */}
         <View style={styles.section}>
           <Text style={styles.label}>Categoría Principal</Text>
@@ -79,13 +78,7 @@ const FormProfessionalTwo = () => {
             editable={false}
             onPress={() => setModalVisible(true)}
             pointerEvents="none"
-            icon={
-              <Ionicons
-                name="grid-outline"
-                size={22}
-                color={COLORS.textSecondary}
-              />
-            }
+            icon={<Ionicons name="grid-outline" size={22} color={COLORS.textSecondary} />}
           />
         </View>
 
@@ -101,13 +94,7 @@ const FormProfessionalTwo = () => {
             value={specialization}
             onChangeText={(t) => updateField("specialization", t)}
             editable={!!selectedCategory}
-            icon={
-              <Ionicons
-                name="ribbon-outline"
-                size={22}
-                color={COLORS.textSecondary}
-              />
-            }
+            icon={<Ionicons name="ribbon-outline" size={22} color={COLORS.textSecondary} />}
           />
         </View>
 
@@ -120,20 +107,12 @@ const FormProfessionalTwo = () => {
                 <Text style={styles.badgeText}>Requerido</Text>
               </View>
             </View>
-            <Text style={styles.subLabel}>
-              Esta categoría requiere validación oficial.
-            </Text>
+            <Text style={styles.subLabel}>Esta categoría requiere validación oficial.</Text>
             <ResizableInput
               placeholder="N° de Matrícula"
               value={licenseNumber}
               onChangeText={(t) => updateField("licenseNumber", t)}
-              icon={
-                <Ionicons
-                  name="card-outline"
-                  size={22}
-                  color={COLORS.textSecondary}
-                />
-              }
+              icon={<Ionicons name="card-outline" size={22} color={COLORS.textSecondary} />}
             />
           </View>
         )}
@@ -149,15 +128,14 @@ const FormProfessionalTwo = () => {
 
           <ServiceSwitcherCatalog
             typeWork={typeWork}
-            isDisabled={isZolverYaDisabled}
+            isDisabled={!!isZolverYaDisabled}
             allowHybrid={!!selectedCategory?.is_usually_urgent}
             onSelect={setTypeWork}
           />
 
           {isZolverYaDisabled && (
             <Text style={styles.warningText}>
-              * La categoría {selectedCategory.name} no admite servicios
-              inmediatos "Zolver Ya".
+              * La categoría {selectedCategory?.name} no admite servicios inmediatos "Zolver Ya".
             </Text>
           )}
         </View>
@@ -166,9 +144,7 @@ const FormProfessionalTwo = () => {
         {showPricing && (
           <View style={styles.section}>
             <Text style={styles.label}>Tus Tarifas Zolver Ya</Text>
-            <Text style={styles.subLabel}>
-              Ajusta tus precios para competir mejor.
-            </Text>
+            <Text style={styles.subLabel}>Ajusta tus precios para competir mejor.</Text>
 
             {loadingTemplates ? (
               <ActivityIndicator
@@ -181,9 +157,7 @@ const FormProfessionalTwo = () => {
                 <BaseCard key={item.id} style={styles.skuCard}>
                   <View style={styles.skuHeader}>
                     <Text style={styles.skuLabel}>{item.label}</Text>
-                    <Text style={styles.suggestedLabel}>
-                      Sugerido: ${item.basePrice}
-                    </Text>
+                    <Text style={styles.suggestedLabel}>Sugerido: ${item.basePrice}</Text>
                   </View>
                   <ResizableInput
                     value={customPrices[item.id] || ""}
@@ -210,13 +184,7 @@ const FormProfessionalTwo = () => {
             value={biography}
             onChangeText={(t) => updateField("biography", t)}
             isTextArea={true}
-            icon={
-              <Ionicons
-                name="person-outline"
-                size={22}
-                color={COLORS.textSecondary}
-              />
-            }
+            icon={<Ionicons name="person-outline" size={22} color={COLORS.textSecondary} />}
           />
         </View>
 
