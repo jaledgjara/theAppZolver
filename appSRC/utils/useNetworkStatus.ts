@@ -1,29 +1,36 @@
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
-import NetInfo, { NetInfoState } from "@react-native-community/netinfo";
 
 /**
  * Hook that monitors network connectivity.
  * Returns { isConnected, isInternetReachable } for UI decisions.
  *
- * Usage:
- *   const { isConnected } = useNetworkStatus();
- *   if (!isConnected) return <OfflineBanner />;
+ * Gracefully handles missing native module (e.g. before dev build rebuild).
  */
 export function useNetworkStatus() {
   const [isConnected, setIsConnected] = useState(true);
   const [isInternetReachable, setIsInternetReachable] = useState(true);
 
   useEffect(() => {
-    // NetInfo is not reliable on web — skip subscription
     if (Platform.OS === "web") return;
 
-    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      setIsConnected(state.isConnected ?? true);
-      setIsInternetReachable(state.isInternetReachable ?? true);
-    });
+    let unsubscribe: (() => void) | undefined;
 
-    return () => unsubscribe();
+    try {
+      // Dynamic require to avoid crash if native module isn't linked yet
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const NetInfo = require("@react-native-community/netinfo").default;
+      unsubscribe = NetInfo.addEventListener(
+        (state: { isConnected: boolean | null; isInternetReachable: boolean | null }) => {
+          setIsConnected(state.isConnected ?? true);
+          setIsInternetReachable(state.isInternetReachable ?? true);
+        },
+      );
+    } catch {
+      // Native module not available — fall back to "connected"
+    }
+
+    return () => unsubscribe?.();
   }, []);
 
   return { isConnected, isInternetReachable };

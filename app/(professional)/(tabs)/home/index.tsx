@@ -1,13 +1,8 @@
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  Animated,
-} from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, Animated, Button } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS, FONTS } from "@/appASSETS/theme";
+import * as Sentry from "@sentry/react-native";
 
 // Pantallas
 import IndexInstantScreen from "@/appSRC/reservations/Screens/Instant/IndexInstantScreen";
@@ -26,14 +21,9 @@ const ProfessionalHomeScreen = () => {
         activeTab={activeTab}
         onTabChange={switchTab}
       />
-
       <View style={styles.content}>
         {/* Renderizado Condicional */}
-        {activeTab === "instant" ? (
-          <IndexInstantScreen />
-        ) : (
-          <IndexQuoteScreen />
-        )}
+        {activeTab === "instant" ? <IndexInstantScreen /> : <IndexQuoteScreen />}
       </View>
     </View>
   );

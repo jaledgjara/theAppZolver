@@ -29,7 +29,8 @@ export default function PublicLayout() {
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContentContainer}
-        showsVerticalScrollIndicator={true}>
+        showsVerticalScrollIndicator={true}
+      >
         <View style={styles.pageContent}>
           <Slot />
         </View>
@@ -51,7 +52,7 @@ function ProfessionalNavbar() {
           <Pressable style={styles.logoContainer}>
             <Image
               // Asegúrate de que esta ruta sea correcta en tu estructura
-              source={require("../../appASSETS/IconImage/logo-zZzNoBgX2.png")}
+              source={require("../../appASSETS/IconImage/logo-x2-notifications.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -93,8 +94,7 @@ function ProfessionalFooter() {
         <View>
           <Text style={styles.footerBrand}>ZOLVER</Text>
           <Text style={styles.footerText}>
-            © {new Date().getFullYear()} Zolver Platform. Todos los derechos
-            reservados.
+            © {new Date().getFullYear()} Zolver Platform. Todos los derechos reservados.
           </Text>
         </View>
         <View style={styles.footerLinks}>
