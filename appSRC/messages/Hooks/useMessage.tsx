@@ -6,6 +6,7 @@ import { MessageService } from "../Service/MessageService";
 import { StorageService } from "../Service/StorageService";
 import { mapMessageDTOToDomain } from "../Mapper/MessageMapper";
 import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
+import { obfuscateContactInfo } from "@/appSRC/utils/obfuscateContactInfo";
 
 export const useMessages = (conversationId: string, professionalId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -59,9 +60,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
 
         if (error) throw error;
 
-        const domainMessages = data.map((msg) =>
-          mapMessageDTOToDomain(msg, currentUserId),
-        );
+        const domainMessages = data.map((msg) => mapMessageDTOToDomain(msg, currentUserId));
 
         console.log(`[Hook] 📦 Data mapped: ${domainMessages.length} items`);
 
@@ -70,12 +69,8 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         setHasMore(canLoadMore);
 
         setMessages((prev) => {
-          const newList = isInitial
-            ? domainMessages
-            : [...prev, ...domainMessages];
-          console.log(
-            `[Hook] 📊 New total messages in state: ${newList.length}`,
-          );
+          const newList = isInitial ? domainMessages : [...prev, ...domainMessages];
+          console.log(`[Hook] 📊 New total messages in state: ${newList.length}`);
           return newList;
         });
 
@@ -124,8 +119,11 @@ export const useMessages = (conversationId: string, professionalId: string) => {
   const sendMessage = useCallback(
     async (text: string, imageUri?: string) => {
       if (!text.trim() && !imageUri) return;
-      console.log(`[Hook] ✉️ Sending message — sender: ${currentUserId} | receiver (partnerId): ${professionalId} | convId: ${conversationId}`);
+      console.log(
+        `[Hook] ✉️ Sending message — sender: ${currentUserId} | receiver (partnerId): ${professionalId} | convId: ${conversationId}`,
+      );
 
+      const maskedText = obfuscateContactInfo(text);
       const tempId = `temp-${Date.now()}`;
       const optimisticMsg: ChatMessage = {
         id: tempId,
@@ -134,7 +132,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         isMine: true,
         isRead: false,
         type: imageUri ? "image" : "text",
-        data: imageUri ? { imageUrl: imageUri, text } : { text },
+        data: imageUri ? { imageUrl: imageUri, text: maskedText } : { text: maskedText },
       } as ChatMessage;
 
       setMessages((prev) => [optimisticMsg, ...prev]);
@@ -142,10 +140,7 @@ export const useMessages = (conversationId: string, professionalId: string) => {
       try {
         if (imageUri) {
           // 1. Subida al Storage
-          const publicUrl = await StorageService.uploadMessageImage(
-            imageUri,
-            conversationId,
-          );
+          const publicUrl = await StorageService.uploadMessageImage(imageUri, conversationId);
 
           // 💡 FIX: Enviamos los 5 parámetros requeridos en el orden exacto
           await MessageService.sendImageMessage(
@@ -170,9 +165,9 @@ export const useMessages = (conversationId: string, professionalId: string) => {
         const senderName = user?.legalName || user?.displayName || "Usuario";
         const notifBody = imageUri
           ? `${senderName} envió una imagen.`
-          : text.length > 80
-            ? `${senderName}: ${text.substring(0, 80)}...`
-            : `${senderName}: ${text}`;
+          : maskedText.length > 80
+            ? `${senderName}: ${maskedText.substring(0, 80)}...`
+            : `${senderName}: ${maskedText}`;
 
         // Determinar la pantalla destino según quién RECIBE la notificación.
         // Si yo soy client → el receptor es professional → su pantalla es /(professional)/...

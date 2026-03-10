@@ -1,6 +1,7 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
 import { MessageDTO, ChatMessage, BudgetPayload } from "../Type/MessageType";
 import { mapMessageDTOToDomain } from "../Mapper/MessageMapper";
+import { obfuscateContactInfo } from "@/appSRC/utils/obfuscateContactInfo";
 
 /**
  * ZOLVER ARCHITECTURE: Data Access Layer (Message Service)
@@ -9,10 +10,7 @@ import { mapMessageDTOToDomain } from "../Mapper/MessageMapper";
 export const MessageService = {
   // --- HELPERS PRIVADOS ---
 
-  async _updateConversationMetadata(
-    conversationId: string,
-    lastContent: string
-  ) {
+  async _updateConversationMetadata(conversationId: string, lastContent: string) {
     try {
       await supabase
         .from("conversations")
@@ -28,12 +26,19 @@ export const MessageService = {
   },
 
   async _persistMessage(payload: any, inboxPreview: string) {
-    console.log("[MessageService] _persistMessage payload:", JSON.stringify({
-      conversation_id: payload.conversation_id,
-      sender_id: payload.sender_id,
-      receiver_id: payload.receiver_id,
-      type: payload.type,
-    }));
+    // Obfuscate phone numbers before persisting
+    payload.content = obfuscateContactInfo(payload.content);
+    inboxPreview = obfuscateContactInfo(inboxPreview);
+
+    console.log(
+      "[MessageService] _persistMessage payload:",
+      JSON.stringify({
+        conversation_id: payload.conversation_id,
+        sender_id: payload.sender_id,
+        receiver_id: payload.receiver_id,
+        type: payload.type,
+      }),
+    );
 
     // DEBUG: Check if receiver exists in user_accounts
     const { data: receiverCheck } = await supabase
@@ -41,13 +46,12 @@ export const MessageService = {
       .select("auth_uid, email, role")
       .eq("auth_uid", payload.receiver_id)
       .maybeSingle();
-    console.log("[MessageService] Receiver lookup:", receiverCheck ? JSON.stringify(receiverCheck) : "NOT FOUND in user_accounts");
+    console.log(
+      "[MessageService] Receiver lookup:",
+      receiverCheck ? JSON.stringify(receiverCheck) : "NOT FOUND in user_accounts",
+    );
 
-    const { data, error } = await supabase
-      .from("messages")
-      .insert(payload)
-      .select("*")
-      .single();
+    const { data, error } = await supabase.from("messages").insert(payload).select("*").single();
 
     if (error) {
       console.error("[MessageService] Insert error:", JSON.stringify(error));
@@ -65,7 +69,7 @@ export const MessageService = {
     conversationId: string,
     currentUserId: string,
     page: number = 0,
-    pageSize: number = 20
+    pageSize: number = 20,
   ): Promise<ChatMessage[]> => {
     const from = page * pageSize;
     const to = from + pageSize - 1;
@@ -88,12 +92,7 @@ export const MessageService = {
     return data.map((msg) => mapMessageDTOToDomain(msg, currentUserId));
   },
 
-  sendTextMessage: async (
-    cid: string,
-    sid: string,
-    rid: string,
-    text: string
-  ) => {
+  sendTextMessage: async (cid: string, sid: string, rid: string, text: string) => {
     return MessageService._persistMessage(
       {
         conversation_id: cid,
@@ -104,17 +103,11 @@ export const MessageService = {
         payload: {},
         is_read: false,
       },
-      text
+      text,
     );
   },
 
-  sendImageMessage: async (
-    cid: string,
-    sid: string,
-    rid: string,
-    url: string,
-    text?: string
-  ) => {
+  sendImageMessage: async (cid: string, sid: string, rid: string, url: string, text?: string) => {
     return MessageService._persistMessage(
       {
         conversation_id: cid,
@@ -125,16 +118,11 @@ export const MessageService = {
         payload: { imageUrl: url }, // 💡 El Mapper ahora buscará aquí
         is_read: false,
       },
-      "📷 Imagen"
+      "📷 Imagen",
     );
   },
 
-  sendBudgetProposal: async (
-    cid: string,
-    sid: string,
-    rid: string,
-    budgetData: BudgetPayload
-  ) => {
+  sendBudgetProposal: async (cid: string, sid: string, rid: string, budgetData: BudgetPayload) => {
     return MessageService._persistMessage(
       {
         conversation_id: cid,
@@ -145,14 +133,14 @@ export const MessageService = {
         payload: budgetData,
         is_read: false,
       },
-      "💰 Nueva propuesta de presupuesto"
+      "💰 Nueva propuesta de presupuesto",
     );
   },
 
   subscribeToConversation: (
     cid: string,
     userId: string,
-    onNewMessage: (msg: ChatMessage) => void
+    onNewMessage: (msg: ChatMessage) => void,
   ) => {
     return supabase
       .channel(`chat_room:${cid}`)
@@ -166,15 +154,12 @@ export const MessageService = {
         },
         (payload) => {
           try {
-            const domainMsg = mapMessageDTOToDomain(
-              payload.new as MessageDTO,
-              userId
-            );
+            const domainMsg = mapMessageDTOToDomain(payload.new as MessageDTO, userId);
             onNewMessage(domainMsg);
           } catch (e) {
             console.error("⚠️ [Realtime] Fallo en mapeo entrante:", e);
           }
-        }
+        },
       )
       .subscribe();
   },
@@ -182,9 +167,7 @@ export const MessageService = {
 
 // --- SERVICIOS DE APOYO ---
 
-export const getBudgetStatusService = async (
-  messageId: string
-): Promise<string | null> => {
+export const getBudgetStatusService = async (messageId: string): Promise<string | null> => {
   const { data, error } = await supabase
     .from("messages")
     .select("payload")
@@ -194,10 +177,7 @@ export const getBudgetStatusService = async (
   return data?.payload?.status || null;
 };
 
-export const updateBudgetMessageStatusService = async (
-  messageId: string,
-  fullPayload: any
-) => {
+export const updateBudgetMessageStatusService = async (messageId: string, fullPayload: any) => {
   const { data, error } = await supabase.rpc("update_message_payload_bypass", {
     p_message_id: messageId,
     p_new_payload: fullPayload,

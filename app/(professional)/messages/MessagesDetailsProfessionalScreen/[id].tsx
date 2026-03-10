@@ -1,60 +1,42 @@
-import React, { useRef, useEffect, useCallback, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
-  Alert,
-} from "react-native";
+import React, { useCallback } from "react";
+import { View, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Image } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 // UI Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { MessageInput } from "@/appSRC/messages/Screens/InputTextMessage";
+import { ProfessionalChatFooter } from "@/appSRC/messages/Screens/ProfessionalChatFooter";
 import { ChatMessage } from "@/appSRC/messages/Type/MessageType";
 import { useMessages } from "@/appSRC/messages/Hooks/useMessage";
 import { ChatBubble } from "@/appSRC/messages/Screens/ChatBubble";
 import { ChatBudgetCard } from "@/appSRC/messages/Screens/ChatBudgetCard";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
-import { useMessageImagePicker } from "@/appSRC/messages/Hooks/useMessageImagePicker";
-
-// ... imports previos ...
 
 const MessagesDetailsProfessionalScreen = () => {
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const { id, name, conversationId } = useLocalSearchParams();
   const router = useRouter();
 
-  const {
-    messages,
-    loading,
-    loadingMore,
-    loadMore,
-    sendMessage,
-    refreshMessages,
-  } = useMessages(conversationId as string, id as string);
+  const { messages, loading, loadingMore, loadMore, sendMessage, refreshMessages } = useMessages(
+    conversationId as string,
+    id as string,
+  );
 
   useFocusEffect(
     useCallback(() => {
-      console.log("[ProfessionalScreen] 🎯 Focus check");
       if (messages.length === 0) {
         refreshMessages();
       }
-    }, [refreshMessages, messages.length])
+    }, [refreshMessages, messages.length]),
   );
 
-  const handleSendMessage = async (text: string) => {
-    sendMessage(text, pendingImage || undefined);
-    setPendingImage(null);
+  const handleSendQuickMessage = (text: string) => {
+    sendMessage(text);
   };
 
   const handleSendBudget = () => {
     router.push({
       pathname: "/(professional)/messages/ReservationRequestScreen",
       params: {
-        conversationId: conversationId, // 💡 Asegúrate de que esta clave coincida
+        conversationId: conversationId,
         clientId: id,
       },
     });
@@ -65,15 +47,13 @@ const MessagesDetailsProfessionalScreen = () => {
       style={[
         styles.bubbleWrapper,
         item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
-      ]}>
+      ]}
+    >
       {item.type === "budget" ? (
         <ChatBudgetCard message={item} onPress={() => {}} />
       ) : item.type === "image" ? (
         <View style={styles.imageCard}>
-          <Image
-            source={{ uri: item.data.imageUrl }}
-            style={styles.chatImage}
-          />
+          <Image source={{ uri: item.data.imageUrl }} style={styles.chatImage} />
         </View>
       ) : (
         <ChatBubble message={item} isMine={item.isMine} />
@@ -84,11 +64,9 @@ const MessagesDetailsProfessionalScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ToolBarTitle
-        titleText={(name as string) || "Zolver Chat"}
-        showBackButton
-      />
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ToolBarTitle titleText={(name as string) || "Zolver Chat"} showBackButton />
 
       <View style={styles.chatArea}>
         {loading ? (
@@ -109,12 +87,9 @@ const MessagesDetailsProfessionalScreen = () => {
         )}
       </View>
 
-      <MessageInput
-        placeholderName={name as string}
-        onSendText={handleSendMessage}
-        onQuotePress={handleSendBudget}
-        selectedImageUri={pendingImage}
-        onClearImage={() => setPendingImage(null)}
+      <ProfessionalChatFooter
+        onSendBudget={handleSendBudget}
+        onSendQuickMessage={handleSendQuickMessage}
       />
     </KeyboardAvoidingView>
   );
