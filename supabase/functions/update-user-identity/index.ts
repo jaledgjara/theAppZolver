@@ -2,6 +2,10 @@ import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+
+// Rate limit: 10 requests per minute per IP
+const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -17,6 +21,13 @@ const CORS_HEADERS = {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
+  }
+
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, CORS_HEADERS);
   }
 
   try {

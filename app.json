@@ -5,11 +5,11 @@
     "scheme": "zolver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo-x2-notifications.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo-x2-notifications.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -39,6 +39,13 @@
       "favicon": "./appASSETS/IconImage/logo-zZz.JPG"
     },
     "plugins": [
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "zolver",
+          "project": "zolver-mobile"
+        }
+      ],
       "expo-router",
       "expo-web-browser",
       [
@@ -58,7 +65,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./appASSETS/IconImage/logoX2.png",
+          "icon": "./assets/logo-x2-notifications.png",
           "color": "#ffffff"
         }
       ]

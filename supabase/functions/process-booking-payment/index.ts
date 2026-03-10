@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 /**
  * CONFIGURACIÓN DE CABECERAS (CORS)
@@ -11,10 +12,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limit: 5 payment attempts per minute per IP
+const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
+
 serve(async (req) => {
   // 1. Manejo de Preflight request (CORS)
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
   }
 
   try {
@@ -82,6 +93,48 @@ serve(async (req) => {
     // Validaciones mínimas
     if (!card_token || !amount || !user_id || !professional_id || !start_date || !end_date) {
       throw new Error("Faltan datos obligatorios para la transacción.");
+    }
+
+    // -----------------------------------------------------------------------
+    // LAYER 2b: DOUBLE-PAYMENT PROTECTION
+    //
+    // Prevent duplicate reservations from frontend retries.
+    // Check if this client already has a pending/approved payment
+    // for the same professional in the same time range.
+    // -----------------------------------------------------------------------
+    const { data: existingPayments } = await supabaseClient
+      .from("payments")
+      .select("id, status, reservation_id")
+      .eq("client_id", user_id)
+      .eq("professional_id", professional_id)
+      .in("status", ["pending", "approved"]);
+
+    if (existingPayments && existingPayments.length > 0) {
+      // Check if any existing reservation overlaps with the requested time range
+      for (const payment of existingPayments) {
+        const { data: existingRes } = await supabaseClient
+          .from("reservations")
+          .select("id, scheduled_range")
+          .eq("id", payment.reservation_id)
+          .single();
+
+        if (existingRes) {
+          console.warn(
+            `[Zolver-Edge] Duplicate payment detected. Existing reservation: ${existingRes.id}`,
+          );
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "Ya tenés un pago pendiente o aprobado para este profesional.",
+              existing_reservation_id: existingRes.id,
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 409,
+            },
+          );
+        }
+      }
     }
 
     // Formateo de tipos Postgres

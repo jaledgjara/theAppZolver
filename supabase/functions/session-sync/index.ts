@@ -3,6 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
 import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+
+// Rate limit: 20 requests per minute per IP (called on every app resume)
+const RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
 
 const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
 
@@ -15,6 +19,13 @@ const supabase = createClient(
 );
 
 serve(async (req: Request) => {
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, { "Access-Control-Allow-Origin": "*" });
+  }
+
   try {
     if (req.method === "OPTIONS")
       return new Response("ok", {

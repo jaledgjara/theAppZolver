@@ -64,55 +64,57 @@
 
 //
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+
+// Rate limit: 5 SMS per minute per IP (prevent SMS bombing)
+const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 
 serve(async (req: Request): Promise<Response> => {
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, { "Content-Type": "application/json" });
+  }
+
   try {
     const { phone } = await req.json().catch(() => ({}) as Record<string, unknown>);
-    console.log("📞 Incoming phone:", phone);
+    console.log("Incoming phone:", phone);
 
     // --- DEV BYPASS CONFIG ---
     const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
 
     const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
-    const DEV_BYPASS_ENABLED =
-      ENVIRONMENT !== "production" && (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
 
-    const DEFAULT_WHITELIST = [
-      "+542616837340",
-      "+542616837341",
-      "+542616837342",
-      "+542616837344",
-      "+542616837345",
-      "+542616837346",
-      "+542616837347",
-      "+542616837348",
-      "+542616837349",
-      "+542616837350",
-      "+542616837351",
-      "+542616837352",
-    ];
-    const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
-    const WHITELIST_NUMBERS = envWhitelist
-      ? envWhitelist.split(",").filter(Boolean)
-      : DEFAULT_WHITELIST;
+    // SECURITY: Dev bypass is ONLY available in non-production environments
+    // AND requires explicit opt-in via environment variable.
+    if (ENVIRONMENT === "production") {
+      // In production, skip all dev bypass logic entirely
+    } else {
+      const DEV_BYPASS_ENABLED = (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
 
-    if (
-      DEV_BYPASS_ENABLED &&
-      ENVIRONMENT !== "production" &&
-      WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
-    ) {
-      console.log(`[DEV] Mocking SEND for whitelist number: ${phone}`);
+      // Whitelist MUST come from environment variable — no hardcoded numbers in production
+      const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
+      const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : [];
 
-      return json(
-        {
-          sid: "dev_bypass_fake_sid",
-          service_sid: "dev_bypass_service_sid",
-          account_sid: "dev_bypass_account_sid",
-          status: "pending",
-          valid: true,
-        },
-        200,
-      );
+      if (
+        DEV_BYPASS_ENABLED &&
+        WHITELIST_NUMBERS.length > 0 &&
+        WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
+      ) {
+        console.log(`[DEV] Mocking SEND for whitelist number: ${phone}`);
+
+        return json(
+          {
+            sid: "dev_bypass_fake_sid",
+            service_sid: "dev_bypass_service_sid",
+            account_sid: "dev_bypass_account_sid",
+            status: "pending",
+            valid: true,
+          },
+          200,
+        );
+      }
     }
     // --- END DEV BYPASS ---
 

@@ -2,6 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+
+// Rate limit: 10 requests per minute per IP
+const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
 // Clientes
 const supabaseAdmin = createClient(
@@ -10,7 +14,7 @@ const supabaseAdmin = createClient(
 );
 
 serve(async (req: Request) => {
-  // Manejo de CORS (Opcional si lo maneja Supabase, pero recomendado)
+  // Manejo de CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
@@ -18,6 +22,13 @@ serve(async (req: Request) => {
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
       },
     });
+  }
+
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, { "Access-Control-Allow-Origin": "*" });
   }
 
   try {

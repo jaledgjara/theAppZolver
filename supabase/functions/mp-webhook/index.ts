@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 // ============================================================================
 // EDGE FUNCTION: mp-webhook
@@ -11,13 +12,15 @@ import { getErrorMessage } from "../_shared/errorUtils.ts";
 // side-effects (confirmar/cancelar reserva, notificar al usuario).
 //
 // FLUJO:
-//   1. Parsear notificación entrante (JSON body o query params)
-//   2. Validar firma HMAC SHA256 (X-Signature header)
-//   3. Consultar pago completo a MP API
-//   4. Buscar pago en nuestra DB por provider_payment_id
-//   5. Actualizar status si cambió
-//   6. Ejecutar side-effects (reserva, notificaciones)
-//   7. SIEMPRE retornar 200 (MP reintenta en non-200)
+//   1. Rate limit check
+//   2. Parsear notificación entrante (JSON body o query params)
+//   3. Validar firma HMAC SHA256 (X-Signature header)
+//   4. Idempotency check (skip already-processed webhooks)
+//   5. Consultar pago completo a MP API
+//   6. Buscar pago en nuestra DB por provider_payment_id
+//   7. Actualizar status si cambió
+//   8. Ejecutar side-effects (reserva, notificaciones)
+//   9. SIEMPRE retornar 200 (MP reintenta en non-200)
 //
 // IMPORTANTE: Este endpoint NO requiere Authorization header de Supabase.
 // Es llamado directamente por los servidores de Mercado Pago.
@@ -27,6 +30,9 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Rate limit: 60 requests per minute per IP (MP sends bursts)
+const RATE_LIMIT = { maxRequests: 60, windowMs: 60_000 };
 
 // ─── STATUS MAPPING: MP → Zolver ───
 const MP_TO_ZOLVER_STATUS: Record<string, string> = {
@@ -48,7 +54,6 @@ async function validateSignature(
   secret: string,
 ): Promise<boolean> {
   try {
-    // MP sends: x-signature: ts=1234567890,v1=abc123hex...
     const parts: Record<string, string> = {};
     for (const segment of xSignature.split(",")) {
       const eqIndex = segment.indexOf("=");
@@ -62,8 +67,6 @@ async function validateSignature(
       return false;
     }
 
-    // Manifest format defined by MP:
-    // id:{data.id};request-id:{x-request-id};ts:{ts};
     const manifest = `id:${dataId};request-id:${xRequestId || ""};ts:${parts.ts};`;
 
     const key = await crypto.subtle.importKey(
@@ -97,13 +100,17 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // ─── RATE LIMITING ───
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    console.warn(`[mp-webhook] Rate limited IP: ${ip}`);
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
+  }
+
   try {
     // ─────────────────────────────────────────────────────────────────────
     // 1. PARSEAR NOTIFICACIÓN
-    //
-    // MP envía webhooks en 2 formatos posibles:
-    //   - JSON body: { action: "payment.updated", type: "payment", data: { id: "123" } }
-    //   - Query params (IPN legacy): ?id=123&topic=payment
     // ─────────────────────────────────────────────────────────────────────
     const url = new URL(req.url);
     let paymentId: string | null = null;
@@ -142,16 +149,12 @@ serve(async (req) => {
 
     // ─────────────────────────────────────────────────────────────────────
     // 2. VALIDAR FIRMA (X-Signature)
-    //
-    // Mercado Pago envía un HMAC SHA256 en el header X-Signature.
-    // Si tenemos el webhook secret configurado, RECHAZAMOS firmas inválidas.
     // ─────────────────────────────────────────────────────────────────────
     const webhookSecret = Deno.env.get("MP_WEBHOOK_SECRET");
     const environment = Deno.env.get("ENVIRONMENT") || "development";
     const xSignature = req.headers.get("x-signature");
     const xRequestId = req.headers.get("x-request-id");
 
-    // Webhook secret MUST be configured in non-development environments
     if (!webhookSecret && environment !== "development") {
       console.error("[mp-webhook] CRITICAL: MP_WEBHOOK_SECRET not set. Rejecting webhook.");
       return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
@@ -174,10 +177,33 @@ serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 3. CONSULTAR PAGO COMPLETO A MP API
+    // 3. IDEMPOTENCY CHECK
     //
-    // El webhook solo envía el ID. Debemos consultar el estado real
-    // directamente a la API de MP (source of truth).
+    // Skip already-processed webhooks to prevent duplicate side-effects
+    // on race conditions or MP retries.
+    // ─────────────────────────────────────────────────────────────────────
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
+    const webhookKey = `${paymentId}_${xRequestId || "no-req-id"}`;
+    const { data: existingWebhook } = await supabase
+      .from("processed_webhooks")
+      .select("webhook_id")
+      .eq("webhook_id", webhookKey)
+      .maybeSingle();
+
+    if (existingWebhook) {
+      console.log(`[mp-webhook] Duplicate webhook skipped: ${webhookKey}`);
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 4. CONSULTAR PAGO COMPLETO A MP API
     // ─────────────────────────────────────────────────────────────────────
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
     if (!mpAccessToken) {
@@ -195,7 +221,6 @@ serve(async (req) => {
     if (!mpRes.ok) {
       const errBody = await mpRes.text();
       console.error(`[mp-webhook] MP API error (${mpRes.status}): ${errBody}`);
-      // Retornamos 200 para que MP no reintente si el pago no existe
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -212,13 +237,8 @@ serve(async (req) => {
     );
 
     // ─────────────────────────────────────────────────────────────────────
-    // 4. BUSCAR PAGO EN NUESTRA DB
+    // 5. BUSCAR PAGO EN NUESTRA DB
     // ─────────────────────────────────────────────────────────────────────
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
-
     const { data: existingPayment, error: findErr } = await supabase
       .from("payments")
       .select("id, status, reservation_id, client_id, professional_id")
@@ -238,10 +258,16 @@ serve(async (req) => {
     const previousStatus = existingPayment.status;
 
     // ─────────────────────────────────────────────────────────────────────
-    // 5. ACTUALIZAR STATUS SI CAMBIÓ
+    // 6. ACTUALIZAR STATUS SI CAMBIÓ
     // ─────────────────────────────────────────────────────────────────────
     if (previousStatus === zolverStatus) {
       console.log(`[mp-webhook] Status unchanged (${previousStatus}). No action needed.`);
+      // Record idempotency even for no-change (prevents reprocessing)
+      await supabase.from("processed_webhooks").insert({
+        webhook_id: webhookKey,
+        payment_id: paymentId,
+        status_transition: `${previousStatus} → ${zolverStatus} (no change)`,
+      });
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -265,21 +291,26 @@ serve(async (req) => {
       );
     }
 
+    // Record processed webhook for idempotency
+    await supabase.from("processed_webhooks").insert({
+      webhook_id: webhookKey,
+      payment_id: paymentId,
+      status_transition: `${previousStatus} → ${zolverStatus}`,
+    });
+
     // ─────────────────────────────────────────────────────────────────────
-    // 6. SIDE EFFECTS SEGÚN TRANSICIÓN DE ESTADO
+    // 7. SIDE EFFECTS SEGÚN TRANSICIÓN DE ESTADO
     // ─────────────────────────────────────────────────────────────────────
 
     // ── A) PENDING → APPROVED (pago confirmado por banco/3D Secure)
     if (zolverStatus === "approved" && previousStatus === "pending") {
       console.log(`[mp-webhook] Confirming reservation ${existingPayment.reservation_id}`);
 
-      // Actualizar reserva a pending_approval (el profesional debe aceptar)
       await supabase
         .from("reservations")
         .update({ status: "pending_approval" })
         .eq("id", existingPayment.reservation_id);
 
-      // Notificar al profesional
       await supabase.from("notifications").insert({
         user_id: existingPayment.professional_id,
         title: "Pago recibido",
@@ -291,7 +322,6 @@ serve(async (req) => {
         },
       });
 
-      // Notificar al cliente
       await supabase.from("notifications").insert({
         user_id: existingPayment.client_id,
         title: "Pago aprobado",
@@ -304,7 +334,7 @@ serve(async (req) => {
       });
     }
 
-    // ── B) PENDING/APPROVED → REJECTED (pago rechazado post-procesamiento)
+    // ── B) PENDING/APPROVED → REJECTED
     if (
       zolverStatus === "rejected" &&
       (previousStatus === "pending" || previousStatus === "approved")
@@ -333,13 +363,12 @@ serve(async (req) => {
       });
     }
 
-    // ── C) APPROVED → REFUNDED (reembolso procesado — puede venir de cancel-reservation-refund o desde MP)
+    // ── C) APPROVED → REFUNDED
     if (zolverStatus === "refunded" && previousStatus === "approved") {
       console.log(
         `[mp-webhook] Refund confirmed for reservation ${existingPayment.reservation_id}`,
       );
 
-      // Solo notificamos, no cancelamos reserva (cancel-reservation-refund ya lo hace)
       await supabase.from("notifications").insert({
         user_id: existingPayment.client_id,
         title: "Reembolso procesado",
@@ -352,13 +381,12 @@ serve(async (req) => {
       });
     }
 
-    // ── D) CHARGEBACK (contracargo — el cliente disputó con su banco)
+    // ── D) CHARGEBACK
     if (mpStatus === "charged_back") {
       console.error(
-        `[mp-webhook] ⚠️ CHARGEBACK on payment ${paymentId}. Reservation: ${existingPayment.reservation_id}. REQUIRES MANUAL REVIEW.`,
+        `[mp-webhook] CHARGEBACK on payment ${paymentId}. Reservation: ${existingPayment.reservation_id}. REQUIRES MANUAL REVIEW.`,
       );
 
-      // Cancelar la reserva
       await supabase
         .from("reservations")
         .update({
@@ -367,7 +395,6 @@ serve(async (req) => {
         })
         .eq("id", existingPayment.reservation_id);
 
-      // Notificar al admin/profesional
       await supabase.from("notifications").insert({
         user_id: existingPayment.professional_id,
         title: "Contracargo recibido",
@@ -381,10 +408,7 @@ serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 7. SIEMPRE RETORNAR 200
-    //
-    // Si retornamos otro código, MP reintentará la notificación.
-    // Solo retornamos non-200 para firmas inválidas (seguridad).
+    // 8. SIEMPRE RETORNAR 200
     // ─────────────────────────────────────────────────────────────────────
     return new Response(
       JSON.stringify({ received: true, status_update: `${previousStatus} → ${zolverStatus}` }),
@@ -395,7 +419,6 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[mp-webhook] Unhandled error:", error);
-    // Retornamos 200 incluso en errores internos para evitar reintentos infinitos
     return new Response(JSON.stringify({ received: true, error: "internal" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

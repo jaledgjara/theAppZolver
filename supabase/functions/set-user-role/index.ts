@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { isValidRole, isValidString } from "../_shared/validate.ts";
+
+// Rate limit: 10 requests per minute per IP
+const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -9,6 +14,13 @@ const supabaseAdmin = createClient(
 );
 
 serve(async (req) => {
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, {});
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return Response.json({ error: "Missing token" }, { status: 401 });
@@ -17,7 +29,7 @@ serve(async (req) => {
     let payload;
     try {
       payload = await verifySupabaseJWT(token);
-    } catch (e) {
+    } catch {
       return Response.json({ error: "Invalid token" }, { status: 401 });
     }
 
@@ -29,12 +41,21 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const role = body.role;
     const phone = body.phone ?? null;
-    const legal_name = body.legal_name ?? null; // 👈 RECIBIMOS EL NOMBRE
+    const legal_name = body.legal_name ?? null;
 
-    console.log(`👤 Processing: ${uid} | Name: ${legal_name}`);
+    console.log(`Processing: ${uid} | Name: ${legal_name}`);
 
-    if (!["client", "professional"].includes(role)) {
+    // Input validation
+    if (!isValidRole(role)) {
       return Response.json({ error: "Invalid role" }, { status: 400 });
+    }
+
+    if (legal_name !== null && !isValidString(legal_name, 100)) {
+      return Response.json({ error: "Invalid name: must be 1-100 characters" }, { status: 400 });
+    }
+
+    if (phone !== null && typeof phone === "string" && phone.length > 20) {
+      return Response.json({ error: "Invalid phone format" }, { status: 400 });
     }
 
     const profileComplete = role === "client";

@@ -4,14 +4,26 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { isValidEmail, isValidDNI, validationError } from "../_shared/validate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limit: 10 requests per minute per IP
+const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
+  }
 
   try {
     // Verify Firebase JWT
@@ -32,11 +44,21 @@ serve(async (req) => {
     );
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
 
-    // [DEBUG] Ver qué llega
     const body = await req.json();
-    console.log("📍 [Backend] Payload Recibido:", JSON.stringify(body));
+    console.log("[save-payment-method] Payload received");
 
     const { user_id, token, email, dni } = body;
+
+    // Input validation
+    if (!isValidEmail(email)) {
+      return validationError("Invalid email format", corsHeaders);
+    }
+    if (dni && !isValidDNI(dni)) {
+      return validationError("Invalid DNI format (expected 7-8 digits)", corsHeaders);
+    }
+    if (!token || typeof token !== "string") {
+      return validationError("Missing or invalid card token", corsHeaders);
+    }
 
     // Verify user_id matches the authenticated user
     if (user_id !== verifiedUid) {
