@@ -3,9 +3,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 10 requests per minute per IP
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
+
+// Input length limits
+const MAX_BIOGRAPHY_LENGTH = 2000;
+const MAX_SPECIALIZATION_LENGTH = 200;
+const MAX_PORTFOLIO_URLS = 20;
+const MAX_URL_LENGTH = 2048;
 
 // Clientes
 const supabaseAdmin = createClient(
@@ -15,20 +22,16 @@ const supabaseAdmin = createClient(
 
 serve(async (req: Request) => {
   // Manejo de CORS
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   // Rate limiting
   const ip = getClientIP(req);
   const rateCheck = checkRateLimit(ip, RATE_LIMIT);
   if (!rateCheck.allowed) {
-    return rateLimitResponse(rateCheck.retryAfterMs, { "Access-Control-Allow-Origin": "*" });
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
   }
 
   try {
@@ -45,6 +48,48 @@ serve(async (req: Request) => {
     const { profileData, portfolioUrls, docFrontUrl, docBackUrl } = body;
 
     console.log(`[save-profile] Guardando perfil para: ${userId}`);
+
+    // 2b. Input length validation
+    if (
+      profileData.biography &&
+      typeof profileData.biography === "string" &&
+      profileData.biography.length > MAX_BIOGRAPHY_LENGTH
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: `La biografía no puede superar ${MAX_BIOGRAPHY_LENGTH} caracteres.`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      );
+    }
+    if (
+      profileData.specialization &&
+      typeof profileData.specialization === "string" &&
+      profileData.specialization.length > MAX_SPECIALIZATION_LENGTH
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: `La especialización no puede superar ${MAX_SPECIALIZATION_LENGTH} caracteres.`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      );
+    }
+    if (Array.isArray(portfolioUrls)) {
+      if (portfolioUrls.length > MAX_PORTFOLIO_URLS) {
+        return new Response(
+          JSON.stringify({ error: `Máximo ${MAX_PORTFOLIO_URLS} URLs de portfolio.` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        );
+      }
+      for (const url of portfolioUrls) {
+        if (typeof url !== "string" || url.length > MAX_URL_LENGTH) {
+          return new Response(JSON.stringify({ error: "URL de portfolio inválida." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          });
+        }
+      }
+    }
 
     // 3. Payload DB
     const dbPayload = {
@@ -109,10 +154,7 @@ serve(async (req: Request) => {
       .eq("auth_uid", userId);
 
     return new Response(JSON.stringify({ success: true, data }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (err: unknown) {
@@ -121,10 +163,7 @@ serve(async (req: Request) => {
     const isAuthError =
       errMsg.includes("JWT") || errMsg.includes("signature") || errMsg.includes("audience");
     return new Response(JSON.stringify({ error: errMsg }), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: isAuthError ? 401 : 500,
     });
   }

@@ -100,7 +100,7 @@ serve(async (req: Request): Promise<Response> => {
       if (
         DEV_BYPASS_ENABLED &&
         WHITELIST_NUMBERS.length > 0 &&
-        WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
+        WHITELIST_NUMBERS.some((num: string) => cleanPhone === num.trim())
       ) {
         console.log(`[DEV] Mocking SEND for whitelist number: ${phone}`);
 

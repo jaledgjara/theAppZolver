@@ -26,8 +26,10 @@ import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateL
 // Es llamado directamente por los servidores de Mercado Pago.
 // ============================================================================
 
+// Webhook endpoints receive calls from MP servers, not browsers.
+// No CORS needed, but we keep minimal headers for compatibility.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://thezolverapp.web.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -151,11 +153,10 @@ serve(async (req) => {
     // 2. VALIDAR FIRMA (X-Signature)
     // ─────────────────────────────────────────────────────────────────────
     const webhookSecret = Deno.env.get("MP_WEBHOOK_SECRET");
-    const environment = Deno.env.get("ENVIRONMENT") || "development";
     const xSignature = req.headers.get("x-signature");
     const xRequestId = req.headers.get("x-request-id");
 
-    if (!webhookSecret && environment !== "development") {
+    if (!webhookSecret) {
       console.error("[mp-webhook] CRITICAL: MP_WEBHOOK_SECRET not set. Rejecting webhook.");
       return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
         status: 500,
@@ -163,18 +164,17 @@ serve(async (req) => {
       });
     }
 
-    if (webhookSecret && xSignature) {
-      const isValid = await validateSignature(xSignature, xRequestId, paymentId, webhookSecret);
-
-      if (!isValid) {
-        console.error(`[mp-webhook] FIRMA INVÁLIDA. Posible ataque. PaymentId: ${paymentId}`);
-        return new Response("Unauthorized", { status: 401 });
-      }
-      console.log("[mp-webhook] Firma validada correctamente.");
-    } else if (webhookSecret && !xSignature) {
-      console.warn("[mp-webhook] Secret configurado pero request sin X-Signature. Rechazando.");
+    if (!xSignature) {
+      console.warn("[mp-webhook] Missing X-Signature header. Rejecting.");
       return new Response("Unauthorized: missing X-Signature", { status: 401 });
     }
+
+    const isValid = await validateSignature(xSignature, xRequestId, paymentId, webhookSecret);
+    if (!isValid) {
+      console.error(`[mp-webhook] FIRMA INVÁLIDA. Posible ataque. PaymentId: ${paymentId}`);
+      return new Response("Unauthorized", { status: 401 });
+    }
+    console.log("[mp-webhook] Firma validada correctamente.");
 
     // ─────────────────────────────────────────────────────────────────────
     // 3. IDEMPOTENCY CHECK

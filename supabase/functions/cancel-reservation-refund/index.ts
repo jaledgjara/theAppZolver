@@ -4,10 +4,7 @@ import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 5 cancellation/refund requests per minute per IP
 const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
@@ -29,6 +26,7 @@ const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
  */
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // Rate limiting
@@ -88,6 +86,30 @@ serve(async (req) => {
       );
       return new Response(
         JSON.stringify({ success: false, error: "No tenés permiso para cancelar esta reserva." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+      );
+    }
+
+    // ── AUTH: Validate triggered_by matches JWT identity ──
+    if (reservation && triggered_by === "client" && reservation.client_id !== verifiedUid) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "No podés cancelar como cliente si no sos el cliente.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
+      );
+    }
+    if (
+      reservation &&
+      triggered_by === "professional" &&
+      reservation.professional_id !== verifiedUid
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "No podés cancelar como profesional si no sos el profesional.",
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 },
       );
     }

@@ -12,7 +12,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/(admin)/dashboard" },
+  { label: "Dashboard", href: "/(admin)/dashboardAdminZolver" },
   { label: "Pendientes", href: "/(admin)/pendings" },
   { label: "Usuarios", href: "/(admin)/users" },
   { label: "Configuración", href: "/(admin)/settings" },
@@ -83,24 +83,14 @@ function AdminSidebar() {
 
       <View style={styles.sidebarNav}>
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname.includes(
-            item.href.replace("/(admin)", "")
-          );
+          const isActive = pathname.includes(item.href.replace("/(admin)", ""));
           return (
             <Pressable
               key={item.href}
-              style={[
-                styles.sidebarItem,
-                isActive && styles.sidebarItemActive,
-              ]}
+              style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
               onPress={() => router.push(item.href as any)}
             >
-              <Text
-                style={[
-                  styles.sidebarItemText,
-                  isActive && styles.sidebarItemTextActive,
-                ]}
-              >
+              <Text style={[styles.sidebarItemText, isActive && styles.sidebarItemTextActive]}>
                 {item.label}
               </Text>
             </Pressable>
@@ -109,10 +99,7 @@ function AdminSidebar() {
       </View>
 
       <View style={styles.sidebarFooter}>
-        <Pressable
-          style={styles.sidebarItem}
-          onPress={() => router.push("/(public)" as any)}
-        >
+        <Pressable style={styles.sidebarItem} onPress={() => router.push("/(public)" as any)}>
           <Text style={styles.sidebarItemText}>Volver al sitio</Text>
         </Pressable>
       </View>
@@ -127,9 +114,7 @@ function AdminTopbar() {
   return (
     <View style={styles.topbar}>
       <Text style={styles.topbarTitle}>Panel de Administración</Text>
-      <Text style={styles.topbarUser}>
-        {user?.displayName ?? user?.email ?? "Admin"}
-      </Text>
+      <Text style={styles.topbarUser}>{user?.displayName ?? user?.email ?? "Admin"}</Text>
     </View>
   );
 }

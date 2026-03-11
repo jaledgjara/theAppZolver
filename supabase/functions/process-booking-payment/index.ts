@@ -7,16 +7,14 @@ import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateL
 /**
  * CONFIGURACIÓN DE CABECERAS (CORS)
  */
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 5 payment attempts per minute per IP
 const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 
 serve(async (req) => {
   // 1. Manejo de Preflight request (CORS)
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -141,7 +139,15 @@ serve(async (req) => {
     const scheduledRangeFormat = `[${start_date}, ${end_date})`;
     let pointFormat = null;
     if (coordinates && coordinates.longitude && coordinates.latitude) {
-      pointFormat = `(${coordinates.longitude},${coordinates.latitude})`;
+      const lng = Number(coordinates.longitude);
+      const lat = Number(coordinates.latitude);
+      if (isNaN(lng) || isNaN(lat) || lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+        return new Response(JSON.stringify({ success: false, error: "Coordenadas inválidas." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      pointFormat = `(${lng},${lat})`;
     }
 
     // -----------------------------------------------------------------------

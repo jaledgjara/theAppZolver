@@ -48,7 +48,7 @@ describe("AuthPaths", () => {
   });
 
   it("authenticatedAdmin -> admin dashboard", () => {
-    expect(AUTH_PATHS.authenticatedAdmin).toBe("/(admin)/dashboard");
+    expect(AUTH_PATHS.authenticatedAdmin).toBe("/(admin)/dashboardAdminZolver");
   });
 
   it("pendingReview and rejected both -> AccountStatusScreen", () => {

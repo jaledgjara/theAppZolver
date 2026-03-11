@@ -19,10 +19,7 @@ export default function AdminDashboard() {
           title="Usuarios Totales"
           value={isLoading ? "..." : String(data?.totalUsers ?? 0)}
         />
-        <MetricCard
-          title="Clientes"
-          value={isLoading ? "..." : String(data?.totalClients ?? 0)}
-        />
+        <MetricCard title="Clientes" value={isLoading ? "..." : String(data?.totalClients ?? 0)} />
         <MetricCard
           title="Profesionales"
           value={isLoading ? "..." : String(data?.totalProfessionals ?? 0)}

@@ -4,6 +4,8 @@ import { Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
+import { useFonts } from "expo-font";
+import { Ionicons, MaterialCommunityIcons, FontAwesome6, AntDesign } from "@expo/vector-icons";
 import {
   initializeAuthListener,
   initializeTokenRefreshListener,
@@ -46,6 +48,12 @@ function RootLayoutInner() {
   const isBootLoading = useAuthStore((s) => s.isBootLoading);
   const status = useAuthStore((s) => s.status);
   const { isConnected } = useNetworkStatus();
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
+    ...FontAwesome6.font,
+    ...AntDesign.font,
+  });
 
   logger.log(
     `[RootLayout] RENDER | Platform: ${Platform.OS} | isBootLoading: ${isBootLoading} | status: ${status}`,
@@ -64,7 +72,7 @@ function RootLayoutInner() {
   useAuthGuard();
   usePushNotifications();
 
-  if (isBootLoading) {
+  if (isBootLoading || !fontsLoaded) {
     logger.log("[RootLayout] Showing LoadingScreen (isBootLoading=true)");
     return <LoadingScreen />;
   }

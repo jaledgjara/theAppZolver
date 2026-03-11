@@ -9,7 +9,7 @@
  * - General: any 7+ digit sequence with optional spaces/dashes/dots/parens
  */
 
-const PHONE_PATTERN = /(?:\+?\d[\d\s\-().]{5,}\d)/g;
+const PHONE_PATTERN = /(?:\(?\+?\d[\d\s\-().]{5,}\d)/g;
 
 function countDigits(match: string): number {
   return (match.match(/\d/g) || []).length;

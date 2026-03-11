@@ -23,7 +23,11 @@
       "Bash(npx eslint:*)",
       "Bash(npm run:*)",
       "Bash(git -C /Users/jaledjara/ZZzzZzZzZzZzz/zolver status --short 2>/dev/null | head -20)",
-      "Bash(git -C /Users/jaledjara/ZZzzZzZzZzZzz/zolver log --follow --all -- \".env\" 2>/dev/null | head -20)"
+      "Bash(git -C /Users/jaledjara/ZZzzZzZzZzZzz/zolver log --follow --all -- \".env\" 2>/dev/null | head -20)",
+      "Bash(for file:*)",
+      "Bash(npx expo:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/icon.png /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/adaptive-icon.png)"
     ]
   }
 }

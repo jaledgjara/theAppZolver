@@ -5,11 +5,11 @@
     "scheme": "zolver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo-x2-notifications.png",
+    "icon": "./appASSETS/expo-icons/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/logo-x2-notifications.png",
+      "image": "./appASSETS/expo-icons/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -33,10 +33,14 @@
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
+      "adaptiveIcon": {
+        "foregroundImage": "./appASSETS/expo-icons/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "web": {
-      "favicon": "./appASSETS/IconImage/logo-zZz.JPG"
+      "favicon": "./appASSETS/expo-icons/favicon.png"
     },
     "plugins": [
       [
@@ -65,7 +69,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/logo-x2-notifications.png",
+          "icon": "./appASSETS/expo-icons/icon.png",
           "color": "#ffffff"
         }
       ],

@@ -46,8 +46,7 @@ export function usePushNotifications() {
   // EFECTO 1: Registro de token (solo cuando el usuario está autenticado)
   // -----------------------------------------------------------------
   useEffect(() => {
-    const isAuthenticated =
-      status === "authenticated" || status === "authenticatedProfessional";
+    const isAuthenticated = status === "authenticated" || status === "authenticatedProfessional";
 
     // GUARDS: No ejecutar si no está autenticado, no hay user, o ya registramos.
     if (!isAuthenticated) return;
@@ -57,21 +56,19 @@ export function usePushNotifications() {
     const register = async () => {
       try {
         console.log(
-          `🔔 [usePushNotifications] Iniciando registro. Status: ${status} | UID: ${user.uid}`
+          `🔔 [usePushNotifications] Iniciando registro. Status: ${status} | UID: ${user.uid}`,
         );
 
         const token = await registerForPushNotificationsAsync();
 
         if (!token) {
           console.warn(
-            "⚠️ [usePushNotifications] No se obtuvo token (permisos denegados o simulador)."
+            "⚠️ [usePushNotifications] No se obtuvo token (permisos denegados o simulador).",
           );
           return;
         }
 
-        console.log(
-          `🔔 [usePushNotifications] Token obtenido. Guardando en DB...`
-        );
+        console.log(`🔔 [usePushNotifications] Token obtenido. Guardando en DB...`);
 
         // Guardar en DB. Retorna true si el UPDATE realmente afectó la fila.
         const saved = await savePushTokenToDatabase(user.uid, token);
@@ -83,15 +80,10 @@ export function usePushNotifications() {
         } else {
           // Si falló, NO marcamos hasRegistered para que reintente
           // en el próximo cambio de status o re-render.
-          console.warn(
-            "⚠️ [usePushNotifications] Token no guardado. Se reintentará."
-          );
+          console.warn("⚠️ [usePushNotifications] Token no guardado. Se reintentará.");
         }
       } catch (error) {
-        console.error(
-          "❌ [usePushNotifications] Error en registro:",
-          error
-        );
+        console.error("❌ [usePushNotifications] Error en registro:", error);
       }
     };
 
@@ -111,23 +103,23 @@ export function usePushNotifications() {
     // Se dispara cuando la app está ABIERTA y llega un push.
     // El banner se muestra gracias al setNotificationHandler del Service.
     // Aquí podés agregar lógica extra (ej: refrescar una lista, mostrar badge).
-    const foregroundSubscription =
-      Notifications.addNotificationReceivedListener((notification) => {
-        console.log(
-          "📬 [usePushNotifications] Notificación recibida en foreground:",
-          notification.request.content.title
-        );
-        // TODO: Aquí podés disparar un refetch o actualizar un store.
-      });
+    const foregroundSubscription = Notifications.addNotificationReceivedListener((notification) => {
+      console.log(
+        "📬 [usePushNotifications] Notificación recibida en foreground:",
+        notification.request.content.title,
+      );
+      // Supabase Realtime maneja las actualizaciones en tiempo real.
+      // No se necesita refetch manual.
+    });
 
     // LISTENER B: El usuario TOCÓ la notificación (desde banner o lock screen).
     // Aquí es donde navegás a la pantalla correspondiente.
-    const responseSubscription =
-      Notifications.addNotificationResponseReceivedListener((response) => {
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
         const data = response.notification.request.content.data;
         console.log(
           "👆 [usePushNotifications] Usuario tocó notificación. Data:",
-          JSON.stringify(data)
+          JSON.stringify(data),
         );
 
         // NAVEGACIÓN BASADA EN DATA:
@@ -136,7 +128,8 @@ export function usePushNotifications() {
         if (data?.screen && typeof data.screen === "string") {
           router.push(data.screen as never);
         }
-      });
+      },
+    );
 
     // CLEANUP: Remover listeners cuando el componente se desmonta.
     return () => {

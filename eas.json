@@ -32,11 +32,11 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "",
-        "appleTeamId": ""
+        "ascAppId": "6754884746",
+        "appleTeamId": "27D778YZ52"
       },
       "android": {
-        "serviceAccountKeyPath": "",
+        "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "internal"
       }
     }

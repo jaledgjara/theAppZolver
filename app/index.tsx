@@ -12,7 +12,7 @@ export default function Index() {
   const isBootLoading = useAuthStore((s) => s.isBootLoading);
 
   console.log(
-    `📍 [Index] RENDER | Platform: ${Platform.OS} | status: ${status} | isBootLoading: ${isBootLoading}`
+    `📍 [Index] RENDER | Platform: ${Platform.OS} | status: ${status} | isBootLoading: ${isBootLoading}`,
   );
 
   // On web, if the user is NOT authenticated, show the public landing page.
@@ -32,7 +32,7 @@ export default function Index() {
     }
     if (status === "authenticatedAdmin") {
       console.log("📍 [Index] Web: Redirecting to admin dashboard");
-      return <Redirect href="/(admin)/dashboard" />;
+      return <Redirect href="/(admin)/dashboardAdminZolver" />;
     }
 
     // Default: show public landing

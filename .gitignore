@@ -3,6 +3,13 @@
 # dependencies
 node_modules/
 .env
+.env.local
+.env.production
+.env.staging
+
+# Service account keys (never commit)
+google-play-service-account.json
+*.json.key
 
 # Expo
 .expo/

@@ -13,7 +13,7 @@ export const AUTH_PATHS: Record<string, string> = {
 
   authenticated: "/(client)/(tabs)/home",
   authenticatedProfessional: "/(professional)/(tabs)/home",
-  authenticatedAdmin: "/(admin)/dashboard",
+  authenticatedAdmin: "/(admin)/dashboardAdminZolver",
 };
 
 // Always return a plain string

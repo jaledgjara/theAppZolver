@@ -44,22 +44,16 @@ Notifications.setNotificationHandler({
 // ---------------------------------------------------------------------------
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   // GUARD: Solo dispositivos físicos pueden recibir push.
-  // En simulador generamos un mock token para testing.
-  // El push real no llegará, pero la notificación SÍ se guarda en la tabla
-  // y se ve en la pantalla de notificaciones (via Realtime).
-  // TODO: Eliminar este bloque antes de producción.
+  // Expo no emite tokens reales en simuladores — retornamos null directamente.
   if (!Device.isDevice) {
     console.warn(
-      "⚠️ [NotificationService] Simulador detectado. Usando mock token para testing."
+      "⚠️ [NotificationService] Simulador detectado. Push notifications no disponibles.",
     );
-    const mockToken = `ExponentPushToken[SIMULATOR_${Date.now()}]`;
-    console.log("🧪 [NotificationService] Mock token:", mockToken);
-    return mockToken;
+    return null;
   }
 
   // PASO 1: Verificar / pedir permisos al usuario.
-  const { status: existingStatus } =
-    await Notifications.getPermissionsAsync();
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   // Si no tenemos permisos todavía, mostramos el diálogo nativo.
@@ -70,9 +64,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
   // Si el usuario rechazó, no podemos hacer nada.
   if (finalStatus !== "granted") {
-    console.warn(
-      "⚠️ [NotificationService] El usuario rechazó los permisos de notificación."
-    );
+    console.warn("⚠️ [NotificationService] El usuario rechazó los permisos de notificación.");
     return null;
   }
 
@@ -82,9 +74,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
 
   if (!projectId) {
-    console.error(
-      "❌ [NotificationService] Falta projectId en app.json → extra.eas.projectId"
-    );
+    console.error("❌ [NotificationService] Falta projectId en app.json → extra.eas.projectId");
     return null;
   }
 
@@ -126,13 +116,8 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 //   Esto garantiza que si el usuario cambió de teléfono o reinstalió la app,
 //   el token se actualiza automáticamente.
 // ---------------------------------------------------------------------------
-export async function savePushTokenToDatabase(
-  userId: string,
-  token: string
-): Promise<boolean> {
-  console.log(
-    `📡 [NotificationService] Guardando token para usuario: ${userId}`
-  );
+export async function savePushTokenToDatabase(userId: string, token: string): Promise<boolean> {
+  console.log(`📡 [NotificationService] Guardando token para usuario: ${userId}`);
   console.log(`📡 [NotificationService] Token: ${token}`);
 
   // Usamos .select() para verificar que el UPDATE realmente afectó filas.
@@ -145,10 +130,7 @@ export async function savePushTokenToDatabase(
     .maybeSingle();
 
   if (error) {
-    console.error(
-      "❌ [NotificationService] Error al guardar token en DB:",
-      error.message
-    );
+    console.error("❌ [NotificationService] Error al guardar token en DB:", error.message);
     return false;
   }
 
@@ -156,7 +138,8 @@ export async function savePushTokenToDatabase(
     console.error(
       "❌ [NotificationService] UPDATE retornó 0 filas. Posibles causas:\n",
       "   1. RLS en user_accounts bloquea el UPDATE para este usuario.\n",
-      "   2. No existe fila con auth_uid =", userId
+      "   2. No existe fila con auth_uid =",
+      userId,
     );
     return false;
   }
