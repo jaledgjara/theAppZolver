@@ -27,7 +27,10 @@
       "Bash(for file:*)",
       "Bash(npx expo:*)",
       "Bash(firebase deploy:*)",
-      "Bash(sips -g pixelWidth -g pixelHeight /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/icon.png /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/adaptive-icon.png)"
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/icon.png /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/adaptive-icon.png)",
+      "Bash(npm test:*)",
+      "Bash(npm info:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
