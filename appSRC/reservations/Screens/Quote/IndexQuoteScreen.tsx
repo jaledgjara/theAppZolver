@@ -1,11 +1,5 @@
 import React, { useCallback } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  SectionList,
-  RefreshControl,
-} from "react-native";
+import { StyleSheet, Text, View, SectionList, RefreshControl } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 
@@ -71,9 +65,7 @@ const IndexQuoteScreen = () => {
   };
 
   const handlePressWork = (reservationId: string) => {
-    router.push(
-      `/(professional)/(tabs)/home/ReservationsDetails/${reservationId}`,
-    );
+    router.push(`/(professional)/(tabs)/home/ReservationsDetails/${reservationId}`);
   };
 
   const handleRefreshAll = useCallback(() => {
@@ -156,11 +148,7 @@ const IndexQuoteScreen = () => {
         )}
         renderItem={({ item, section }) => {
           if (section.type === "pending") {
-            return renderPendingItem(
-              item,
-              handleAcceptQuote,
-              handleRejectQuote,
-            );
+            return renderPendingItem(item, handleAcceptQuote, handleRejectQuote);
           }
           return renderConfirmedItem(item, handlePressWork);
         }}
@@ -194,18 +182,16 @@ const renderPendingItem = (
 
   return (
     <ServiceRequestCard
-      category={item.serviceTitle}
+      clientName={item.roleName}
+      serviceTitle={item.serviceTitle}
       price={
         item.financials.price > 0
           ? `$${item.financials.price.toLocaleString("es-AR")}`
           : "A cotizar"
       }
-      distance="📋 Presupuesto"
       location={item.address}
-      title={item.roleName}
       timeAgo={time}
-      onAccept={() => onAccept(item.id)}
-      onDecline={() => onReject(item.id)}
+      onPress={() => onAccept(item.id)}
     />
   );
 };
@@ -213,19 +199,14 @@ const renderPendingItem = (
 /**
  * Renderiza un trabajo confirmado de la agenda (tap para ver detalles).
  */
-const renderConfirmedItem = (
-  item: Reservation,
-  onPress: (id: string) => void,
-) => {
+const renderConfirmedItem = (item: Reservation, onPress: (id: string) => void) => {
   const rawDate = item.scheduledStart || item.createdAt || new Date();
   const isValidDate = rawDate instanceof Date && !isNaN(rawDate.getTime());
   const safeDate = isValidDate ? rawDate : new Date();
   const { date, time } = formatForUI(safeDate);
 
   const price =
-    item.financials.price > 0
-      ? `$${item.financials.price.toLocaleString("es-AR")}`
-      : "A cotizar";
+    item.financials.price > 0 ? `$${item.financials.price.toLocaleString("es-AR")}` : "A cotizar";
 
   return (
     <ReservationCard

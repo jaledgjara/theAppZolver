@@ -39,8 +39,7 @@ if (Platform.OS === "web") {
 
 export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
   // 2. ESTADOS DEL FORMULARIO
-  const [newMethodType, setNewMethodType] =
-    useState<PaymentMethodType>("credit_card");
+  const [newMethodType, setNewMethodType] = useState<PaymentMethodType>("credit_card");
 
   // Inputs
   const [cardNumber, setCardNumber] = useState("");
@@ -86,7 +85,8 @@ export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.screen}>
+      style={styles.screen}
+    >
       <View style={styles.container}>
         {/* Título dinámico según el contexto */}
         <ToolBarTitle
@@ -115,7 +115,7 @@ export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
                     cvc: "",
                     holder: "",
                     dni: "",
-                    mpWebFormData: formData,
+                    mpWebFormData: JSON.stringify(formData),
                   });
                 }}
               />
@@ -187,21 +187,13 @@ export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
               <View style={styles.walletInfo}>
                 <Ionicons name="wallet" size={40} color={COLORS.primary} />
                 <Text style={styles.walletText}>Zolver Wallet</Text>
-                <Text style={styles.walletSub}>
-                  Este método ya está activo en tu cuenta.
-                </Text>
+                <Text style={styles.walletSub}>Este método ya está activo en tu cuenta.</Text>
               </View>
             )}
           </View>
 
           <LargeButton
-            title={
-              loading
-                ? "Procesando..."
-                : isCheckout
-                  ? "Pagar ahora"
-                  : "Guardar Método"
-            }
+            title={loading ? "Procesando..." : isCheckout ? "Pagar ahora" : "Guardar Método"}
             onPress={handleSave}
             disabled={loading || !isValid}
           />

@@ -65,11 +65,7 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
         <View style={styles.professionalRow}>
           {viewRole === "professional" ? (
             // El Pro ve al Cliente -> Usamos Iniciales
-            <UserAvatar
-              name={name || "Usuario"}
-              size={52}
-              backgroundColor={COLORS.tertiary} // Verde azulado de Zolver
-            />
+            <UserAvatar name={name || "Usuario"} size={52} />
           ) : (
             // El Cliente ve al Pro -> Usamos su Foto Real
             <Image
@@ -84,13 +80,8 @@ export const ReservationDetailsCard: React.FC<ReservationDetailCardProps> = ({
             </Text>
 
             {statusText && (
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: statusBg || "#F3F4F6" },
-                ]}>
-                <Text
-                  style={[styles.statusText, { color: statusColor || "#333" }]}>
+              <View style={[styles.statusBadge, { backgroundColor: statusBg || "#F3F4F6" }]}>
+                <Text style={[styles.statusText, { color: statusColor || "#333" }]}>
                   {statusText}
                 </Text>
               </View>

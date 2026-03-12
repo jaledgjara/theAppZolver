@@ -26,9 +26,7 @@ export interface BuilderInput {
   proposedPrice?: number;
 }
 
-export const buildReservationPayload = (
-  input: BuilderInput
-): ReservationPayload => {
+export const buildReservationPayload = (input: BuilderInput): ReservationPayload => {
   // 1. LÓGICA DE TÍTULO
   let finalTitle = input.title || "Servicio General";
   if (!input.title && input.selectedTags && input.selectedTags.length > 0) {
@@ -68,9 +66,7 @@ export const buildReservationPayload = (
 
   // 4. PRECIOS Y ESTADO
   const initialStatus = input.isInstant ? "pending_approval" : "quoting";
-  const calculatedPrice = input.isInstant
-    ? input.pricePerHour
-    : input.proposedPrice || 0;
+  const calculatedPrice = input.isInstant ? input.pricePerHour : input.proposedPrice || 0;
 
   // 5. PAYLOAD FINAL
   const payload: ReservationPayload = {
@@ -92,7 +88,7 @@ export const buildReservationPayload = (
 
     price_estimated: calculatedPrice,
     price_final: calculatedPrice,
-    platform_fee: 0,
+    platform_fee: "0",
   };
 
   return payload;

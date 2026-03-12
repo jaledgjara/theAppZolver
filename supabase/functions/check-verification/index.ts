@@ -1,85 +1,3 @@
-// // @ts-ignore
-// import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-// function encodeBasicAuth(user: string, pass: string): string {
-//   const raw = `${user}:${pass}`;
-//   const bytes = new TextEncoder().encode(raw);
-//   const binary = String.fromCharCode(...bytes);
-//   return btoa(binary);
-// }
-
-// serve(async (req: Request): Promise<Response> => {
-//   try {
-//     const { phone, code } = await req.json();
-
-//     if (!phone || !code) {
-//       return json(
-//         { ok: false, valid: false, error: "Phone and code required" },
-//         400
-//       );
-//     }
-
-//     // @ts-ignore
-//     const SID = Deno.env.get("TWILIO_SID");
-//     // @ts-ignore
-//     const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-//     // @ts-ignore
-//     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SID");
-
-//     // 🔥 Base64 seguro
-//     const basicAuth = encodeBasicAuth(SID, TOKEN);
-
-//     const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/VerificationCheck`;
-
-//     const body = new URLSearchParams({
-//       To: phone,
-//       Code: code,
-//     });
-
-//     const twilioRes = await fetch(url, {
-//       method: "POST",
-//       headers: {
-//         Authorization: `Basic ${basicAuth}`,
-//         "Content-Type": "application/x-www-form-urlencoded",
-//       },
-//       body,
-//     });
-
-//     const jsonRaw = await twilioRes.json();
-//     console.log("📦 Twilio raw:", jsonRaw);
-
-//     const approved =
-//       twilioRes.status === 200 && jsonRaw.status === "approved";
-
-//     if (!approved) {
-//       return json(
-//         {
-//           ok: false,
-//           valid: false,
-//           error:
-//             jsonRaw.message ??
-//             jsonRaw.error_message ??
-//             "Invalid or expired code",
-//         },
-//         400
-//       );
-//     }
-
-//     return json({ ok: true, valid: true }, 200);
-//   } catch (err) {
-//     console.error("❌ check-verification error:", err);
-//     return json({ ok: false, valid: false, error: "Internal error" }, 500);
-//   }
-// });
-
-// function json(data: unknown, status = 200) {
-//   return new Response(JSON.stringify(data), {
-//     status,
-//     headers: { "Content-Type": "application/json" },
-//   });
-// }
-
-//
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 
@@ -87,7 +5,6 @@ import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateL
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
 serve(async (req: Request): Promise<Response> => {
-  // Rate limiting
   const ip = getClientIP(req);
   const rateCheck = checkRateLimit(ip, RATE_LIMIT);
   if (!rateCheck.allowed) {
@@ -97,18 +14,16 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const { phone, code } = await req.json().catch(() => ({}) as Record<string, unknown>);
 
-    // --- DEV BYPASS CONFIG ---
-    const cleanPhone = phone ? phone.replace(/\s/g, "") : "";
+    if (!phone || !code) {
+      return json({ valid: false, error: "Phone and code are required" }, 400);
+    }
 
     const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
+    const cleanPhone = typeof phone === "string" ? phone.replace(/\s/g, "") : "";
 
-    // SECURITY: Dev bypass is ONLY available in non-production environments
-    if (ENVIRONMENT === "production") {
-      // In production, skip all dev bypass logic entirely
-    } else {
+    // Dev bypass: only in non-production, only if explicitly enabled with a whitelist.
+    if (ENVIRONMENT !== "production") {
       const DEV_BYPASS_ENABLED = (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
-
-      // Whitelist MUST come from environment variable — no hardcoded numbers
       const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
       const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : [];
       const DEV_CODE = Deno.env.get("DEV_VERIFICATION_CODE") ?? "123456";
@@ -116,27 +31,21 @@ serve(async (req: Request): Promise<Response> => {
       if (
         DEV_BYPASS_ENABLED &&
         WHITELIST_NUMBERS.length > 0 &&
-        WHITELIST_NUMBERS.some((num: string) => cleanPhone.includes(num.trim()))
+        WHITELIST_NUMBERS.some((num: string) => cleanPhone === num.trim())
       ) {
         if (code === DEV_CODE) {
           return json({ valid: true, status: "approved" }, 200);
-        } else {
-          return json({ valid: false, error: "Código incorrecto" }, 400);
         }
+        return json({ valid: false, error: "Código incorrecto" }, 400);
       }
     }
-    // --- END DEV BYPASS ---
-
-    // ==========================================
-    // 2. LÓGICA ORIGINAL (Twilio Real)
-    // ==========================================
 
     const SID = Deno.env.get("TWILIO_SID");
     const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SID");
 
     if (!SID || !TOKEN || !VERIFY_SID) {
-      return json({ error: "Missing Creds" }, 500);
+      return json({ error: "Missing Twilio credentials" }, 500);
     }
 
     const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/VerificationCheck`;
@@ -153,14 +62,20 @@ serve(async (req: Request): Promise<Response> => {
 
     const payload = await twilioRes.json().catch(() => ({}));
 
-    if (!twilioRes.ok) {
-      return json({ error: "Twilio Check Failed", details: payload }, 400);
+    if (!twilioRes.ok || payload.status !== "approved") {
+      return json(
+        {
+          valid: false,
+          error: payload.message ?? payload.error_message ?? "Invalid or expired code",
+        },
+        400,
+      );
     }
 
-    // Retornamos el estado real de Twilio
-    return json({ valid: payload.valid, status: payload.status }, 200);
+    return json({ valid: true, status: "approved" }, 200);
   } catch (err) {
-    return json({ error: "Unexpected error", message: String(err) }, 500);
+    console.error("Unexpected error:", err);
+    return json({ valid: false, error: "Internal error", message: String(err) }, 500);
   }
 });
 

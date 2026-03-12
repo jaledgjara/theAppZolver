@@ -1,9 +1,5 @@
 import { supabase } from "@/appSRC/services/supabaseClient";
-import {
-  CreateReviewPayload,
-  Review,
-  ReviewDTO,
-} from "../Type/ReviewType";
+import { CreateReviewPayload, Review, ReviewDTO } from "../Type/ReviewType";
 
 // ============================================================================
 // MAPPER: DTO → Domain Entity
@@ -24,9 +20,7 @@ const mapReviewFromDTO = (dto: ReviewDTO): Review => ({
 // CREATE
 // ============================================================================
 
-export const createReviewService = async (
-  payload: CreateReviewPayload
-): Promise<Review> => {
+export const createReviewService = async (payload: CreateReviewPayload): Promise<Review> => {
   console.log("[REVIEW-SERVICE] createReviewService called with payload:", JSON.stringify(payload));
 
   const { data, error } = await supabase
@@ -36,7 +30,12 @@ export const createReviewService = async (
     .single();
 
   if (error) {
-    console.error("[REVIEW-SERVICE] Error creating review:", error.message, error.details, error.hint);
+    console.error(
+      "[REVIEW-SERVICE] Error creating review:",
+      error.message,
+      error.details,
+      error.hint,
+    );
     throw new Error(`Error al crear reseña: ${error.message}`);
   }
 
@@ -48,9 +47,7 @@ export const createReviewService = async (
 // FETCH: Single review by reservation (to check if already reviewed)
 // ============================================================================
 
-export const fetchReviewByReservation = async (
-  reservationId: string
-): Promise<Review | null> => {
+export const fetchReviewByReservation = async (reservationId: string): Promise<Review | null> => {
   console.log("[REVIEW-SERVICE] fetchReviewByReservation for:", reservationId);
 
   const { data, error } = await supabase
@@ -60,11 +57,19 @@ export const fetchReviewByReservation = async (
     .maybeSingle();
 
   if (error) {
-    console.error("[REVIEW-SERVICE] Error fetching review:", error.message, error.details, error.hint);
+    console.error(
+      "[REVIEW-SERVICE] Error fetching review:",
+      error.message,
+      error.details,
+      error.hint,
+    );
     throw new Error(`Error al buscar reseña: ${error.message}`);
   }
 
-  console.log("[REVIEW-SERVICE] fetchReviewByReservation result:", data ? "Found review" : "No review found");
+  console.log(
+    "[REVIEW-SERVICE] fetchReviewByReservation result:",
+    data ? "Found review" : "No review found",
+  );
   if (!data) return null;
   return mapReviewFromDTO(data as ReviewDTO);
 };
@@ -85,14 +90,16 @@ export interface PendingReviewReservation {
 }
 
 export const fetchPendingReview = async (
-  clientId: string
+  clientId: string,
 ): Promise<PendingReviewReservation | null> => {
   console.log("[REVIEW-SERVICE] fetchPendingReview for client:", clientId);
 
   // Find completed reservations that have no review yet
   const { data, error } = await supabase
     .from("reservations")
-    .select("id, client_id, professional_id, professional:user_accounts!professional_id(legal_name)")
+    .select(
+      "id, client_id, professional_id, professional:user_accounts!professional_id(legal_name)",
+    )
     .eq("client_id", clientId)
     .eq("status", "completed")
     .order("created_at", { ascending: false });
@@ -119,7 +126,9 @@ export const fetchPendingReview = async (
     return null;
   }
 
-  const reviewedIds = new Set((existingReviews ?? []).map((r: { reservation_id: string }) => r.reservation_id));
+  const reviewedIds = new Set(
+    (existingReviews ?? []).map((r: { reservation_id: string }) => r.reservation_id),
+  );
 
   // Find first unreviewed reservation
   const pending = data.find((r: { id: string }) => !reviewedIds.has(r.id));
@@ -128,7 +137,7 @@ export const fetchPendingReview = async (
     return null;
   }
 
-  const professional = pending.professional as { legal_name: string } | null;
+  const professional = pending.professional as unknown as { legal_name: string } | null;
   console.log("[REVIEW-SERVICE] Found pending review for reservation:", pending.id);
 
   return {
@@ -143,9 +152,7 @@ export const fetchPendingReview = async (
 // FETCH: All reviews for a professional
 // ============================================================================
 
-export const fetchReviewsByProfessional = async (
-  professionalId: string
-): Promise<Review[]> => {
+export const fetchReviewsByProfessional = async (professionalId: string): Promise<Review[]> => {
   console.log("[REVIEW-SERVICE] fetchReviewsByProfessional for:", professionalId);
 
   const { data, error } = await supabase
@@ -155,10 +162,19 @@ export const fetchReviewsByProfessional = async (
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[REVIEW-SERVICE] Error fetching reviews:", error.message, error.details, error.hint);
+    console.error(
+      "[REVIEW-SERVICE] Error fetching reviews:",
+      error.message,
+      error.details,
+      error.hint,
+    );
     throw new Error(`Error al cargar reseñas: ${error.message}`);
   }
 
-  console.log("[REVIEW-SERVICE] fetchReviewsByProfessional found:", (data as ReviewDTO[]).length, "reviews");
+  console.log(
+    "[REVIEW-SERVICE] fetchReviewsByProfessional found:",
+    (data as ReviewDTO[]).length,
+    "reviews",
+  );
   return (data as ReviewDTO[]).map(mapReviewFromDTO);
 };

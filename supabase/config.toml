@@ -49,11 +49,8 @@ policy = "per_worker"
 [functions.session-sync]
 verify_jwt = false
 
-[functions.mp-webhook]
+[functions.send-verification]
 verify_jwt = false
 
-[functions.scheduler-auto-cancel]
-verify_jwt = false
-
-[functions.send-notification]
+[functions.check-verification]
 verify_jwt = false

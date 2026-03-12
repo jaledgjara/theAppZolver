@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { BudgetMessage } from "../Type/MessageType";
-import { mapStatusToUI } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { mapStatusToUI, getStatusConfig } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
+import { ReservationStatusDTO } from "@/appSRC/reservations/Type/ReservationType";
 
 export interface Props {
   message: BudgetMessage;
@@ -17,7 +18,8 @@ export const ChatBudgetCard = ({ message, onPress }: Props) => {
   const { serviceName, price, currency, proposedDate, status, notes } = data;
 
   // Helper visual
-  const uiState = mapStatusToUI(status);
+  const uiStatus = mapStatusToUI(status as ReservationStatusDTO);
+  const uiState = getStatusConfig(uiStatus);
   const dateObj = new Date(proposedDate);
 
   // ✅ CRÍTICO: El botón solo aparece si el estado es EXACTAMENTE 'pending_approval'
@@ -25,17 +27,12 @@ export const ChatBudgetCard = ({ message, onPress }: Props) => {
   const showActionButtons = status === "pending_approval";
 
   return (
-    <View
-      style={[
-        styles.wrapper,
-        isMine ? styles.wrapperMine : styles.wrapperOther,
-      ]}>
+    <View style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperOther]}>
       {/* Header con color dinámico */}
       <View style={[styles.header, { borderLeftColor: uiState.color }]}>
         <View style={styles.headerTopRow}>
           <Text style={[styles.statusText, { color: uiState.color }]}>
-            {/* Asegúrate de usar .label o .text según tu helper */}
-            {uiState.label?.toUpperCase() || uiState.text?.toUpperCase()}
+            {uiState.text.toUpperCase()}
           </Text>
         </View>
         <Text style={styles.serviceName}>{serviceName}</Text>
@@ -56,16 +53,9 @@ export const ChatBudgetCard = ({ message, onPress }: Props) => {
 
       {/* Footer Accionable - Desaparece al confirmar */}
       {showActionButtons && onPress && (
-        <Pressable
-          style={styles.footer}
-          onPress={onPress}
-          android_ripple={{ color: "#EEE" }}>
+        <Pressable style={styles.footer} onPress={onPress} android_ripple={{ color: "#EEE" }}>
           <Text style={styles.footerText}>Ver y Aceptar Presupuesto</Text>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color={COLORS.primary}
-          />
+          <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.primary} />
         </Pressable>
       )}
     </View>

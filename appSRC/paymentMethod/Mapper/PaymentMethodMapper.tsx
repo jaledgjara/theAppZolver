@@ -6,8 +6,6 @@ import { CardBrand, PaymentMethodDTO, UISavedCard } from "../Type/PaymentMethodT
 
 // =============================================================================
 export const mapDtoToUi = (dto: PaymentMethodDTO): UISavedCard => {
-  console.log(`🗺️ [Mapper] Procesando tarjeta ID: ${dto.id} | Brand Original: ${dto.brand}`);
-
   // 1. Normalización robusta para detectar "visa_debit", etc.
   const brandLower = dto.brand.toLowerCase();
 
@@ -24,8 +22,6 @@ export const mapDtoToUi = (dto: PaymentMethodDTO): UISavedCard => {
   // 2. Determinar tipo (Crédito vs Débito basado en el string)
   const isDebit = brandLower.includes("debit") || brandLower.includes("debito");
   const type = isDebit ? "debit_card" : "credit_card";
-
-  console.log(`   ↳ Mapeado a: ${validBrand} (${type})`);
 
   return {
     id: dto.id,

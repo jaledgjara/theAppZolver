@@ -24,9 +24,7 @@ export const useProHistoryReservations = () => {
       setIsLoading(true);
       console.log(`📡 [HISTORY_DEBUG] Fetching para ProID: ${user.uid}`);
 
-      const { reservations, nextCursor } = await fetchProHistoryReservations(
-        user.uid
-      );
+      const { reservations, nextCursor } = await fetchProHistoryReservations(user.uid);
 
       console.log(`✅ [HISTORY_DEBUG] Items recibidos: ${reservations.length}`);
 
@@ -36,7 +34,7 @@ export const useProHistoryReservations = () => {
           if (index < 3) {
             // Solo los 3 primeros para no ensuciar
             console.log(
-              `   👉 Item[${index}] ID: ${r.id} | Status: ${r.status} | Date: ${r.schedule}`
+              `   👉 Item[${index}] ID: ${r.id} | Status: ${r.statusUI} | Date: ${r.scheduledStart}`,
             );
           }
         });
@@ -62,12 +60,12 @@ export const useProHistoryReservations = () => {
     console.log("⬇️ [HISTORY_DEBUG] loadMoreHistory: Cargando más páginas...");
     try {
       setIsFetchingMore(true);
-      const { reservations: newBatch, nextCursor } =
-        await fetchProHistoryReservations(user.uid, cursor);
-
-      console.log(
-        `✅ [HISTORY_DEBUG] Batch adicional recibido: ${newBatch.length}`
+      const { reservations: newBatch, nextCursor } = await fetchProHistoryReservations(
+        user.uid,
+        cursor,
       );
+
+      console.log(`✅ [HISTORY_DEBUG] Batch adicional recibido: ${newBatch.length}`);
 
       setHistory((prev) => [...prev, ...newBatch]);
       setCursor(nextCursor || undefined);

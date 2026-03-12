@@ -11,7 +11,7 @@ interface UserTableRowProps {
 export default function UserTableRow({ user, onPress }: UserTableRowProps) {
   return (
     <Pressable
-      style={({ hovered }) => [styles.row, hovered && styles.rowHovered]}
+      style={({ pressed }) => [styles.row, pressed && styles.rowHovered]}
       onPress={() => onPress(user)}
     >
       <View style={styles.cellName}>
@@ -28,15 +28,11 @@ export default function UserTableRow({ user, onPress }: UserTableRowProps) {
       </View>
 
       <View style={styles.cellStatus}>
-        <Text style={styles.statusText}>
-          {user.profileComplete ? "Completo" : "Incompleto"}
-        </Text>
+        <Text style={styles.statusText}>{user.profileComplete ? "Completo" : "Incompleto"}</Text>
       </View>
 
       <View style={styles.cellDate}>
-        <Text style={styles.dateText}>
-          {user.createdAt.toLocaleDateString("es-AR")}
-        </Text>
+        <Text style={styles.dateText}>{user.createdAt.toLocaleDateString("es-AR")}</Text>
       </View>
 
       <View style={styles.cellAction}>

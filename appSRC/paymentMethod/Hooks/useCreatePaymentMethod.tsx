@@ -117,6 +117,8 @@ export const useCreatePaymentMethod = () => {
         email: userEmail,
         token: token,
         dni: formValues.dni,
+        payment_method_id: cardInfo.payment_method_id,
+        issuer_id: cardInfo.issuer_id,
       });
 
       console.log("🎉 [EXITO FINAL]:", newCard);

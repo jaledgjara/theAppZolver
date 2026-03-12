@@ -1,26 +1,20 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
-import {
-  signInWithPopup,
-  GoogleAuthProvider,
-  OAuthProvider,
-} from "firebase/auth";
+import { View, Text, Pressable, ActivityIndicator, StyleSheet } from "react-native";
+import type { Auth, AuthProvider, UserCredential } from "firebase/auth";
+import { GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 import { COLORS, SIZES } from "@/appASSETS/theme";
+
+// signInWithPopup is excluded from RN type bundle but available at runtime on web (admin-only)
+const { signInWithPopup } = require("firebase/auth") as {
+  signInWithPopup: (auth: Auth, provider: AuthProvider) => Promise<UserCredential>;
+};
 
 interface AdminLoginScreenProps {
   onLoginSuccess: () => void;
 }
 
-export default function AdminLoginScreen({
-  onLoginSuccess,
-}: AdminLoginScreenProps) {
+export default function AdminLoginScreen({ onLoginSuccess }: AdminLoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +33,11 @@ export default function AdminLoginScreen({
       });
       onLoginSuccess();
     } catch (e: unknown) {
-      const firebaseError = e as { code?: string; message?: string; customData?: Record<string, unknown> };
+      const firebaseError = e as {
+        code?: string;
+        message?: string;
+        customData?: Record<string, unknown>;
+      };
       console.error("[AdminLogin] Google sign-in FAILED:", {
         code: firebaseError.code,
         message: firebaseError.message,
@@ -68,7 +66,11 @@ export default function AdminLoginScreen({
       });
       onLoginSuccess();
     } catch (e: unknown) {
-      const firebaseError = e as { code?: string; message?: string; customData?: Record<string, unknown> };
+      const firebaseError = e as {
+        code?: string;
+        message?: string;
+        customData?: Record<string, unknown>;
+      };
       console.error("[AdminLogin] Apple sign-in FAILED:", {
         code: firebaseError.code,
         message: firebaseError.message,
@@ -90,9 +92,7 @@ export default function AdminLoginScreen({
         </View>
 
         <Text style={styles.title}>Panel de Administración</Text>
-        <Text style={styles.subtitle}>
-          Iniciá sesión con una cuenta autorizada.
-        </Text>
+        <Text style={styles.subtitle}>Iniciá sesión con una cuenta autorizada.</Text>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 

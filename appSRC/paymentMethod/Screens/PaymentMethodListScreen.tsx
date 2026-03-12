@@ -12,7 +12,7 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { SavedCardRow } from "@/appSRC/payments/Screens/SavedCardRow";
@@ -105,9 +105,7 @@ export const PaymentMethodListScreen = ({
         showBackButton={true}
       />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* 1. CARD LIST */}
         <View style={styles.listWrapper}>
           {!isEmpty ? (
@@ -130,14 +128,8 @@ export const PaymentMethodListScreen = ({
         </View>
 
         {/* 2. ADD NEW CARD */}
-        <TouchableOpacity
-          style={styles.addNewInline}
-          onPress={handleNavigation}>
-          <Ionicons
-            name="add-circle-outline"
-            size={22}
-            color={COLORS.primary}
-          />
+        <TouchableOpacity style={styles.addNewInline} onPress={handleNavigation}>
+          <Ionicons name="add-circle-outline" size={22} color={COLORS.primary} />
           <Text style={styles.addNewText}>Usar otra tarjeta</Text>
         </TouchableOpacity>
 
@@ -162,10 +154,10 @@ export const PaymentMethodListScreen = ({
         visible={cvvModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={handleCvvCancel}>
+        onRequestClose={handleCvvCancel}
+      >
         <Pressable style={styles.modalOverlay} onPress={handleCvvCancel}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
               {/* Header */}
               <View style={styles.modalHeader}>
@@ -212,14 +204,16 @@ export const PaymentMethodListScreen = ({
                 ]}
                 onPress={handleCvvConfirm}
                 disabled={cvv.length < 3}
-                activeOpacity={0.7}>
+                activeOpacity={0.7}
+              >
                 <Text style={styles.modalConfirmText}>Confirmar pago</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.modalCancelButton}
                 onPress={handleCvvCancel}
-                activeOpacity={0.7}>
+                activeOpacity={0.7}
+              >
                 <Text style={styles.modalCancelText}>Cancelar</Text>
               </TouchableOpacity>
             </Pressable>

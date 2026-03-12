@@ -3,31 +3,24 @@ import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import { useAuthStore } from "../Store/AuthStore";
 import { useServiceSelection } from "../../categories/Hooks/useServiceCatalog";
-import {
-  ProfessionalTypeWork,
-  useProfessionalOnboardingStore,
-} from "../Type/ProfessionalAuthUser";
+import { ProfessionalTypeWork, useProfessionalOnboardingStore } from "../Type/ProfessionalAuthUser";
 import { ProfessionalProfileService } from "../Service/ProfessionalAuthService";
 import { InstantModeService } from "@/appSRC/users/Professional/Instant/Service/InstantProfessionalService";
 
 export function useProfessionalForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [templates, setTemplates] = useState<{ id: string; label: string; basePrice: number }[]>([]);
+  const [templates, setTemplates] = useState<{ id: string; label: string; basePrice: number }[]>(
+    [],
+  );
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const { user, setUser, setStatus } = useAuthStore();
 
   const store = useProfessionalOnboardingStore();
 
   // 2. Catálogo
-  const {
-    categories,
-    loadingCategories,
-    tags,
-    loadingTags,
-    fetchCategories,
-    setSelectedCategory,
-  } = useServiceSelection();
+  const { categories, loadingCategories, tags, loadingTags, fetchCategories, setSelectedCategory } =
+    useServiceSelection();
 
   // --- EFECTOS ---
   useEffect(() => {
@@ -54,7 +47,7 @@ export function useProfessionalForm() {
     const loadTemplates = async () => {
       setLoadingTemplates(true);
       try {
-        const data = await InstantModeService.getTemplatesByCategory(store.category.id);
+        const data = await InstantModeService.getTemplatesByCategory(store.category!.id);
         setTemplates(data);
       } catch (e) {
         console.error("[useProfessionalForm] Error loading templates:", e);
@@ -153,10 +146,7 @@ export function useProfessionalForm() {
 
     // Validaciones
     isZolverYaDisabled: store.category && !store.category.is_usually_urgent,
-    isProfileValid:
-      store.category &&
-      store.specialization.length > 0 &&
-      store.biography.length > 0,
+    isProfileValid: store.category && store.specialization.length > 0 && store.biography.length > 0,
     isLocationValid: store.location !== null,
   };
 }

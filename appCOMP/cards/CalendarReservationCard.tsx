@@ -1,7 +1,6 @@
 // appCOMP/cards/CalendarReservationCard.tsx
 import { getStatusConfig } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
-// Importamos el tipo UI (simplificado), no el DTO
-import { ReservationStatus as ReservationStatusUI } from "@/appCOMP/cards/ReservationCard";
+import { ReservationStatusUI } from "@/appSRC/reservations/Type/ReservationType";
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 
@@ -16,17 +15,20 @@ interface CalendarReservationCardProps {
   imageSource?: any; // Añadido para soportar avatar
 }
 
-export const CalendarReservationCard: React.FC<
-  CalendarReservationCardProps
-> = ({ time, name, service, date, onPress, status, imageSource }) => {
+export const CalendarReservationCard: React.FC<CalendarReservationCardProps> = ({
+  time,
+  name,
+  service,
+  date,
+  onPress,
+  status,
+  imageSource,
+}) => {
   // Obtenemos colores y texto en español
-  const s = getStatusConfig(status as string);
+  const s = getStatusConfig(status as ReservationStatusUI);
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.85}
-      disabled={!onPress}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} disabled={!onPress}>
       <View style={styles.card}>
         <Text style={styles.time}>{time}</Text>
 

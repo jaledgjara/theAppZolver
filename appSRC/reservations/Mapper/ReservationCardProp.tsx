@@ -1,6 +1,7 @@
-// appSRC/reservations/Helper/MapStatusToUIClient.ts
+// appSRC/reservations/Mapper/ReservationCardProp.tsx
 
 import { ReservationCardProps } from "@/appCOMP/cards/ReservationCard";
+import { ReservationStatusUI } from "@/appSRC/reservations/Type/ReservationType";
 
 // Asumo que tu objeto de reserva crudo (item) se parece a esto:
 interface ReservationData {
@@ -16,7 +17,7 @@ interface ReservationData {
 
 export const mapReservationToCard = (
   item: ReservationData,
-  viewRole: "client" | "professional" // <--- NUEVO ARGUMENTO
+  viewRole: "client" | "professional", // <--- NUEVO ARGUMENTO
 ): ReservationCardProps => {
   // Lógica para decidir qué mostrar
   const isProfessionalView = viewRole === "professional";
@@ -32,10 +33,9 @@ export const mapReservationToCard = (
     // AQUÍ ESTÁ LA MAGIA:
     // Si soy el profesional, quiero ver el nombre del CLIENTE.
     // Si soy el cliente, quiero ver el nombre del PROFESIONAL.
-    counterpartName: isProfessionalView
-      ? item.client.name
-      : item.professional.name,
+    counterpartName: isProfessionalView ? item.client.name : item.professional.name,
 
     avatar: isProfessionalView ? item.client.avatar : item.professional.avatar,
+    viewRole,
   };
 };

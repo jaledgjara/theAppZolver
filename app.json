@@ -25,11 +25,17 @@
     },
     "android": {
       "package": "com.the.zolver.app",
+      "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [{ "scheme": "https", "host": "thezolverapp.web.app" }],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "thezolverapp.web.app"
+            }
+          ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
@@ -43,13 +49,6 @@
       "favicon": "./appASSETS/expo-icons/favicon.png"
     },
     "plugins": [
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "zolver",
-          "project": "zolver-mobile"
-        }
-      ],
       "expo-router",
       "expo-web-browser",
       [
@@ -80,7 +79,8 @@
           "project": "react-native",
           "organization": "the-zolver-app"
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "runtimeVersion": {
       "policy": "fingerprint"

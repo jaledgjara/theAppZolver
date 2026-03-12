@@ -7,7 +7,7 @@
       "@/*": ["*"],
       "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.rn.d.ts"]
     },
-    "types": ["react", "react-native", "expo-router", "node"],
+    "types": ["react", "react-native", "expo-router", "node", "jest"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true
