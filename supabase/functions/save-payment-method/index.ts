@@ -6,16 +6,13 @@ import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { isValidEmail, isValidDNI, validationError } from "../_shared/validate.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 10 requests per minute per IP
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // Rate limiting
@@ -47,11 +44,13 @@ serve(async (req) => {
     const body = await req.json();
     console.log("[save-payment-method] Payload received");
 
-    const { user_id, token, email, dni } = body;
+    const { user_id, token, dni } = body;
+    // Use email from JWT (trusted source) instead of request body
+    const email = jwtPayload.email;
 
     // Input validation
-    if (!isValidEmail(email)) {
-      return validationError("Invalid email format", corsHeaders);
+    if (!email || !isValidEmail(email)) {
+      return validationError("Invalid or missing email in authentication token", corsHeaders);
     }
     if (dni && !isValidDNI(dni)) {
       return validationError("Invalid DNI format (expected 7-8 digits)", corsHeaders);

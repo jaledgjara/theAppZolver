@@ -5,7 +5,7 @@
  * In production: restricts to known app domains.
  */
 
-const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
+const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "production";
 
 const ALLOWED_ORIGINS = ["https://thezolverapp.web.app", "https://thezolverapp.firebaseapp.com"];
 

@@ -18,15 +18,19 @@ serve(async (req: Request): Promise<Response> => {
       return json({ valid: false, error: "Phone and code are required" }, 400);
     }
 
-    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "production";
     const cleanPhone = typeof phone === "string" ? phone.replace(/\s/g, "") : "";
 
     // Dev bypass: only in non-production, only if explicitly enabled with a whitelist.
     if (ENVIRONMENT !== "production") {
-      const DEV_BYPASS_ENABLED = (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
+      const DEV_BYPASS_ENABLED = (Deno.env.get("DEV_BYPASS_ENABLED") ?? "false") === "true";
       const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
       const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : [];
-      const DEV_CODE = Deno.env.get("DEV_VERIFICATION_CODE") ?? "123456";
+      const DEV_CODE = Deno.env.get("DEV_VERIFICATION_CODE");
+      if (!DEV_CODE) {
+        console.error("[check-verification] DEV_VERIFICATION_CODE env var not set");
+        return json({ valid: false, error: "Dev bypass misconfigured" }, 500);
+      }
 
       if (
         DEV_BYPASS_ENABLED &&
@@ -75,7 +79,7 @@ serve(async (req: Request): Promise<Response> => {
     return json({ valid: true, status: "approved" }, 200);
   } catch (err) {
     console.error("Unexpected error:", err);
-    return json({ valid: false, error: "Internal error", message: String(err) }, 500);
+    return json({ valid: false, error: "Error del servicio. Intentá de nuevo." }, 500);
   }
 });
 

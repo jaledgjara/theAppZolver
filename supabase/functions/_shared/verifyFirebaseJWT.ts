@@ -4,12 +4,15 @@ const GOOGLE_JWKS_URL =
 const PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "thezolverapp";
 
 let cachedJwks: any = null;
+let cachedAt = 0;
+const JWKS_TTL_MS = 60 * 60 * 1000; // 60 minutes
 
 export async function getGoogleJWKS() {
-  if (cachedJwks) return cachedJwks;
+  if (cachedJwks && Date.now() - cachedAt < JWKS_TTL_MS) return cachedJwks;
   const res = await fetch(GOOGLE_JWKS_URL);
   if (!res.ok) throw new Error(`Google JWKS status: ${res.status}`);
   cachedJwks = await res.json();
+  cachedAt = Date.now();
   return cachedJwks;
 }
 
@@ -39,6 +42,7 @@ export async function verifyFirebaseJWT(token: string) {
   let jwk = jwks.keys.find((k: any) => k.kid === header.kid);
   if (!jwk) {
     cachedJwks = null;
+    cachedAt = 0;
     jwks = await getGoogleJWKS();
     jwk = jwks.keys.find((k: any) => k.kid === header.kid);
   }

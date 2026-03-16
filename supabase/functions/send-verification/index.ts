@@ -18,12 +18,12 @@ serve(async (req: Request): Promise<Response> => {
       return json({ error: "Phone is required" }, 400);
     }
 
-    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "development";
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "production";
     const cleanPhone = phone.replace(/\s/g, "");
 
     // Dev bypass: only in non-production, only if explicitly enabled with a whitelist.
     if (ENVIRONMENT !== "production") {
-      const DEV_BYPASS_ENABLED = (Deno.env.get("DEV_BYPASS_ENABLED") ?? "true") === "true";
+      const DEV_BYPASS_ENABLED = (Deno.env.get("DEV_BYPASS_ENABLED") ?? "false") === "true";
       const envWhitelist = Deno.env.get("DEV_WHITELIST_NUMBERS");
       const WHITELIST_NUMBERS = envWhitelist ? envWhitelist.split(",").filter(Boolean) : [];
 
@@ -61,13 +61,13 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!twilioRes.ok) {
       console.error("Twilio Error:", payload);
-      return json({ error: "Twilio error", details: payload }, twilioRes.status);
+      return json({ error: "No se pudo enviar el código. Intentá de nuevo." }, twilioRes.status);
     }
 
     return json({ status: payload.status }, 200);
   } catch (err) {
     console.error("Unexpected error:", err);
-    return json({ error: "Unexpected error", message: String(err) }, 500);
+    return json({ error: "Error del servicio. Intentá de nuevo." }, 500);
   }
 });
 

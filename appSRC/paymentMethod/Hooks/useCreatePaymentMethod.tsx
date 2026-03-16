@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { PaymentMethodsService } from "../Service/PaymentMethodService";
+import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
 const MP_PUBLIC_KEY = process.env.EXPO_PUBLIC_MP_PUBLIC_KEY!;
 
@@ -17,8 +18,10 @@ export const useCreatePaymentMethod = () => {
   // ---------------------------------------------------------------------------
   const fetchCardInfo = async (bin: string) => {
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `https://api.mercadopago.com/v1/payment_methods/search?public_key=${MP_PUBLIC_KEY}&bin=${bin}`,
+        {},
+        15000,
       );
       const data = await response.json();
       const result = data.results && data.results[0];
@@ -71,13 +74,14 @@ export const useCreatePaymentMethod = () => {
       `📤 [2. Tokenizar] Enviando Metadata en Token: Brand=${info.payment_method_id}, Issuer=${info.issuer_id}`,
     );
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.mercadopago.com/v1/card_tokens?public_key=${MP_PUBLIC_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mpPayload),
       },
+      20000, // 20s for MP API
     );
 
     const data = await response.json();

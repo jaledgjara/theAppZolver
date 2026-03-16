@@ -4,11 +4,17 @@ import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
 import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 20 requests per minute per IP (called on every app resume)
 const RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
 
-const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET");
+if (!JWT_SECRET) {
+  throw new Error(
+    "CRITICAL: JWT_SECRET or SUPABASE_JWT_SECRET environment variable not configured",
+  );
+}
 
 // --------------------------------------------
 // Handler Principal
@@ -19,22 +25,17 @@ const supabase = createClient(
 );
 
 serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Rate limiting
   const ip = getClientIP(req);
   const rateCheck = checkRateLimit(ip, RATE_LIMIT);
   if (!rateCheck.allowed) {
-    return rateLimitResponse(rateCheck.retryAfterMs, { "Access-Control-Allow-Origin": "*" });
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
   }
 
   try {
-    if (req.method === "OPTIONS")
-      return new Response("ok", {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Authorization, Content-Type, apikey, x-client-info",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-        },
-      });
+    if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
     // A) Verificar Firebase
     const authHeader = req.headers.get("Authorization");
@@ -135,7 +136,7 @@ serve(async (req: Request) => {
         type_work: typeWork,
       },
       {
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: corsHeaders,
       },
     );
   } catch (err: unknown) {
@@ -144,7 +145,7 @@ serve(async (req: Request) => {
       { ok: false, error: getErrorMessage(err) },
       {
         status: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: corsHeaders,
       },
     );
   }

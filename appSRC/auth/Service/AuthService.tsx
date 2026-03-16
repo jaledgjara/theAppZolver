@@ -17,14 +17,8 @@ import { useAuthStore } from "../Store/AuthStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 import { syncUserSession } from "./SessionService";
-import {
-  ProfessionalTypeWork,
-  useProfessionalOnboardingStore,
-} from "../Type/ProfessionalAuthUser";
-import {
-  setSupabaseAuthToken,
-  supabase,
-} from "@/appSRC/services/supabaseClient";
+import { ProfessionalTypeWork, useProfessionalOnboardingStore } from "../Type/ProfessionalAuthUser";
+import { setSupabaseAuthToken, supabase } from "@/appSRC/services/supabaseClient";
 import { AppState } from "react-native";
 
 // =========================================================
@@ -81,7 +75,7 @@ export function mapFirebaseUserToAuthUser(
     legalName?: string | null;
     identityStatus?: string | null;
     internalId?: string;
-  }
+  },
 ): AuthUser {
   const finalName = opts?.legalName || fbUser.displayName || null;
 
@@ -113,7 +107,11 @@ export function decideAuthStatus(params: {
   if (role === "client") return "authenticated";
   if (role === "professional") {
     if (!profileComplete) return "preProfessionalForm";
-    if (identityStatus === "approved" || identityStatus === "verified" || identityStatus === "verifiedProfessional") {
+    if (
+      identityStatus === "approved" ||
+      identityStatus === "verified" ||
+      identityStatus === "verifiedProfessional"
+    ) {
       return "authenticatedProfessional";
     }
     if (identityStatus === "rejected") return "rejected";
@@ -144,9 +142,7 @@ export function initializeAuthListener() {
       const targetStatus: AuthStatus = wasLoggedIn ? "anonymous" : "unknown";
 
       console.log("\n🔻 [AuthListener] Detectado: NO HAY USUARIO (Null)");
-      console.log(
-        `   ↳ Contexto: ${wasLoggedIn ? "Cierre de Sesión" : "Inicio en Frío"}`
-      );
+      console.log(`   ↳ Contexto: ${wasLoggedIn ? "Cierre de Sesión" : "Inicio en Frío"}`);
       console.log(`   ↳ Acción: Redirigiendo a '${targetStatus}'`);
 
       setUser(null);
@@ -168,26 +164,20 @@ export function initializeAuthListener() {
 
       // Validación Zombie
       if (!backendSession || !backendSession.ok) {
-        console.warn(
-          "   ⚠️ [AuthListener] ALERTA: Usuario Zombie (Firebase OK, DB Falló)"
-        );
+        console.warn("   ⚠️ [AuthListener] ALERTA: Usuario Zombie (Firebase OK, DB Falló)");
         console.log("   ↳ Acción: Forzando cierre de sesión para limpiar.");
         await signOut(auth);
         return;
       }
 
-      console.log(
-        "   ✅ [AuthListener] Paso 2: Sesión Sincronizada Correctamente"
-      );
+      console.log("   ✅ [AuthListener] Paso 2: Sesión Sincronizada Correctamente");
       // 👇👇👇 AQUÍ ESTÁ LA SOLUCIÓN 👇👇👇
       // Inyectamos el token que nos dio la Edge Function en el cliente de Supabase
       if (backendSession.token) {
         await setSupabaseAuthToken(backendSession.token);
         markTokenSynced();
       } else {
-        console.warn(
-          "   ⚠️ [AuthListener] El backend no devolvió un token JWT."
-        );
+        console.warn("   ⚠️ [AuthListener] El backend no devolvió un token JWT.");
       }
       // 👆👆👆 FIN DEL CAMBIO 👆👆👆
       // Mapeo
@@ -216,18 +206,12 @@ export function initializeAuthListener() {
       console.log("║ 🧠 ZOLVER BRAIN: DECISIÓN DE ESTADO                ║");
       console.log("╠════════════════════════════════════════════════════╣");
       console.log(`║ 👤 Usuario:      ${appUser.displayName || "Sin Nombre"}`);
-      console.log(
-        `║ 📱 Teléfono:     ${
-          backendSession.phone ? "✅ Verificado" : "❌ Faltante"
-        }`
-      );
+      console.log(`║ 📱 Teléfono:     ${backendSession.phone ? "✅ Verificado" : "❌ Faltante"}`);
       console.log(`║ 🎭 Rol:          ${backendSession.role || "❌ Sin Rol"}`);
 
       if (backendSession.role === "professional") {
         const profType = backendSession.type_work;
-        console.log(
-          `║ 🛠  Modo Trabajo: ${profType ? profType.toUpperCase() : "N/A"}`
-        );
+        console.log(`║ 🛠  Modo Trabajo: ${profType ? profType.toUpperCase() : "N/A"}`);
         console.log(`║ 📡 Estado ID:    ${backendSession.identityStatus}`);
 
         // Guardado en Store del Profesional
@@ -246,10 +230,7 @@ export function initializeAuthListener() {
 
       setStatus(nextStatus);
     } catch (error) {
-      console.error(
-        "🔴 [AuthListener] Error crítico durante la sincronización:",
-        error
-      );
+      console.error("🔴 [AuthListener] Error crítico durante la sincronización:", error);
       setUser(null);
       setStatus("unknown");
     } finally {
@@ -274,7 +255,8 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
 
     const token = await user.getIdToken();
 
-    const res = await fetch(
+    const { fetchWithTimeout } = await import("@/appSRC/utils/fetchWithTimeout");
+    const res = await fetchWithTimeout(
       `${process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS}/update-user-identity`,
       {
         method: "POST",
@@ -283,7 +265,7 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ legal_name: fullName }),
-      }
+      },
     );
 
     if (!res.ok) {
@@ -354,24 +336,18 @@ export async function signInWithAppleFirebase(): Promise<SignInResult> {
 }
 
 WebBrowser.maybeCompleteAuthSession();
-export async function signInWithGoogleCredential(
-  idToken: string
-): Promise<SignInResult> {
+export async function signInWithGoogleCredential(idToken: string): Promise<SignInResult> {
   const { setBootLoading } = useAuthStore.getState();
 
   try {
     // 🔒 BLOQUEO: El usuario ya volvió de Google, empieza el handshake con Firebase
-    console.log(
-      "🔒 [AuthService] Google Credential recibida. Bloqueando UI..."
-    );
+    console.log("🔒 [AuthService] Google Credential recibida. Bloqueando UI...");
     setBootLoading(true);
 
     const credential = GoogleAuthProvider.credential(idToken);
     await signInWithCredential(auth, credential);
 
-    console.log(
-      "✅ [AuthService] Google Sign-In exitoso. Esperando AuthListener..."
-    );
+    console.log("✅ [AuthService] Google Sign-In exitoso. Esperando AuthListener...");
     // Dejamos que el Listener desbloquee la UI
 
     return { ok: true, user: mapFirebaseUserToAuthUser(auth.currentUser!) };
@@ -406,7 +382,9 @@ export async function signOutFirebase(): Promise<void> {
 // =========================================================
 
 const ACTION_CODE_SETTINGS = {
-  url: process.env.EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL ?? "https://thezolverapp.web.app/auth/email-link",
+  url:
+    process.env.EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL ??
+    "https://thezolverapp.web.app/auth/email-link",
   handleCodeInApp: true,
   iOS: { bundleId: process.env.EXPO_PUBLIC_IOS_BUNDLE_ID ?? "com.zolver.app" },
   android: {
@@ -416,7 +394,7 @@ const ACTION_CODE_SETTINGS = {
 };
 
 export async function sendSignInLinkToEmailFirebase(
-  email: string
+  email: string,
 ): Promise<{ ok: boolean; message?: string }> {
   try {
     await sendSignInLinkToEmail(auth, email, ACTION_CODE_SETTINGS);
@@ -428,9 +406,7 @@ export async function sendSignInLinkToEmailFirebase(
   }
 }
 
-export async function handleSignInWithEmailLinkFirebase(
-  url: string
-): Promise<SignInResult> {
+export async function handleSignInWithEmailLinkFirebase(url: string): Promise<SignInResult> {
   try {
     if (!isSignInWithEmailLink(auth, url)) {
       return { ok: false, message: "URL is not a valid sign-in link" };

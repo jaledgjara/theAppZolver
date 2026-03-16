@@ -1,7 +1,12 @@
 // Verifies HMAC-SHA256 JWTs issued by session-sync (custom Supabase tokens).
 // Mirrors verifyFirebaseJWT.ts but for symmetric HMAC instead of RSA.
 
-const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET") ?? "";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? Deno.env.get("SUPABASE_JWT_SECRET");
+if (!JWT_SECRET) {
+  throw new Error(
+    "CRITICAL: JWT_SECRET or SUPABASE_JWT_SECRET environment variable not configured",
+  );
+}
 
 function base64urlDecode(input: string): Uint8Array {
   let base64 = input.replace(/-/g, "+").replace(/_/g, "/");

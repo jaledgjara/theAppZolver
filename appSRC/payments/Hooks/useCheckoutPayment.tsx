@@ -12,6 +12,7 @@ import { CreatePaymentPayload } from "../Type/PaymentType";
 import { updateBudgetMessageStatusService } from "@/appSRC/messages/Service/MessageService";
 import { createNotification } from "@/appSRC/notifications/Service/NotificationCrudService";
 import { usePlatformFeeRate } from "./usePlatformFeeRate";
+import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
 // ============================================================================
 // CONSTANTES
@@ -24,7 +25,7 @@ const MP_PUBLIC_KEY = process.env.EXPO_PUBLIC_MP_PUBLIC_KEY!;
 const createSavedCardToken = async (providerCardId: string, cvv: string): Promise<string> => {
   console.log("[useCheckoutPayment] Re-tokenizando tarjeta guardada...");
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://api.mercadopago.com/v1/card_tokens?public_key=${MP_PUBLIC_KEY}`,
     {
       method: "POST",
@@ -34,6 +35,7 @@ const createSavedCardToken = async (providerCardId: string, cvv: string): Promis
         security_code: cvv,
       }),
     },
+    20000, // 20s for MP API
   );
 
   const data = await response.json();

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme";
@@ -23,8 +23,15 @@ export const ProfessionalChatFooter: React.FC<ProfessionalChatFooterProps> = ({
   const [disabled, setDisabled] = useState(false);
   const cooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearTimeout(cooldownRef.current);
+    };
+  }, []);
+
   const sendWithCooldown = (text: string) => {
     if (disabled) return;
+    if (cooldownRef.current) clearTimeout(cooldownRef.current);
     setDisabled(true);
     onSendQuickMessage(text);
     cooldownRef.current = setTimeout(() => setDisabled(false), COOLDOWN_MS);

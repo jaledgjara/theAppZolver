@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 
 // Rate limit: 30 notifications per minute per IP
 const RATE_LIMIT = { maxRequests: 30, windowMs: 60_000 };
@@ -36,12 +38,8 @@ const RATE_LIMIT = { maxRequests: 30, windowMs: 60_000 };
 //
 // ============================================================================
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   // CORS Preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -56,7 +54,21 @@ serve(async (req) => {
 
   try {
     // ------------------------------------------------------------------
-    // 1. INICIALIZACIÓN
+    // 1. AUTENTICACIÓN
+    // ------------------------------------------------------------------
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return Response.json(
+        { success: false, error: "Missing Authorization header" },
+        { status: 401, headers: corsHeaders },
+      );
+    }
+    const jwtToken = authHeader.replace("Bearer ", "").trim();
+    const jwtPayload = await verifySupabaseJWT(jwtToken);
+    const senderUid = jwtPayload.firebase_uid;
+
+    // ------------------------------------------------------------------
+    // 2. INICIALIZACIÓN
     // ------------------------------------------------------------------
     // Usamos service_role_key para bypass RLS.
     // Esto nos permite:
@@ -69,7 +81,7 @@ serve(async (req) => {
     );
 
     // ------------------------------------------------------------------
-    // 2. PARSEAR Y VALIDAR PAYLOAD
+    // 3. PARSEAR Y VALIDAR PAYLOAD
     // ------------------------------------------------------------------
     const { user_id, title, body, type, data } = await req.json();
 
@@ -80,10 +92,39 @@ serve(async (req) => {
       );
     }
 
-    console.log(`📨 [send-notification] Para: ${user_id} | Tipo: ${type}`);
+    // ------------------------------------------------------------------
+    // 3b. AUTORIZACIÓN: sender must be involved with the recipient
+    // ------------------------------------------------------------------
+    // Verify the sender has a legitimate relationship with the recipient
+    // (they share a reservation or conversation). This prevents arbitrary
+    // notification injection.
+    // ------------------------------------------------------------------
+    if (senderUid !== user_id) {
+      // Check if sender and recipient share a reservation
+      const { data: sharedReservation } = await supabaseAdmin
+        .from("reservations")
+        .select("id")
+        .or(
+          `and(client_id.eq.${senderUid},professional_id.eq.${user_id}),and(client_id.eq.${user_id},professional_id.eq.${senderUid})`,
+        )
+        .limit(1)
+        .maybeSingle();
+
+      if (!sharedReservation) {
+        console.warn(
+          `[send-notification] Unauthorized: ${senderUid} has no relationship with ${user_id}`,
+        );
+        return Response.json(
+          { success: false, error: "Not authorized to notify this user" },
+          { status: 403, headers: corsHeaders },
+        );
+      }
+    }
+
+    console.log(`📨 [send-notification] Para: ${user_id} | Tipo: ${type} | From: ${senderUid}`);
 
     // ------------------------------------------------------------------
-    // 3. INSERT EN TABLA 'notifications'
+    // 4. INSERT EN TABLA 'notifications'
     // ------------------------------------------------------------------
     // Esto crea el registro en el historial in-app.
     // El usuario lo verá cuando abra la pantalla de notificaciones.

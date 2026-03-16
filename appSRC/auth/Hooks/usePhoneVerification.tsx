@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
 export function usePhoneVerification() {
   const [loading, setLoading] = useState(false);
@@ -12,10 +13,7 @@ export function usePhoneVerification() {
 
   const functionsBase =
     process.env.EXPO_PUBLIC_SUPABASE_FUNCTIONS_URL ??
-    process.env.EXPO_PUBLIC_SUPABASE_URL!.replace(
-      ".supabase.co",
-      ".functions.supabase.co"
-    );
+    process.env.EXPO_PUBLIC_SUPABASE_URL!.replace(".supabase.co", ".functions.supabase.co");
 
   // -------------------------------
   // 1) SEND CODE
@@ -25,7 +23,7 @@ export function usePhoneVerification() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`${functionsBase}/send-verification`, {
+      const res = await fetchWithTimeout(`${functionsBase}/send-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +43,8 @@ export function usePhoneVerification() {
       console.log("[sendCode] Response status:", res.status, "data:", JSON.stringify(data));
 
       if (!res.ok || data.error) {
-        const errorMsg = data.error || data.details?.message || `Error del servidor (${res.status})`;
+        const errorMsg =
+          data.error || data.details?.message || `Error del servidor (${res.status})`;
         throw new Error(errorMsg);
       }
 
@@ -67,7 +66,7 @@ export function usePhoneVerification() {
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`${functionsBase}/check-verification`, {
+      const res = await fetchWithTimeout(`${functionsBase}/check-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

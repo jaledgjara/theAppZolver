@@ -1,4 +1,5 @@
 import { auth } from "@/APIconfig/firebaseAPIConfig";
+import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
 export type BackendSession = {
   ok: boolean;
@@ -32,13 +33,17 @@ export async function syncUserSession(): Promise<BackendSession | null> {
 
     // 2. Llamada al Puente
     const start = Date.now();
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // 👈 Aquí viaja el Token
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+      20000,
+    ); // 20s — critical boot path
     const duration = Date.now() - start;
 
     if (!res.ok) {

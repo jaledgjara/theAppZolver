@@ -199,8 +199,37 @@ serve(async (req) => {
     // -----------------------------------------------------------------------
 
     // A. Fee calculation (must happen BEFORE payment body)
-    const platformFeeAmount = Number(amount);
+    // Server-side fee re-validation: fetch actual rate from DB, don't trust client
     const serviceSubtotal = Number(subtotal) || 0;
+    if (serviceSubtotal <= 0) {
+      throw new Error("El subtotal del servicio debe ser mayor a cero.");
+    }
+
+    const { data: feeSetting } = await supabaseClient
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "platform_fee_rate")
+      .single();
+
+    const serverFeeRate = feeSetting ? Number(feeSetting.value) : 0.05;
+    const serverCalculatedFee = Math.round(serviceSubtotal * serverFeeRate);
+    const clientSentFee = Number(amount);
+
+    // Allow 1 peso rounding tolerance, reject manipulation
+    if (Math.abs(clientSentFee - serverCalculatedFee) > 1) {
+      console.error(
+        `[Zolver-Edge] Fee mismatch: client sent ${clientSentFee}, server calculated ${serverCalculatedFee} (rate=${serverFeeRate}, subtotal=${serviceSubtotal})`,
+      );
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "El monto de la comisión no coincide. Reiniciá el proceso de pago.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+      );
+    }
+
+    const platformFeeAmount = serverCalculatedFee;
     const totalAmount = serviceSubtotal + platformFeeAmount;
 
     console.log(
@@ -257,7 +286,7 @@ serve(async (req) => {
       headers: {
         Authorization: `Bearer ${mpAccessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": crypto.randomUUID(),
+        "X-Idempotency-Key": `zolver_${user_id}_${professional_id}_${start_date}_${platformFeeAmount}`,
       },
       body: JSON.stringify(paymentBody),
     });
@@ -356,7 +385,7 @@ serve(async (req) => {
         headers: {
           Authorization: `Bearer ${mpAccessToken}`,
           "Content-Type": "application/json",
-          "X-Idempotency-Key": crypto.randomUUID(),
+          "X-Idempotency-Key": `zolver_refund_res_${paymentResult.id}`,
         },
       });
 
@@ -409,7 +438,7 @@ serve(async (req) => {
           headers: {
             Authorization: `Bearer ${mpAccessToken}`,
             "Content-Type": "application/json",
-            "X-Idempotency-Key": crypto.randomUUID(),
+            "X-Idempotency-Key": `zolver_refund_pay_${paymentResult.id}`,
           },
         });
         console.log(`[Zolver-Edge] Rollback refund sent for MP ID: ${paymentResult.id}`);
