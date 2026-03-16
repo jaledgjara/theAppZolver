@@ -4,6 +4,7 @@ import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { isValidRole, isValidString } from "../_shared/validate.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 10 requests per minute per IP
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
@@ -14,23 +15,27 @@ const supabaseAdmin = createClient(
 );
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
   // Rate limiting
   const ip = getClientIP(req);
   const rateCheck = checkRateLimit(ip, RATE_LIMIT);
   if (!rateCheck.allowed) {
-    return rateLimitResponse(rateCheck.retryAfterMs, {});
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
   }
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return Response.json({ error: "Missing token" }, { status: 401 });
+    if (!authHeader)
+      return Response.json({ error: "Missing token" }, { status: 401, headers: corsHeaders });
 
     const token = authHeader.replace("Bearer ", "").trim();
     let payload;
     try {
       payload = await verifySupabaseJWT(token);
     } catch {
-      return Response.json({ error: "Invalid token" }, { status: 401 });
+      return Response.json({ error: "Invalid token" }, { status: 401, headers: corsHeaders });
     }
 
     const uid = payload.firebase_uid;
@@ -47,15 +52,21 @@ serve(async (req) => {
 
     // Input validation
     if (!isValidRole(role)) {
-      return Response.json({ error: "Invalid role" }, { status: 400 });
+      return Response.json({ error: "Invalid role" }, { status: 400, headers: corsHeaders });
     }
 
     if (legal_name !== null && !isValidString(legal_name, 100)) {
-      return Response.json({ error: "Invalid name: must be 1-100 characters" }, { status: 400 });
+      return Response.json(
+        { error: "Invalid name: must be 1-100 characters" },
+        { status: 400, headers: corsHeaders },
+      );
     }
 
     if (phone !== null && typeof phone === "string" && phone.length > 20) {
-      return Response.json({ error: "Invalid phone format" }, { status: 400 });
+      return Response.json(
+        { error: "Invalid phone format" },
+        { status: 400, headers: corsHeaders },
+      );
     }
 
     const profileComplete = role === "client";
@@ -131,9 +142,12 @@ serve(async (req) => {
       identityStatus = prof?.identity_status ?? "pending";
     }
 
-    return Response.json({ ok: true, ...row, identityStatus }, { status: 200 });
+    return Response.json(
+      { ok: true, ...row, identityStatus },
+      { status: 200, headers: corsHeaders },
+    );
   } catch (err: unknown) {
     console.log("ERROR:", getErrorMessage(err));
-    return Response.json({ error: getErrorMessage(err) }, { status: 500 });
+    return Response.json({ error: getErrorMessage(err) }, { status: 500, headers: corsHeaders });
   }
 });

@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
+import { auth } from "@/APIconfig/firebaseAPIConfig";
 
 export function usePhoneVerification() {
   const [loading, setLoading] = useState(false);
@@ -23,11 +24,14 @@ export function usePhoneVerification() {
       setLoading(true);
       setError(null);
 
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("No hay sesión activa");
+
       const res = await fetchWithTimeout(`${functionsBase}/send-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ phone }),
       });
@@ -66,11 +70,14 @@ export function usePhoneVerification() {
       setLoading(true);
       setError(null);
 
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("No hay sesión activa");
+
       const res = await fetchWithTimeout(`${functionsBase}/check-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ phone, code }),
       });

@@ -8,6 +8,7 @@ import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateL
  * CONFIGURACIÓN DE CABECERAS (CORS)
  */
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchWithTimeout } from "../_shared/fetchWithTimeout.ts";
 
 // Rate limit: 5 payment attempts per minute per IP
 const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
@@ -281,15 +282,19 @@ serve(async (req) => {
     );
 
     // D. Process payment via MP REST API
-    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${mpAccessToken}`,
-        "Content-Type": "application/json",
-        "X-Idempotency-Key": `zolver_${user_id}_${professional_id}_${start_date}_${platformFeeAmount}`,
+    const mpResponse = await fetchWithTimeout(
+      "https://api.mercadopago.com/v1/payments",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${mpAccessToken}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `zolver_${user_id}_${professional_id}_${start_date}_${platformFeeAmount}`,
+        },
+        body: JSON.stringify(paymentBody),
       },
-      body: JSON.stringify(paymentBody),
-    });
+      20000,
+    );
 
     const paymentResult = await mpResponse.json();
 
@@ -380,14 +385,18 @@ serve(async (req) => {
       );
 
       // Devolvemos la plata inmediatamente porque no pudimos guardar la reserva
-      await fetch(`https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${mpAccessToken}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": `zolver_refund_res_${paymentResult.id}`,
+      await fetchWithTimeout(
+        `https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${mpAccessToken}`,
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": `zolver_refund_res_${paymentResult.id}`,
+          },
         },
-      });
+        15000,
+      );
 
       throw new Error(`Error interno guardando reserva. Se ha procesado el reembolso automático.`);
     }
@@ -433,14 +442,18 @@ serve(async (req) => {
 
       // Rollback 1: Refund Mercado Pago
       try {
-        await fetch(`https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${mpAccessToken}`,
-            "Content-Type": "application/json",
-            "X-Idempotency-Key": `zolver_refund_pay_${paymentResult.id}`,
+        await fetchWithTimeout(
+          `https://api.mercadopago.com/v1/payments/${paymentResult.id}/refunds`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${mpAccessToken}`,
+              "Content-Type": "application/json",
+              "X-Idempotency-Key": `zolver_refund_pay_${paymentResult.id}`,
+            },
           },
-        });
+          15000,
+        );
         console.log(`[Zolver-Edge] Rollback refund sent for MP ID: ${paymentResult.id}`);
       } catch (refundErr: unknown) {
         console.error(

@@ -5,6 +5,7 @@ import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchWithTimeout } from "../_shared/fetchWithTimeout.ts";
 
 // Rate limit: 5 cancellation/refund requests per minute per IP
 const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
@@ -235,7 +236,7 @@ serve(async (req) => {
           `[Zolver-Refund] REFUND approved payment. MP ID: ${mpPaymentId}, amount: ${paymentRecord.amount}`,
         );
 
-        const refundRes = await fetch(
+        const refundRes = await fetchWithTimeout(
           `https://api.mercadopago.com/v1/payments/${mpPaymentId}/refunds`,
           {
             method: "POST",
@@ -246,6 +247,7 @@ serve(async (req) => {
             },
             body: JSON.stringify({ amount: paymentRecord.amount }),
           },
+          15000,
         );
 
         refundData = await refundRes.json();
@@ -271,14 +273,18 @@ serve(async (req) => {
         mpAction = "cancel";
         console.log(`[Zolver-Refund] CANCEL pending payment. MP ID: ${mpPaymentId}`);
 
-        const cancelRes = await fetch(`https://api.mercadopago.com/v1/payments/${mpPaymentId}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${mpAccessToken}`,
-            "Content-Type": "application/json",
+        const cancelRes = await fetchWithTimeout(
+          `https://api.mercadopago.com/v1/payments/${mpPaymentId}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${mpAccessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: "cancelled" }),
           },
-          body: JSON.stringify({ status: "cancelled" }),
-        });
+          15000,
+        );
 
         const cancelData = await cancelRes.json();
 

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { isValidPhoneAR } from "../_shared/validate.ts";
 
 // Rate limit: 5 SMS per minute per IP (prevent SMS bombing)
 const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
@@ -12,10 +14,26 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Auth: require Firebase JWT (user must be signed in before phone verification)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    try {
+      await verifyFirebaseJWT(authHeader.replace("Bearer ", "").trim());
+    } catch {
+      return json({ error: "Invalid token" }, 401);
+    }
+
     const { phone } = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     if (!phone || typeof phone !== "string") {
       return json({ error: "Phone is required" }, 400);
+    }
+
+    if (!isValidPhoneAR(phone)) {
+      return json(
+        { error: "Formato de teléfono inválido. Usá +54 seguido de 10-11 dígitos." },
+        400,
+      );
     }
 
     const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "production";

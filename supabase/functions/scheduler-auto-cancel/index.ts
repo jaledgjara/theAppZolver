@@ -1,8 +1,37 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
+import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+
+// Rate limit: 5 requests per minute per IP (defense in depth)
+const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 
 serve(async (req) => {
+  // Rate limiting
+  const ip = getClientIP(req);
+  const rateCheck = checkRateLimit(ip, RATE_LIMIT);
+  if (!rateCheck.allowed) {
+    return rateLimitResponse(rateCheck.retryAfterMs, { "Content-Type": "application/json" });
+  }
+
+  // Verify CRON_SECRET — only scheduled invocations should call this
+  const CRON_SECRET = Deno.env.get("CRON_SECRET");
+  if (!CRON_SECRET) {
+    console.error("[scheduler-auto-cancel] CRON_SECRET not configured");
+    return new Response(JSON.stringify({ error: "Server misconfiguration" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // 1. Cliente Admin (Service Role necesario para leer todo y cancelar)
     const supabase = createClient(

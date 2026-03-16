@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
+import { isValidPhoneAR } from "../_shared/validate.ts";
 
 // Rate limit: 10 attempts per minute per IP (prevent brute force on codes)
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
@@ -12,10 +14,30 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Auth: require Firebase JWT (user must be signed in before phone verification)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ valid: false, error: "Unauthorized" }, 401);
+    try {
+      await verifyFirebaseJWT(authHeader.replace("Bearer ", "").trim());
+    } catch {
+      return json({ valid: false, error: "Invalid token" }, 401);
+    }
+
     const { phone, code } = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     if (!phone || !code) {
       return json({ valid: false, error: "Phone and code are required" }, 400);
+    }
+
+    if (typeof phone === "string" && !isValidPhoneAR(phone)) {
+      return json(
+        { valid: false, error: "Formato de teléfono inválido. Usá +54 seguido de 10-11 dígitos." },
+        400,
+      );
+    }
+
+    if (typeof code === "string" && (code.length < 4 || code.length > 8)) {
+      return json({ valid: false, error: "Código inválido" }, 400);
     }
 
     const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "production";

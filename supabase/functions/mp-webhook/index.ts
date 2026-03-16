@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { fetchWithTimeout } from "../_shared/fetchWithTimeout.ts";
 
 // ============================================================================
 // EDGE FUNCTION: mp-webhook
@@ -214,9 +215,13 @@ serve(async (req) => {
       });
     }
 
-    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { Authorization: `Bearer ${mpAccessToken}` },
-    });
+    const mpRes = await fetchWithTimeout(
+      `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      {
+        headers: { Authorization: `Bearer ${mpAccessToken}` },
+      },
+      15000,
+    );
 
     if (!mpRes.ok) {
       const errBody = await mpRes.text();

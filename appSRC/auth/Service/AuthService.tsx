@@ -22,10 +22,10 @@ import { setSupabaseAuthToken, supabase } from "@/appSRC/services/supabaseClient
 import { AppState } from "react-native";
 
 // =========================================================
-// 0. Token Refresh (JWT expires in 24h, refresh after 20h)
+// 0. Token Refresh (JWT expires in 2h, refresh after 90min)
 // =========================================================
 
-const TOKEN_STALE_MS = 20 * 60 * 60 * 1000; // 20 hours
+const TOKEN_STALE_MS = 90 * 60 * 1000; // 90 minutes
 let lastTokenSyncTimestamp = 0;
 
 function markTokenSynced(): void {
@@ -59,7 +59,17 @@ export function initializeTokenRefreshListener(): () => void {
       refreshTokenIfNeeded();
     }
   });
-  return () => subscription.remove();
+  // Periodic refresh: check every 60min for users who keep the app open
+  const intervalId = setInterval(
+    () => {
+      refreshTokenIfNeeded();
+    },
+    60 * 60 * 1000,
+  );
+  return () => {
+    subscription.remove();
+    clearInterval(intervalId);
+  };
 }
 
 // =========================================================

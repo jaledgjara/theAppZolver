@@ -7,6 +7,7 @@ import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { isValidEmail, isValidDNI, validationError } from "../_shared/validate.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchWithTimeout } from "../_shared/fetchWithTimeout.ts";
 
 // Rate limit: 10 requests per minute per IP
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
@@ -52,8 +53,8 @@ serve(async (req) => {
     if (!email || !isValidEmail(email)) {
       return validationError("Invalid or missing email in authentication token", corsHeaders);
     }
-    if (dni && !isValidDNI(dni)) {
-      return validationError("Invalid DNI format (expected 7-8 digits)", corsHeaders);
+    if (!dni || !isValidDNI(dni)) {
+      return validationError("DNI es requerido (7-8 dígitos)", corsHeaders);
     }
     if (!token || typeof token !== "string") {
       return validationError("Missing or invalid card token", corsHeaders);
@@ -86,9 +87,10 @@ serve(async (req) => {
       console.log(`[save-payment-method] Reusing existing customer: ${customerId}`);
     } else {
       // Search MP by email
-      const searchRes = await fetch(
+      const searchRes = await fetchWithTimeout(
         `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(email)}`,
         { headers: { Authorization: `Bearer ${mpAccessToken}` } },
+        15000,
       );
       const searchData = await searchRes.json();
 
@@ -109,14 +111,18 @@ serve(async (req) => {
       } else {
         // No match — create new customer
         console.log(`[save-payment-method] Creando Customer nuevo...`);
-        const createRes = await fetch("https://api.mercadopago.com/v1/customers", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${mpAccessToken}`,
+        const createRes = await fetchWithTimeout(
+          "https://api.mercadopago.com/v1/customers",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${mpAccessToken}`,
+            },
+            body: JSON.stringify({ email }),
           },
-          body: JSON.stringify({ email }),
-        });
+          15000,
+        );
         const newCust = await createRes.json();
         customerId = newCust.id;
         console.log(`[save-payment-method] Nuevo Customer ID: ${customerId}`);
@@ -127,14 +133,18 @@ serve(async (req) => {
     // Como el frontend ya inyectó el issuer/brand en el token, aquí solo enviamos el token.
     console.log(`📤 [Backend] Guardando tarjeta en MP...`);
 
-    const saveRes = await fetch(`https://api.mercadopago.com/v1/customers/${customerId}/cards`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${mpAccessToken}`,
+    const saveRes = await fetchWithTimeout(
+      `https://api.mercadopago.com/v1/customers/${customerId}/cards`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${mpAccessToken}`,
+        },
+        body: JSON.stringify({ token: token }),
       },
-      body: JSON.stringify({ token: token }), // <--- SOLO TOKEN
-    });
+      15000,
+    );
 
     const cardData = await saveRes.json();
 
