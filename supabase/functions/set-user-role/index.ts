@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { isValidRole, isValidString } from "../_shared/validate.ts";
@@ -33,12 +33,13 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "").trim();
     let payload;
     try {
-      payload = await verifySupabaseJWT(token);
+      payload = await verifyFirebaseJWT(token);
     } catch {
       return Response.json({ error: "Invalid token" }, { status: 401, headers: corsHeaders });
     }
 
-    const uid = payload.firebase_uid;
+    // Firebase JWT: sub = Firebase UID, email = user's email
+    const uid = payload.sub;
     const email = payload.email ?? null;
     const provider = "firebase";
 
