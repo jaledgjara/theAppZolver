@@ -4,6 +4,7 @@ import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { fetchWithTimeout } from "../_shared/fetchWithTimeout.ts";
 
 // Rate limit: 10 requests per minute per IP
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
@@ -82,12 +83,13 @@ serve(async (req) => {
     console.log(
       `[delete-payment-method] Deleting card ${provider_card_id} from MP customer ${provider_customer_id}`,
     );
-    const mpRes = await fetch(
+    const mpRes = await fetchWithTimeout(
       `https://api.mercadopago.com/v1/customers/${provider_customer_id}/cards/${provider_card_id}`,
       {
         method: "DELETE",
         headers: { Authorization: `Bearer ${mpAccessToken}` },
       },
+      15000,
     );
 
     if (!mpRes.ok) {

@@ -1,13 +1,11 @@
 // appSRC/auth/Service/SupabaseAuthService.tsx
-import { auth } from "@/APIconfig/firebaseAPIConfig"; //
+import { auth } from "@/APIconfig/firebaseAPIConfig";
+import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
 // ------------------------------------------------------------------
 // 1. SAVE USER ROLE (Solo actualiza Rol y Teléfono)
 // ------------------------------------------------------------------
-export async function saveUserRole(
-  role: "client" | "professional",
-  phone: string | null
-) {
+export async function saveUserRole(role: "client" | "professional", phone: string | null) {
   try {
     console.log("🔵 [saveUserRole] START");
 
@@ -35,14 +33,18 @@ export async function saveUserRole(
 
     console.log("📦 [saveUserRole] Sending role update...", { role, phone });
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body,
       },
-      body,
-    });
+      15000,
+    );
 
     const data = await res.json();
 
@@ -78,14 +80,18 @@ export async function updateUserLegalName(legalName: string) {
       legal_name: legalName,
     });
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body,
       },
-      body,
-    });
+      15000,
+    );
 
     if (!res.ok) {
       const errorData = await res.json();
