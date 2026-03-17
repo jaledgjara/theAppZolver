@@ -2,6 +2,8 @@ import { supabase } from "@/appSRC/services/supabaseClient";
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 import type { OnboardingState } from "../Type/ProfessionalAuthUser";
 
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
 // Helper robusto usando FormData (Estándar en React Native)
 const uploadFile = async (uri: string | null, path: string) => {
   if (!uri) {
@@ -30,9 +32,7 @@ const uploadFile = async (uri: string | null, path: string) => {
       throw error;
     }
 
-    const { data: UrlData } = supabase.storage
-      .from("professional_docs")
-      .getPublicUrl(path);
+    const { data: UrlData } = supabase.storage.from("professional_docs").getPublicUrl(path);
 
     console.log(`✅ [Upload] Éxito: ${UrlData.publicUrl}`);
     return UrlData.publicUrl;
@@ -57,10 +57,7 @@ export const ProfessionalProfileService = {
     // 1. Obtener Token de Firebase para la Edge Function
     const token = await auth.currentUser?.getIdToken(true);
     if (!token) throw new Error("No Firebase Token available");
-    console.log(
-      "🔑 Token obtenido (first 10):",
-      token.substring(0, 10) + "..."
-    );
+    console.log("🔑 Token obtenido (first 10):", token.substring(0, 10) + "...");
 
     // 2. Subir Documentos
     // Use storageId (Postgres UUID = auth.uid() in Supabase JWT) for storage paths
@@ -81,25 +78,17 @@ export const ProfessionalProfileService = {
 
     // 3. Subir Portafolio
     console.log("📤 [Service] Subiendo portafolio...");
-    const portfolioUploads = (profileData.portfolioUris || []).map(
-      (uri: string, index: number) =>
-        uploadFile(uri, `${pathId}/portfolio/img_${index}.jpg`)
+    const portfolioUploads = (profileData.portfolioUris || []).map((uri: string, index: number) =>
+      uploadFile(uri, `${pathId}/portfolio/img_${index}.jpg`),
     );
-    const portfolioUrls = (await Promise.all(portfolioUploads)).filter(
-      (url) => url !== null
-    );
+    const portfolioUrls = (await Promise.all(portfolioUploads)).filter((url) => url !== null);
 
-    console.log(
-      "✅ [Service] Archivos subidos. Preparando llamada a Edge Function..."
-    );
+    console.log("✅ [Service] Archivos subidos. Preparando llamada a Edge Function...");
 
     // 4. Llamar a la Edge Function
     const functionsBase =
       process.env.EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS ||
-      process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(
-        ".co",
-        ".co/functions/v1"
-      ) ||
+      process.env.EXPO_PUBLIC_SUPABASE_URL?.replace(".co", ".co/functions/v1") ||
       "";
 
     const url = `${functionsBase}/save-profile`;
@@ -118,7 +107,8 @@ export const ProfessionalProfileService = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // 🔥 TOKEN DE FIREBASE
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_ANON_KEY,
       },
       body: JSON.stringify(payload),
     });

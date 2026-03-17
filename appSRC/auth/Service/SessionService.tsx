@@ -1,6 +1,8 @@
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
 export type BackendSession = {
   ok: boolean;
   uid: string;
@@ -40,6 +42,7 @@ export async function syncUserSession(): Promise<BackendSession | null> {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
         },
       },
       20000,

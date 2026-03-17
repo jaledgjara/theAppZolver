@@ -30,7 +30,8 @@
       "Bash(sips -g pixelWidth -g pixelHeight /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/icon.png /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/expo-icons/adaptive-icon.png)",
       "Bash(npm test:*)",
       "Bash(npm info:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
     ]
   }
 }

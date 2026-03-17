@@ -54,3 +54,12 @@ verify_jwt = false
 
 [functions.check-verification]
 verify_jwt = false
+
+[functions.set-user-role]
+verify_jwt = false
+
+[functions.update-user-identity]
+verify_jwt = false
+
+[functions.save-profile]
+verify_jwt = false

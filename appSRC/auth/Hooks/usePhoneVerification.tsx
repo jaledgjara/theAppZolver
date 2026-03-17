@@ -5,6 +5,8 @@ import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
 export function usePhoneVerification() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,7 @@ export function usePhoneVerification() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({ phone }),
       });
@@ -78,6 +81,7 @@ export function usePhoneVerification() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({ phone, code }),
       });

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { verifySupabaseJWT } from "../_shared/verifySupabaseJWT.ts";
+import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 import { getErrorMessage } from "../_shared/errorUtils.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -40,8 +40,8 @@ serve(async (req: Request) => {
     if (!authHeader) throw new Error("Missing Auth Header");
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const payload = await verifySupabaseJWT(token);
-    const userId = payload.firebase_uid;
+    const payload = await verifyFirebaseJWT(token);
+    const userId = payload.sub;
 
     // 2. Obtener datos
     const body = await req.json();

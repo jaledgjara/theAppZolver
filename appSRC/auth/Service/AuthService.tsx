@@ -273,6 +273,7 @@ export async function updateUserIdentity(fullName: string): Promise<boolean> {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
         },
         body: JSON.stringify({ legal_name: fullName }),
       },
@@ -450,6 +451,24 @@ export async function deleteUserAccount(): Promise<{
     const user = auth.currentUser;
     if (!user) {
       throw new Error("No hay sesión activa para eliminar.");
+    }
+
+    // Pre-check: verify Firebase allows destructive ops BEFORE touching Supabase.
+    // user.delete() requires recent login — test this first so we don't delete
+    // DB data and then fail on Firebase (leaving an inconsistent state).
+    console.log("[DeleteAccount] Step 0: Pre-checking Firebase re-auth requirement...");
+    try {
+      await user.getIdToken(true);
+    } catch (preCheckErr: any) {
+      if (preCheckErr.code === "auth/requires-recent-login") {
+        setBootLoading(false);
+        return {
+          ok: false,
+          message:
+            "Por seguridad, esta acción requiere que inicies sesión nuevamente. Sal de la app y vuelve a entrar.",
+        };
+      }
+      // Other token errors — let the flow continue, delete() will give the real error
     }
 
     console.log("[DeleteAccount] Step 1/3: Calling RPC delete_user_account_safe...");

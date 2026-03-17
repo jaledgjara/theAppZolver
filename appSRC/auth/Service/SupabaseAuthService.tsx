@@ -2,6 +2,8 @@
 import { auth } from "@/APIconfig/firebaseAPIConfig";
 import { fetchWithTimeout } from "@/appSRC/utils/fetchWithTimeout";
 
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+
 // ------------------------------------------------------------------
 // 1. SAVE USER ROLE (Solo actualiza Rol y Teléfono)
 // ------------------------------------------------------------------
@@ -40,6 +42,7 @@ export async function saveUserRole(role: "client" | "professional", phone: strin
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
         },
         body,
       },
@@ -87,6 +90,7 @@ export async function updateUserLegalName(legalName: string) {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
         },
         body,
       },
@@ -94,8 +98,17 @@ export async function updateUserLegalName(legalName: string) {
     );
 
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || "Error updating name");
+      const text = await res.text();
+      console.error("🔴 [updateUserLegalName] Response status:", res.status, "body:", text);
+      let errorMsg = "Error updating name";
+      try {
+        const errorData = JSON.parse(text);
+        if (errorData.error) errorMsg = errorData.error;
+      } catch {
+        // Response wasn't JSON — include status and raw body
+        errorMsg = `Server error (${res.status}): ${text.slice(0, 200)}`;
+      }
+      throw new Error(errorMsg);
     }
 
     console.log("✅ [updateUserLegalName] Name saved!");
