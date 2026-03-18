@@ -40,8 +40,8 @@ const STATUS_CONFIG: Record<VisualStatusType, StatusConfig> = {
     icon: "close-circle",
     color: COLORS.error ?? "#F44336",
     title: "Solicitud Rechazada",
-    desc: "Tu solicitud fue rechazada. Por favor ingresa a www.zolver.com y contacta al soporte al cliente.",
-    btnText: "Ir a Zolver",
+    desc: "Tu solicitud fue rechazada. Por favor ingresa a www.nexofix.com y contacta al soporte al cliente.",
+    btnText: "Ir a NexoFix",
   },
 };
 
@@ -110,7 +110,7 @@ export default function AccountStatusScreen() {
         } else {
           Alert.alert(
             "Verificación pendiente",
-            "Tu perfil aún no ha sido aprobado. Intenta más tarde."
+            "Tu perfil aún no ha sido aprobado. Intenta más tarde.",
           );
         }
       } catch (err) {
@@ -134,7 +134,7 @@ export default function AccountStatusScreen() {
         } else {
           Alert.alert(
             "Verificación pendiente",
-            "Tu perfil aún no ha sido aprobado. Intenta más tarde."
+            "Tu perfil aún no ha sido aprobado. Intenta más tarde.",
           );
         }
       } catch {
@@ -143,8 +143,8 @@ export default function AccountStatusScreen() {
         setLoading(false);
       }
     } else if (visualStatus === "rejected") {
-      console.log(`[AccountStatusScreen] Opening www.zolver.com`);
-      Linking.openURL("https://www.zolver.com");
+      console.log(`[AccountStatusScreen] Opening www.nexofix.com`);
+      Linking.openURL("https://www.nexofix.com");
     }
   };
 
@@ -155,10 +155,8 @@ export default function AccountStatusScreen() {
       <View style={styles.contentContainer}>
         {/* Icono Animado */}
         <Animated.View
-          style={[
-            styles.iconWrapper,
-            { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-          ]}>
+          style={[styles.iconWrapper, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+        >
           <AntDesign name={config.icon} size={100} color={config.color} />
         </Animated.View>
 

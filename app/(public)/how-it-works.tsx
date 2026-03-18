@@ -1,10 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Platform, Dimensions } from "react-native";
-import {
-  Ionicons,
-  FontAwesome6,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { Ionicons, FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 
 // ─── 1. DATA LAYER (Contenido Estático) ───
@@ -35,8 +31,8 @@ const STEPS_DATA = [
 
 const MODELS_DATA = [
   {
-    id: "zolver-ya",
-    title: "Zolver Ya",
+    id: "nexofix-ya",
+    title: "NexoFix Ya",
     subtitle: "Inmediato • Precio por Hora • Estandarizado",
     icon: "flash",
     iconLib: "Ionicons",
@@ -100,8 +96,7 @@ function StepItem({
  * ModelCard: Tarjeta robusta para comparar los modelos de negocio
  */
 function ModelCard({ data }: { data: (typeof MODELS_DATA)[0] }) {
-  const isMobile =
-    Platform.OS !== "web" || Dimensions.get("window").width < 768;
+  const isMobile = Platform.OS !== "web" || Dimensions.get("window").width < 768;
 
   return (
     <View style={[styles.modelCard, { borderTopColor: data.color }]}>
@@ -111,18 +106,12 @@ function ModelCard({ data }: { data: (typeof MODELS_DATA)[0] }) {
           {data.iconLib === "Ionicons" ? (
             <Ionicons name={data.icon as any} size={32} color="#fff" />
           ) : (
-            <MaterialCommunityIcons
-              name={data.icon as any}
-              size={32}
-              color="#fff"
-            />
+            <MaterialCommunityIcons name={data.icon as any} size={32} color="#fff" />
           )}
         </View>
         <View>
           <Text style={styles.modelTitle}>{data.title}</Text>
-          <Text style={[styles.modelSubtitle, { color: data.color }]}>
-            {data.subtitle}
-          </Text>
+          <Text style={[styles.modelSubtitle, { color: data.color }]}>{data.subtitle}</Text>
         </View>
       </View>
 
@@ -138,9 +127,7 @@ function ModelCard({ data }: { data: (typeof MODELS_DATA)[0] }) {
 
       {/* Footer "Ideal Para" */}
       <View style={[styles.idealBox, { backgroundColor: `${data.color}10` }]}>
-        <Text style={[styles.idealLabel, { color: data.color }]}>
-          MEJOR PARA:
-        </Text>
+        <Text style={[styles.idealLabel, { color: data.color }]}>MEJOR PARA:</Text>
         <Text style={styles.idealText}>{data.idealFor}</Text>
       </View>
     </View>
@@ -157,9 +144,8 @@ export default function HowItWorksPage() {
         <Text style={styles.tagline}>UNA PLATAFORMA, TODAS LAS SOLUCIONES</Text>
         <Text style={styles.heroTitle}>Tú tienes el control.</Text>
         <Text style={styles.heroDescription}>
-          Zolver elimina la fricción de contratar servicios. Ya sea que
-          necesites una solución inmediata o planificar un proyecto grande,
-          nuestra tecnología se adapta a ti.
+          NexoFix elimina la fricción de contratar servicios. Ya sea que necesites una solución
+          inmediata o planificar un proyecto grande, nuestra tecnología se adapta a ti.
         </Text>
       </View>
 
@@ -179,7 +165,7 @@ export default function HowItWorksPage() {
         </View>
       </View>
 
-      {/* SECTION 3: THE BATTLE (Zolver Ya vs Presupuesto) */}
+      {/* SECTION 3: THE BATTLE (NexoFix Ya vs Presupuesto) */}
       <View style={styles.modelsSection}>
         <Text style={styles.sectionHeader}>Elige cómo contratar</Text>
         <Text style={styles.sectionSubHeader}>
@@ -267,10 +253,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   stepCard: {
-    width:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "30%"
-        : "100%",
+    width: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "30%" : "100%",
     minWidth: 280,
     backgroundColor: COLORS.white,
     padding: 24,
@@ -328,10 +311,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   modelCard: {
-    width:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "45%"
-        : "100%",
+    width: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "45%" : "100%",
     minWidth: 320,
     backgroundColor: COLORS.white,
     borderRadius: 24,

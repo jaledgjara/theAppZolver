@@ -1,13 +1,6 @@
 // app/(professional)/(tabs)/profile/ProfessionalSettingsWorkScreen.tsx
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { StyleSheet, Text, View, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS, SIZES, FONTS } from "@/appASSETS/theme";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
@@ -38,42 +31,29 @@ const ProfessionalSettingsWorkScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}>
-      <ToolBarTitle
-        titleText="Configuración de Trabajo"
-        showBackButton={true}
-      />
+      style={styles.container}
+    >
+      <ToolBarTitle titleText="Configuración de Trabajo" showBackButton={true} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* SECCIÓN 1: MODALIDAD */}
         <View style={styles.card}>
           <Text style={styles.label}>Modalidad de Servicio</Text>
-          <Text style={styles.subLabel}>
-            ¿Cómo quieres recibir solicitudes hoy?
-          </Text>
+          <Text style={styles.subLabel}>¿Cómo quieres recibir solicitudes hoy?</Text>
           {/* Conectado al Hook centralizado */}
-          <ServiceSwitcherCatalog
-            typeWork={typeWork}
-            onSelect={handleSelectMode}
-          />
+          <ServiceSwitcherCatalog typeWork={typeWork} onSelect={handleSelectMode} />
         </View>
 
         {/* SECCIÓN 2: TARIFAS */}
         {(typeWork === "instant" || typeWork === "hybrid") && (
           <View>
-            <Text style={styles.label}>Tus Tarifas Zolver Ya</Text>
-            <Text style={styles.subLabel}>
-              Ajusta tus precios para competir mejor.
-            </Text>
+            <Text style={styles.label}>Tus Tarifas NexoFix Ya</Text>
+            <Text style={styles.subLabel}>Ajusta tus precios para competir mejor.</Text>
             {templates.map((item) => (
               <BaseCard key={item.id} style={styles.skuCard}>
                 <View style={styles.skuHeader}>
                   <Text style={styles.skuLabel}>{item.label}</Text>
-                  <Text style={styles.suggestedLabel}>
-                    Sugerido: ${item.basePrice}
-                  </Text>
+                  <Text style={styles.suggestedLabel}>Sugerido: ${item.basePrice}</Text>
                 </View>
                 <ResizableInput
                   value={customPrices[item.id] || ""}

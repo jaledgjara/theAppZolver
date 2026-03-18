@@ -46,9 +46,7 @@ const ReservationRequestScreen = () => {
   const { services: availableServices, loading: loadingServices } =
     useProfessionalServices(professionalId);
 
-  const [selectedServices, setSelectedServices] = useState<
-    ProfessionalTemplate[]
-  >([]);
+  const [selectedServices, setSelectedServices] = useState<ProfessionalTemplate[]>([]);
   const [description, setDescription] = useState("");
 
   const estimates = useReservationPricing(selectedServices, isInstant);
@@ -80,15 +78,13 @@ const ReservationRequestScreen = () => {
     Alert.alert(
       "Ubicación",
       "Para cambiar la dirección de este servicio, debes gestionarlo desde tus direcciones guardadas.",
-      [{ text: "Cerrar", style: "cancel" }]
+      [{ text: "Cerrar", style: "cancel" }],
     );
   };
 
   const onToggleService = useCallback((item: ProfessionalTemplate) => {
     setSelectedServices((prev) =>
-      prev.find((s) => s.id === item.id)
-        ? prev.filter((s) => s.id !== item.id)
-        : [...prev, item]
+      prev.find((s) => s.id === item.id) ? prev.filter((s) => s.id !== item.id) : [...prev, item],
     );
   }, []);
 
@@ -102,13 +98,15 @@ const ReservationRequestScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-        style={styles.flex1}>
+        style={styles.flex1}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           decelerationRate="fast"
-          bounces={true}>
+          bounces={true}
+        >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <View>
               {/* Header de Profesional */}
@@ -119,11 +117,10 @@ const ReservationRequestScreen = () => {
                   style={[
                     styles.typeBadge,
                     {
-                      backgroundColor: isInstant
-                        ? COLORS.primary + "15"
-                        : "#FFF3E0",
+                      backgroundColor: isInstant ? COLORS.primary + "15" : "#FFF3E0",
                     },
-                  ]}>
+                  ]}
+                >
                   <Ionicons
                     name={isInstant ? "flash" : "document-text"}
                     size={14}
@@ -133,7 +130,8 @@ const ReservationRequestScreen = () => {
                     style={[
                       styles.typeBadgeText,
                       { color: isInstant ? COLORS.primary : "#F57C00" },
-                    ]}>
+                    ]}
+                  >
                     {isInstant ? "Servicio Inmediato" : "Cotización previa"}
                   </Text>
                 </View>
@@ -141,9 +139,7 @@ const ReservationRequestScreen = () => {
 
               {/* SECCIÓN: QuickChips */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                  ¿Qué necesitas realizar?
-                </Text>
+                <Text style={styles.sectionTitle}>¿Qué necesitas realizar?</Text>
                 {loadingServices ? (
                   <ActivityIndicator size="small" color={COLORS.primary} />
                 ) : (
@@ -157,7 +153,7 @@ const ReservationRequestScreen = () => {
 
               {/* Notas */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Notas para el Zolver</Text>
+                <Text style={styles.sectionTitle}>Notas para el profesional</Text>
                 <TextInput
                   style={styles.textArea}
                   placeholder="Ej: El timbre no funciona..."
@@ -172,24 +168,16 @@ const ReservationRequestScreen = () => {
               {/* Ubicación */}
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Dirección del servicio</Text>
-                <TouchableOpacity
-                  style={styles.locationCard}
-                  onPress={handleLocationPress}>
+                <TouchableOpacity style={styles.locationCard} onPress={handleLocationPress}>
                   <View style={styles.locationIcon}>
-                    <Ionicons
-                      name="location"
-                      size={20}
-                      color={COLORS.primary}
-                    />
+                    <Ionicons name="location" size={20} color={COLORS.primary} />
                   </View>
                   <View style={styles.flex1}>
                     <Text style={styles.locTitle}>
                       {activeAddress?.label || "Seleccionar dirección"}
                     </Text>
                     <Text style={styles.locSub}>
-                      {activeAddress
-                        ? formatAddress(activeAddress)
-                        : "Configura tu ubicación"}
+                      {activeAddress ? formatAddress(activeAddress) : "Configura tu ubicación"}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="#CCC" />

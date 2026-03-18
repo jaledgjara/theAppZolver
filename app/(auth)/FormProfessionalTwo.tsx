@@ -135,15 +135,15 @@ const FormProfessionalTwo = () => {
 
           {isZolverYaDisabled && (
             <Text style={styles.warningText}>
-              * La categoría {selectedCategory?.name} no admite servicios inmediatos "Zolver Ya".
+              * La categoría {selectedCategory?.name} no admite servicios inmediatos "NexoFix Ya".
             </Text>
           )}
         </View>
 
-        {/* 5. TARIFAS ZOLVER YA (Condicional) */}
+        {/* 5. TARIFAS NEXOFIX YA (Condicional) */}
         {showPricing && (
           <View style={styles.section}>
-            <Text style={styles.label}>Tus Tarifas Zolver Ya</Text>
+            <Text style={styles.label}>Tus Tarifas NexoFix Ya</Text>
             <Text style={styles.subLabel}>Ajusta tus precios para competir mejor.</Text>
 
             {loadingTemplates ? (

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "zolver",
+    "name": "NexoFix",
     "slug": "zolver",
     "scheme": "zolver",
     "version": "1.0.0",
@@ -19,6 +19,7 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": ["applinks:thezolverapp.web.app"],
       "infoPlist": {
+        "CFBundleDisplayName": "NexoFix",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["comgooglemaps", "waze", "maps", "whatsapp"]
       }

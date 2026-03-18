@@ -13,10 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 
 // Habilitar animaciones en Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -64,8 +61,7 @@ function FaqItem({ item }: { item: (typeof FAQ_DATA)[0] }) {
   return (
     <Pressable style={styles.faqItem} onPress={toggleExpand}>
       <View style={styles.faqHeader}>
-        <Text
-          style={[styles.faqQuestion, expanded && styles.faqQuestionActive]}>
+        <Text style={[styles.faqQuestion, expanded && styles.faqQuestionActive]}>
           {item.question}
         </Text>
         <Ionicons
@@ -102,7 +98,7 @@ function ContactOption({ icon, title, subtitle, action }: any) {
 // ─── 3. PAGE COMPONENT ───
 
 export default function SupportPage() {
-  const handleEmail = () => Linking.openURL("mailto:soporte@zolver.app");
+  const handleEmail = () => Linking.openURL("mailto:soporte@nexofix.app");
   const handleWhatsapp = () => Linking.openURL("https://wa.me/5491100000000"); // Tu número real
 
   return (
@@ -112,8 +108,8 @@ export default function SupportPage() {
         <Text style={styles.tagline}>CENTRO DE AYUDA</Text>
         <Text style={styles.title}>¿Cómo podemos ayudarte?</Text>
         <Text style={styles.subtitle}>
-          Resuelve tus dudas sobre Zolver. Si no encuentras lo que buscas,
-          nuestro equipo está listo para asistirte.
+          Resuelve tus dudas sobre NexoFix. Si no encuentras lo que buscas, nuestro equipo está
+          listo para asistirte.
         </Text>
       </View>
 

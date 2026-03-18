@@ -57,7 +57,7 @@ function ProfessionalNavbar() {
               resizeMode="contain"
             />
             <View style={styles.logoTextColumn}>
-              <Text style={styles.logoBrand}>ZOLVER</Text>
+              <Text style={styles.logoBrand}>NEXOFIX</Text>
               <Text style={styles.logoTagline}>PLATFORMA</Text>
             </View>
           </Pressable>
@@ -92,9 +92,9 @@ function ProfessionalFooter() {
     <View style={styles.footer}>
       <View style={styles.footerContent}>
         <View>
-          <Text style={styles.footerBrand}>ZOLVER</Text>
+          <Text style={styles.footerBrand}>NEXOFIX</Text>
           <Text style={styles.footerText}>
-            © {new Date().getFullYear()} Zolver Platform. Todos los derechos reservados.
+            © {new Date().getFullYear()} NexoFix Platform. Todos los derechos reservados.
           </Text>
         </View>
         <View style={styles.footerLinks}>

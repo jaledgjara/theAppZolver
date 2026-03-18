@@ -59,19 +59,13 @@ export default function ProfessionalPayoutConfigScreen() {
     <View style={styles.container}>
       <ToolBarTitle titleText="Configuración de Cobro" showBackButton={true} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Banner Informativo UX */}
         <View style={styles.infoBanner}>
-          <Ionicons
-            name="information-circle-outline"
-            size={20}
-            color={COLORS.primary}
-          />
+          <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
           <Text style={styles.infoText}>
-            Configura donde recibirás el pago de los clientes. Zolver no cobra
-            comisión sobre tus transferencias directas.
+            Configura donde recibirás el pago de los clientes. NexoFix no cobra comisión sobre tus
+            transferencias directas.
           </Text>
         </View>
 
@@ -79,11 +73,7 @@ export default function ProfessionalPayoutConfigScreen() {
         <BaseCard style={styles.payoutCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardLabel}>TU IDENTIDAD DE COBRO</Text>
-            <Ionicons
-              name="qr-code-outline"
-              size={24}
-              color={COLORS.tertiary}
-            />
+            <Ionicons name="qr-code-outline" size={24} color={COLORS.tertiary} />
           </View>
 
           <Text style={styles.aliasDisplay} numberOfLines={1}>
@@ -92,12 +82,8 @@ export default function ProfessionalPayoutConfigScreen() {
 
           <View style={styles.cardFooter}>
             <View>
-              <Text style={styles.holderDisplay}>
-                {user?.displayName || "Profesional Zolver"}
-              </Text>
-              <Text style={styles.bankNameDisplay}>
-                {localBank || "Entidad no definida"}
-              </Text>
+              <Text style={styles.holderDisplay}>{user?.displayName || "Profesional NexoFix"}</Text>
+              <Text style={styles.bankNameDisplay}>{localBank || "Entidad no definida"}</Text>
             </View>
             <Text style={styles.bankTag}>P2P READY</Text>
           </View>
@@ -106,8 +92,7 @@ export default function ProfessionalPayoutConfigScreen() {
         {/* Formulario de Edición */}
         <View style={styles.formSection}>
           <Text style={styles.inputLabel}>Alias, CBU o CVU</Text>
-          <View
-            style={[styles.inputWrapper, !editMode && styles.disabledInput]}>
+          <View style={[styles.inputWrapper, !editMode && styles.disabledInput]}>
             <TextInput
               placeholder="Ej: mi.alias.mp o CBU..."
               value={localAlias}
@@ -119,8 +104,7 @@ export default function ProfessionalPayoutConfigScreen() {
           </View>
 
           <Text style={styles.inputLabel}>Banco o Billetera Virtual</Text>
-          <View
-            style={[styles.inputWrapper, !editMode && styles.disabledInput]}>
+          <View style={[styles.inputWrapper, !editMode && styles.disabledInput]}>
             <TextInput
               placeholder="Ej: Mercado Pago, Galicia, Brubank..."
               value={localBank}
@@ -132,10 +116,7 @@ export default function ProfessionalPayoutConfigScreen() {
 
           <View>
             {!editMode ? (
-              <LargeButton
-                title="Editar Datos de Cobro"
-                onPress={() => setEditMode(true)}
-              />
+              <LargeButton title="Editar Datos de Cobro" onPress={() => setEditMode(true)} />
             ) : (
               <LargeButton
                 title={saving ? "Guardando..." : "Guardar Cambios"}

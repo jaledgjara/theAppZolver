@@ -7,47 +7,35 @@ const TermsAndConditions = () => {
   return (
     <View style={styles.container}>
       <ToolBarTitle titleText="Términos y Condiciones" showBackButton={true} />
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}>
-        <Text style={styles.date}>
-          Última actualización: 14 de Enero de 2026
-        </Text>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.date}>Última actualización: 14 de Enero de 2026</Text>
 
         <Text style={styles.sectionTitle}>1. Relación Contractual</Text>
         <Text style={styles.body}>
-          Zolver es una plataforma tecnológica de intermediación. Al utilizar la
-          App, usted acepta que Zolver no presta servicios profesionales
-          directamente, sino que actúa como nexo entre Clientes y Profesionales
-          Independientes.
+          NexoFix es una plataforma tecnológica de intermediación. Al utilizar la App, usted acepta
+          que NexoFix no presta servicios profesionales directamente, sino que actúa como nexo entre
+          Clientes y Profesionales Independientes.
         </Text>
 
-        <Text style={styles.sectionTitle}>
-          2. Registro y Validación (Twilio/Firebase)
-        </Text>
+        <Text style={styles.sectionTitle}>2. Registro y Validación (Twilio/Firebase)</Text>
         <Text style={styles.body}>
-          Para garantizar la seguridad, es obligatorio validar su identidad
-          mediante un número telefónico activo. Este proceso se realiza a través
-          de Twilio y Firebase Auth. El usuario es responsable de la veracidad
-          de los datos aportados.
+          Para garantizar la seguridad, es obligatorio validar su identidad mediante un número
+          telefónico activo. Este proceso se realiza a través de Twilio y Firebase Auth. El usuario
+          es responsable de la veracidad de los datos aportados.
         </Text>
 
-        <Text style={styles.sectionTitle}>
-          3. Derecho de Arrepentimiento y Baja
-        </Text>
+        <Text style={styles.sectionTitle}>3. Derecho de Arrepentimiento y Baja</Text>
         <Text style={styles.body}>
-          Conforme a la Ley 24.240 (Art. 34), el usuario tiene derecho a revocar
-          la aceptación del servicio dentro de los 10 días corridos. Zolver
-          incluye un "Botón de Baja" accesible en el perfil para rescindir la
-          cuenta de forma inmediata.
+          Conforme a la Ley 24.240 (Art. 34), el usuario tiene derecho a revocar la aceptación del
+          servicio dentro de los 10 días corridos. NexoFix incluye un "Botón de Baja" accesible en
+          el perfil para rescindir la cuenta de forma inmediata.
         </Text>
 
         <Text style={styles.sectionTitle}>4. Responsabilidad</Text>
         <Text style={styles.body}>
-          Zolver no es responsable por la calidad del trabajo final del
-          Profesional. No obstante, se reserva el derecho de excluir a usuarios
-          que incumplan las normas de trato digno establecidas en el Art. 8 bis
-          de la Ley 24.240.
+          NexoFix no es responsable por la calidad del trabajo final del Profesional. No obstante,
+          se reserva el derecho de excluir a usuarios que incumplan las normas de trato digno
+          establecidas en el Art. 8 bis de la Ley 24.240.
         </Text>
       </ScrollView>
     </View>

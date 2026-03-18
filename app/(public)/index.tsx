@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Platform,
-  Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform, Dimensions } from "react-native";
 import { Link } from "expo-router";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import InfoCard from "@/appCOMP/website/InfoCard";
@@ -26,12 +19,10 @@ export default function LandingPage() {
       <View style={styles.heroSection}>
         <View style={styles.heroContainer}>
           <View style={styles.heroTextColumn}>
-            <Text style={styles.heroTitle}>
-              Soluciones expertas para tu hogar, al instante.
-            </Text>
+            <Text style={styles.heroTitle}>Soluciones expertas para tu hogar, al instante.</Text>
             <Text style={styles.heroSubtitle}>
-              Conectamos tu necesidad con profesionales verificados. Garantía,
-              seguridad y rapidez en una sola plataforma.
+              Conectamos tu necesidad con profesionales verificados. Garantía, seguridad y rapidez
+              en una sola plataforma.
             </Text>
 
             <View style={styles.heroButtons}>
@@ -52,13 +43,13 @@ export default function LandingPage() {
 
       {/* ─── 2. VALUE PROPOSITION ─── */}
       <View style={styles.featuresSection}>
-        <Text style={styles.sectionHeader}>¿Por qué elegir Zolver?</Text>
+        <Text style={styles.sectionHeader}>¿Por qué elegir NexoFix?</Text>
 
         <View style={styles.gridContainer}>
           <InfoCard
             iconName="shield-checkmark-outline"
             title="Profesionales Verificados"
-            description="Cada Zolver pasa por un riguroso proceso de validación de identidad y antecedentes."
+            description="Cada profesional pasa por un riguroso proceso de validación de identidad y antecedentes."
           />
           <InfoCard
             iconName="card-outline"

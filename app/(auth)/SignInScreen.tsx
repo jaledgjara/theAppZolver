@@ -1,42 +1,43 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { useRouter } from 'expo-router';
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar';
-import { COLORS, SIZES } from '@/appASSETS/theme';
-import AuthButton from '@/appSRC/auth/Screen/AuthButton';
-import { Ionicons } from '@expo/vector-icons';
-import { AntDesign } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAuthStore } from '@/appSRC/auth/Store/AuthStore';
-import { useAppleSignIn } from '@/appSRC/auth/Hooks/useAppleSignIn';
-import { useGoogleSignIn } from '@/appSRC/auth/Hooks/useGoogleSignIn';
-import { useSignOut } from '@/appSRC/auth/Hooks/useSignOut';
-
+import { StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { useRouter } from "expo-router";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { COLORS, SIZES } from "@/appASSETS/theme";
+import AuthButton from "@/appSRC/auth/Screen/AuthButton";
+import { Ionicons } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
+import { useAppleSignIn } from "@/appSRC/auth/Hooks/useAppleSignIn";
+import { useGoogleSignIn } from "@/appSRC/auth/Hooks/useGoogleSignIn";
+import { useSignOut } from "@/appSRC/auth/Hooks/useSignOut";
 
 const SignInScreen = () => {
   const router = useRouter();
   const { handleAppleSignIn } = useAppleSignIn();
   const { handleGoogleSignIn } = useGoogleSignIn();
-  
+
   const setStatus = useAuthStore((state) => state.setStatus);
-  
+
   const handleGoBack = () => {
     setStatus("unknown");
   };
 
   const handleSignInEmailScreen = () => {
-    router.push('(auth)/SignInEmailScreen');
-  };  
-  
+    router.push("(auth)/SignInEmailScreen");
+  };
+
   return (
     <View style={styles.container}>
       <ToolBarTitle
-        titleText='¡Conectate a Zolver!'
+        titleText="¡Conectate a NexoFix!"
         showBackButton={true}
         onBackPress={handleGoBack}
       />
       <View style={styles.contentContainer}>
-        <Text style={styles.subtitle}>Accedé a tus servicios y profesionales rápidamente desde tus dispositivos.</Text>
+        <Text style={styles.subtitle}>
+          Accedé a tus servicios y profesionales rápidamente desde tus dispositivos.
+        </Text>
 
         <View style={styles.buttonContainer}>
           {/* <AuthButton
@@ -50,47 +51,46 @@ const SignInScreen = () => {
             title="Continuar con Google"
             icon={<AntDesign name="google" size={22} color="#FFFFFF" />}
             onPress={handleGoogleSignIn}
-            style={{ backgroundColor: '#3872F1', marginBottom: 15 }}
+            style={{ backgroundColor: "#3872F1", marginBottom: 15 }}
             textColor="white"
           />
           <AuthButton
             title="Continuar con Apple"
             icon={<MaterialCommunityIcons name="apple" size={24} color="#FFFFFF" />}
             onPress={handleAppleSignIn}
-            style={{ backgroundColor: '#1A202C', borderColor: '#1A202C' }}
+            style={{ backgroundColor: "#1A202C", borderColor: "#1A202C" }}
             textColor="#FFFFFF"
-          />                 
+          />
         </View>
       </View>
-
     </View>
-  )
-}
+  );
+};
 
-export default SignInScreen
+export default SignInScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white'
+    backgroundColor: "white",
   },
   contentContainer: {
     flex: 1,
-    justifyContent: 'space-between', 
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingBottom: 67,
-    paddingHorizontal: 20
+    paddingHorizontal: 20,
   },
   subtitle: {
     fontSize: SIZES.h2,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     color: COLORS.textSecondary,
     marginTop: 60,
   },
   buttonContainer: {
-    justifyContent: 'center', 
-    alignItems: 'center',
-    width: '100%'
-  }
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
 });

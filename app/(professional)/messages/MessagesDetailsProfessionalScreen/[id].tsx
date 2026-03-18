@@ -66,7 +66,7 @@ const MessagesDetailsProfessionalScreen = () => {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ToolBarTitle titleText={(name as string) || "Zolver Chat"} showBackButton />
+      <ToolBarTitle titleText={(name as string) || "NexoFix Chat"} showBackButton />
 
       <View style={styles.chatArea}>
         {loading ? (

@@ -65,13 +65,14 @@ const ProfessionalDetailsView = () => {
   return (
     <View style={mainStyles.container}>
       <ToolBarTitle
-        titleText={isInstant ? "Zolver Ya" : "Perfil del Profesional"}
+        titleText={isInstant ? "NexoFix Ya" : "Perfil del Profesional"}
         showBackButton
       />
 
       <ScrollView
         contentContainerStyle={mainStyles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         {/* 1. CABECERA UNIFICADA (Con fondo gris y alineación corregida) */}
         <View style={mainStyles.sectionCard}>
           <View style={mainStyles.headerRow}>
@@ -85,9 +86,7 @@ const ProfessionalDetailsView = () => {
               <Text style={mainStyles.proName} numberOfLines={1}>
                 {profile.legal_name}
               </Text>
-              <Text style={mainStyles.proCategory}>
-                {profile.category_name || "Profesional"}
-              </Text>
+              <Text style={mainStyles.proCategory}>{profile.category_name || "Profesional"}</Text>
 
               <View style={mainStyles.ratingRow}>
                 <Ionicons name="star" size={14} color={COLORS.primary} />
@@ -95,11 +94,7 @@ const ProfessionalDetailsView = () => {
                   {profile.rating > 0 ? profile.rating.toFixed(1) : "Nuevo"}
                 </Text>
                 <View style={mainStyles.dotSeparator} />
-                <Ionicons
-                  name="shield-checkmark"
-                  size={14}
-                  color={COLORS.primary}
-                />
+                <Ionicons name="shield-checkmark" size={14} color={COLORS.primary} />
                 <Text style={mainStyles.verifiedText}>Verificado</Text>
               </View>
             </View>
@@ -112,16 +107,15 @@ const ProfessionalDetailsView = () => {
               {
                 backgroundColor: isInstant ? COLORS.primary + "15" : "#FFF3E0",
               },
-            ]}>
+            ]}
+          >
             <Ionicons
               name={isInstant ? "flash" : "document-text"}
               size={12}
               color={COLORS.primary}
             />
             <Text style={[mainStyles.typeBadgeText, { color: COLORS.primary }]}>
-              {isInstant
-                ? "Servicio de Respuesta Inmediata"
-                : "Servicio de Presupuesto "}
+              {isInstant ? "Servicio de Respuesta Inmediata" : "Servicio de Presupuesto "}
             </Text>
           </View>
         </View>
@@ -130,8 +124,7 @@ const ProfessionalDetailsView = () => {
         <View style={mainStyles.sectionCard}>
           <Text style={mainStyles.sectionLabel}>Sobre el profesional</Text>
           <Text style={mainStyles.aboutText}>
-            {profile.biography ||
-              "El profesional no ha proporcionado una descripción todavía."}
+            {profile.biography || "El profesional no ha proporcionado una descripción todavía."}
           </Text>
         </View>
 
@@ -144,14 +137,10 @@ const ProfessionalDetailsView = () => {
         {/* 4. ACCIÓN PRINCIPAL */}
 
         <View style={mainStyles.actionContainer}>
-          {/* Lógica: Solo mostramos cobertura si es Instant (Zolver Ya) */}
+          {/* Lógica: Solo mostramos cobertura si es Instant (NexoFix Ya) */}
           {isInstant && (
             <View style={mainStyles.coverageRow}>
-              <Ionicons
-                name="location"
-                size={16}
-                color={COLORS.textSecondary}
-              />
+              <Ionicons name="location" size={16} color={COLORS.textSecondary} />
               <Text style={mainStyles.footerLabel}>Cobertura: </Text>
               <Text style={mainStyles.footerValue}>
                 {profile.coverage_radius_km || "10"} km a la redonda
@@ -160,7 +149,7 @@ const ProfessionalDetailsView = () => {
           )}
 
           <LargeButton
-            title={isInstant ? "SOLICITAR ZOLVER YA" : "ENVIAR MENSAJE"}
+            title={isInstant ? "SOLICITAR NEXOFIX YA" : "ENVIAR MENSAJE"}
             onPress={handlePrimaryAction}
             loading={isCreatingChat}
           />

@@ -1,11 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/appASSETS/theme";
@@ -19,7 +13,7 @@ const MAX_FEE = 0.5; // 50% max
 export default function AdminSettings() {
   const queryClient = useQueryClient();
   const [localRate, setLocalRate] = useState<number | null>(null);
-  const [savedRate, setSavedRate] = useState<number>(0.10);
+  const [savedRate, setSavedRate] = useState<number>(0.1);
   const initializedRef = useRef(false);
 
   // Fetch current fee rate from DB
@@ -97,8 +91,8 @@ export default function AdminSettings() {
         </View>
 
         <Text style={styles.cardDescription}>
-          Porcentaje que Zolver cobra sobre cada transacción. Se calcula sobre
-          el subtotal del servicio y se suma al monto que paga el cliente.
+          Porcentaje que NexoFix cobra sobre cada transacción. Se calcula sobre el subtotal del
+          servicio y se suma al monto que paga el cliente.
         </Text>
 
         {/* Stepper */}
@@ -107,8 +101,13 @@ export default function AdminSettings() {
             style={[styles.stepperButton, currentRate <= MIN_FEE && styles.stepperButtonDisabled]}
             onPress={decrement}
             disabled={currentRate <= MIN_FEE}
-            activeOpacity={0.6}>
-            <Ionicons name="remove" size={24} color={currentRate <= MIN_FEE ? COLORS.border : COLORS.textPrimary} />
+            activeOpacity={0.6}
+          >
+            <Ionicons
+              name="remove"
+              size={24}
+              color={currentRate <= MIN_FEE ? COLORS.border : COLORS.textPrimary}
+            />
           </TouchableOpacity>
 
           <View style={styles.stepperValueBox}>
@@ -119,8 +118,13 @@ export default function AdminSettings() {
             style={[styles.stepperButton, currentRate >= MAX_FEE && styles.stepperButtonDisabled]}
             onPress={increment}
             disabled={currentRate >= MAX_FEE}
-            activeOpacity={0.6}>
-            <Ionicons name="add" size={24} color={currentRate >= MAX_FEE ? COLORS.border : COLORS.textPrimary} />
+            activeOpacity={0.6}
+          >
+            <Ionicons
+              name="add"
+              size={24}
+              color={currentRate >= MAX_FEE ? COLORS.border : COLORS.textPrimary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -147,7 +151,8 @@ export default function AdminSettings() {
             style={styles.saveButton}
             onPress={handleSave}
             disabled={saveMutation.isPending}
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+          >
             {saveMutation.isPending ? (
               <ActivityIndicator color={COLORS.white} size="small" />
             ) : (

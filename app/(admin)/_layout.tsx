@@ -77,7 +77,7 @@ function AdminSidebar() {
   return (
     <View style={styles.sidebar}>
       <View style={styles.sidebarHeader}>
-        <Text style={styles.sidebarLogo}>Zolver</Text>
+        <Text style={styles.sidebarLogo}>NexoFix</Text>
         <Text style={styles.sidebarBadge}>Admin</Text>
       </View>
 

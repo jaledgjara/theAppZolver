@@ -1,10 +1,4 @@
-import {
-  StyleSheet,
-  View,
-  FlatList,
-  ActivityIndicator,
-  Keyboard,
-} from "react-native";
+import { StyleSheet, View, FlatList, ActivityIndicator, Keyboard } from "react-native";
 import React, { useState } from "react";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import SearchBar from "@/appCOMP/searchable/SearchBar";
@@ -23,8 +17,7 @@ import { useAvatar } from "@/appSRC/users/Professional/General/Hooks/useAvatar";
 const SearchScreen = () => {
   const router = useRouter();
   const { categories, loadingCategories } = useServiceSelection();
-  const { query, results, loading, mode, handleTextSearch, handleModeChange } =
-    useServiceSearch();
+  const { query, results, loading, mode, handleTextSearch, handleModeChange } = useServiceSearch();
 
   const handleChipPress = (term: string) => {
     handleTextSearch(term);
@@ -41,11 +34,8 @@ const SearchScreen = () => {
           placeholder="¿Qué servicio necesitas hoy?"
         />
 
-        {/* ⚡️ SELECTOR DE MODO (Zolver Ya vs Presupuesto) */}
-        <SearchModeSelector
-          currentMode={mode}
-          onModeChange={handleModeChange}
-        />
+        {/* ⚡️ SELECTOR DE MODO (NexoFix Ya vs Presupuesto) */}
+        <SearchModeSelector currentMode={mode} onModeChange={handleModeChange} />
 
         {/* Sección de Sugerencias (Chips) */}
         <View style={styles.recommendationContainer}>
@@ -108,11 +98,7 @@ const SearchScreen = () => {
         }
         ListFooterComponent={
           loading ? (
-            <ActivityIndicator
-              size="large"
-              color={COLORS.primary}
-              style={{ marginTop: 20 }}
-            />
+            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
           ) : null
         }
       />
