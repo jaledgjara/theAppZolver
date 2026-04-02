@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, Text, View, Image } from "react-native";
 import { COLORS, FONTS, SIZES } from "../../appASSETS/theme";
 import { LargeButton } from "appCOMP/button/LargeButton";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
@@ -63,8 +63,15 @@ const WelcomeScreen = () => {
       <Animated.View
         style={[styles.logoArea, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}
       >
-        <Text style={styles.logoNexo}>Nexo</Text>
-        <Text style={styles.logoFix}>Fix</Text>
+        <Image
+          source={require("../../appASSETS/logo/image.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        <View style={styles.logoTextRow}>
+          <Text style={styles.logoNexo}>Nexo</Text>
+          <Text style={styles.logoFix}>Fix</Text>
+        </View>
       </Animated.View>
 
       {/* Tagline */}
@@ -100,10 +107,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brandDeep,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: SIZES.xl,
-    gap: SIZES.xxxl,
+    paddingHorizontal: 32,
+    paddingVertical: 48,
+    gap: 40,
   },
   logoArea: {
+    alignItems: "center",
+    gap: 50,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+  },
+  logoTextRow: {
     flexDirection: "row",
     alignItems: "baseline",
   },
@@ -111,13 +127,15 @@ const styles = StyleSheet.create({
     ...FONTS.display,
     color: COLORS.white,
     fontFamily: "PlusJakartaSans_800ExtraBold",
-    fontSize: 48,
+    fontSize: 50,
+    paddingTop: 20,
   },
   logoFix: {
     ...FONTS.display,
     color: COLORS.accent,
     fontFamily: "PlusJakartaSans_800ExtraBold",
-    fontSize: 48,
+    fontSize: 50,
+    paddingTop: 20,
   },
   tagline: {
     ...FONTS.display,

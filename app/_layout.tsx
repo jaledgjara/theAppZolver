@@ -7,6 +7,13 @@ import * as Sentry from "@sentry/react-native";
 import { useFonts } from "expo-font";
 import { Ionicons, MaterialCommunityIcons, FontAwesome6, AntDesign } from "@expo/vector-icons";
 import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from "@expo-google-fonts/plus-jakarta-sans";
+import {
   initializeAuthListener,
   initializeTokenRefreshListener,
 } from "@/appSRC/auth/Service/AuthService";
@@ -53,6 +60,11 @@ function RootLayoutInner() {
     ...MaterialCommunityIcons.font,
     ...FontAwesome6.font,
     ...AntDesign.font,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   logger.log(
