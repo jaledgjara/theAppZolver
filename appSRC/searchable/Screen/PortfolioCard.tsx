@@ -1,3 +1,4 @@
+import { COLORS } from "@/appASSETS/theme";
 import { usePortfolio } from "@/appSRC/users/Professional/General/Hooks/usePortfolio";
 import React from "react";
 import { View, Image, ScrollView, StyleSheet, Dimensions } from "react-native";

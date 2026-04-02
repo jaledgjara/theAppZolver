@@ -1,3 +1,4 @@
+import { COLORS } from "@/appASSETS/theme";
 // appCOMP/cards/CalendarReservationCard.tsx
 import { getStatusConfig } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 import { ReservationStatusUI } from "@/appSRC/reservations/Type/ReservationType";

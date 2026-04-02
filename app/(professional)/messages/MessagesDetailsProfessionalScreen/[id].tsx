@@ -1,3 +1,4 @@
+import { COLORS } from "@/appASSETS/theme";
 import React, { useCallback } from "react";
 import { View, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Image } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";

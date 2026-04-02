@@ -1,3 +1,4 @@
+import { COLORS } from "@/appASSETS/theme";
 import { StyleSheet, Text, View } from "react-native";
 import React, { useState } from "react";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
