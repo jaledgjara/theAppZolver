@@ -1,17 +1,16 @@
-import AntDesign from '@expo/vector-icons/AntDesign';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../appASSETS/theme';
-import { FONTS } from '../../appASSETS/theme';
+import AntDesign from "@expo/vector-icons/AntDesign";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Pressable, StyleSheet, Text, View, Platform, StatusBar } from "react-native";
+import { COLORS, FONTS, SIZES } from "../../appASSETS/theme";
 
 interface ToolBarPresentationProps {
   titleText: string;
-  showBackButton?: boolean
+  showBackButton?: boolean;
 }
 
-export const ToolBarPresentation: React.FC<ToolBarPresentationProps> = ({ 
-  titleText, 
+export const ToolBarPresentation: React.FC<ToolBarPresentationProps> = ({
+  titleText,
   showBackButton = false,
 }) => {
   const router = useRouter();
@@ -20,23 +19,20 @@ export const ToolBarPresentation: React.FC<ToolBarPresentationProps> = ({
     if (showBackButton) {
       router.back();
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Left Item: Back Button */}
       <Pressable
         onPress={handleBackButton}
         style={styles.buttonContainer}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        {showBackButton && <AntDesign name="arrow-left" size={24} color={COLORS.white}/>}
+        {showBackButton && <AntDesign name="arrow-left" size={22} color={COLORS.white} />}
       </Pressable>
-      
-      {/* Center Item: Title */}
-      <Text style={styles.title} >{titleText}</Text>
-      
-      {/* Right Item: Spacer View */}
-      {/* This invisible view has the same width as the button to ensure the title is always perfectly centered. */}
+
+      <Text style={styles.title}>{titleText}</Text>
+
       <View style={styles.buttonContainer} />
     </View>
   );
@@ -44,31 +40,29 @@ export const ToolBarPresentation: React.FC<ToolBarPresentationProps> = ({
 
 export default ToolBarPresentation;
 
+const STATUS_BAR_HEIGHT = Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 44;
+
 const styles = StyleSheet.create({
   container: {
-    // Key change: Use space-between to push items to the edges
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    flexDirection:'row',
-    width: '100%',
-    height: 130,
-    paddingHorizontal: 10,
-    paddingTop: 70,
-    paddingBottom: 10,
-    backgroundColor: COLORS.tertiary,
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexDirection: "row",
+    width: "100%",
+    paddingHorizontal: SIZES.xl,
+    paddingTop: STATUS_BAR_HEIGHT + SIZES.lg,
+    paddingBottom: SIZES.lg,
+    backgroundColor: COLORS.brandDeep,
   },
   title: {
-    ...FONTS.h1,
+    ...FONTS.h2,
     color: COLORS.white,
-    fontWeight: 'bold',
-    flex: 1, 
-    textAlign: 'center',
+    flex: 1,
+    textAlign: "center",
   },
   buttonContainer: {
-    // Give the container a fixed width to ensure perfect balance
-    width: 30, 
+    width: 30,
     height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

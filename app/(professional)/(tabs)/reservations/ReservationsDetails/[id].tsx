@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  ScrollView,
-  RefreshControl,
-  StyleSheet,
-  Text,
-} from "react-native";
+import { View, ScrollView, RefreshControl, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,7 +9,7 @@ import { LargeButton } from "@/appCOMP/button/LargeButton";
 import ReservationDetailsCard from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard"; // Reutilizamos la misma Card
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { useReservationDetail } from "@/appSRC/reservations/Hooks/useClientReservationDetail";
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 
 // ✅ HOOK UNIFICADO (El mismo que usa el Cliente)
 
@@ -28,7 +22,7 @@ const ReservationsDetailsScreen = () => {
   // Simplemente le decimos: "Soy un profesional"
   const { displayData, isLoading, isError, refetch } = useReservationDetail(
     reservationId,
-    "professional"
+    "professional",
   );
 
   // 2. Loading State
@@ -40,11 +34,9 @@ const ReservationsDetailsScreen = () => {
   if (isError || !displayData) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+        <Ionicons name="alert-circle-outline" size={48} color={COLORS.error} />
         <Text style={styles.errorTitle}>Error al cargar</Text>
-        <Text style={styles.errorText}>
-          No pudimos encontrar la información de esta reserva.
-        </Text>
+        <Text style={styles.errorText}>No pudimos encontrar la información de esta reserva.</Text>
         <LargeButton title="Volver" onPress={() => router.back()} />
       </View>
     );
@@ -59,9 +51,8 @@ const ReservationsDetailsScreen = () => {
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-        }>
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}
+      >
         {/* SECCIÓN 1: Info del CLIENTE (El hook ya trajo el avatar/nombre del cliente) */}
         <ReservationDetailsCard
           type="identity" // Mantenemos el tipo visual
@@ -77,11 +68,7 @@ const ReservationsDetailsScreen = () => {
         <ReservationDetailsCard type="title" title={service.title} />
 
         {/* SECCIÓN 3: Fecha y Hora (Ya corregido por TimeEngine) */}
-        <ReservationDetailsCard
-          type="date"
-          date={time.dateString}
-          time={time.timeString}
-        />
+        <ReservationDetailsCard type="date" date={time.dateString} time={time.timeString} />
 
         {/* SECCIÓN 4: Ubicación */}
         <ReservationDetailsCard
@@ -129,7 +116,7 @@ export default ReservationsDetailsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   scrollContent: {
     padding: 16,
@@ -139,46 +126,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: COLORS.backgroundLight,
     padding: 20,
   },
   errorTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1F2937",
+    ...FONTS.h2,
+    color: COLORS.textPrimary,
     marginTop: 12,
   },
   errorText: {
-    fontSize: 16,
-    color: "#6B7280",
+    ...FONTS.body,
+    color: COLORS.textSecondary,
     textAlign: "center",
     marginBottom: 24,
   },
   descriptionContainer: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
-    // Sombras sutiles
-    shadowColor: "#000",
+    borderColor: COLORS.border,
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
   sectionHeader: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#9CA3AF",
+    ...FONTS.label,
+    color: COLORS.textTertiary,
     marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   descriptionText: {
-    fontSize: 15,
-    color: "#374151",
+    ...FONTS.h3,
+    color: COLORS.textSecondary,
     lineHeight: 22,
   },
   footerAction: {

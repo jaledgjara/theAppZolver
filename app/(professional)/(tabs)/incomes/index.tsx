@@ -21,25 +21,14 @@ const IncomesScreen = () => {
   const { stats, loading, refreshing, onRefresh } = useIncomeStats();
 
   // [DEBUG] Log en el render para ver si stats llega a la UI
-  console.log(
-    "---- [UI Incomes] Renderizando. Loading:",
-    loading,
-    "Stats:",
-    stats ? "OK" : "NULL"
-  );
+  console.log("---- [UI Incomes] Renderizando. Loading:", loading, "Stats:", stats ? "OK" : "NULL");
 
   // Estado de carga inicial
   if (loading && !stats) {
     return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}>
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ marginTop: 10, color: "#666" }}>
-          Cargando finanzas...
-        </Text>
+        <Text style={{ marginTop: 10, color: "#666" }}>Cargando finanzas...</Text>
       </View>
     );
   }
@@ -50,9 +39,8 @@ const IncomesScreen = () => {
 
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.contentContainer}>
           <IncomeCardsContainer>
             {/* Ganancias del Día (Viene del RPC) */}
@@ -97,7 +85,7 @@ export default IncomesScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     paddingHorizontal: 20,

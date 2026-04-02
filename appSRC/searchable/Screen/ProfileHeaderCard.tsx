@@ -21,11 +21,9 @@ export const ProfileHeaderCard = ({ profile }: { profile: any }) => {
           <Text style={styles.specialty}>{profile.specialization_title}</Text>
 
           <View style={styles.ratingRow}>
-            <Ionicons name="star" size={16} color={COLORS.primary} />
+            <Ionicons name="star" size={16} color={COLORS.accent} />
             <Text style={styles.rating}>{profile.rating}</Text>
-            <Text style={styles.reviews}>
-              ({profile.reviews_count} reseñas)
-            </Text>
+            <Text style={styles.reviews}>({profile.reviews_count} reseñas)</Text>
           </View>
         </View>
       </View>
@@ -70,12 +68,12 @@ export const FeatureListCard = ({ items }: { items?: string[] }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     // Sombra suave
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.05,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },

@@ -11,9 +11,10 @@ interface TabbedReservationFiltersProps {
   onFilterChange: (filter: ReservationFilterType) => void;
 }
 
-export const TabbedReservationFilters: React.FC<
-  TabbedReservationFiltersProps
-> = ({ currentFilter, onFilterChange }) => {
+export const TabbedReservationFilters: React.FC<TabbedReservationFiltersProps> = ({
+  currentFilter,
+  onFilterChange,
+}) => {
   const filters: { id: ReservationFilterType; label: string }[] = [
     { id: "active", label: "Activas" },
     { id: "pending", label: "Pendientes" },
@@ -31,10 +32,9 @@ export const TabbedReservationFilters: React.FC<
               key={filter.id}
               style={[styles.tabButton, isActive && styles.tabButtonActive]}
               onPress={() => onFilterChange(filter.id)}
-              activeOpacity={0.7}>
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                {filter.label}
-              </Text>
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{filter.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 4,
 
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     backgroundColor: COLORS.primary || "#3B82F6",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 1,

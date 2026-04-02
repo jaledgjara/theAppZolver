@@ -174,13 +174,13 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.bgCard,
     padding: 30,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: COLORS.border,
     alignItems: "center", // Centra contenido de tarjeta
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,

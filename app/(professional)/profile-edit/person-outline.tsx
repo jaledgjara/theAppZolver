@@ -36,29 +36,25 @@ const ProfessionalPublicProfileScreen = () => {
   // El MediaService ahora sí detecta file:// y muestra el preview
   const displayPhoto = MediaService.resolveUrl(profile.photoUrl, "avatars");
   const resolvedPortfolio = profile.portfolioUrls.map(
-    (path) => MediaService.resolveUrl(path, "portfolio") || ""
+    (path) => MediaService.resolveUrl(path, "portfolio") || "",
   );
   if (loading) return <MiniLoaderScreen />;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <ToolBarTitle titleText="Editar Perfil" showBackButton={true} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.imageSection}>
           <View style={styles.imageContainer}>
             {displayPhoto ? (
-              <Image
-                source={{ uri: displayPhoto }}
-                style={styles.profileImage}
-              />
+              <Image source={{ uri: displayPhoto }} style={styles.profileImage} />
             ) : (
               <UserAvatar name={profile.specialty || "U"} size={120} />
             )}
-            <TouchableOpacity
-              style={styles.editBadge}
-              onPress={handleEditPhoto}>
+            <TouchableOpacity style={styles.editBadge} onPress={handleEditPhoto}>
               <Ionicons name="camera" size={25} color="white" />
             </TouchableOpacity>
           </View>
@@ -104,7 +100,7 @@ export default ProfessionalPublicProfileScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   scrollContent: {
     paddingHorizontal: 20,

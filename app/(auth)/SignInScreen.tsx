@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { useRouter } from "expo-router";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { COLORS, SIZES } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 import AuthButton from "@/appSRC/auth/Screen/AuthButton";
 import { Ionicons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
@@ -72,7 +72,7 @@ export default SignInScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,
@@ -82,8 +82,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   subtitle: {
-    fontSize: SIZES.h2,
-    fontWeight: "bold",
+    ...FONTS.h2,
     textAlign: "center",
     color: COLORS.textSecondary,
     marginTop: 60,

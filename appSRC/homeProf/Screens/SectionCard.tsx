@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: "#FFF",
     borderRadius: 16, // Bordes más modernos
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,

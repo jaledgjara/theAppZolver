@@ -1,14 +1,56 @@
-import { StyleSheet, Text, View } from "react-native";
-import { COLORS, SIZES } from "../../appASSETS/theme";
-import { ToolBarPresentation } from "appCOMP/toolbar/ToolbarPresentation";
+import React, { useEffect, useRef } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
+import { COLORS, FONTS, SIZES } from "../../appASSETS/theme";
 import { LargeButton } from "appCOMP/button/LargeButton";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
-import { stat } from "fs";
-import { useRouter } from "expo-router";
 
 const WelcomeScreen = () => {
   const setStatus = useAuthStore((state) => state.setStatus);
   const setTransitionDirection = useAuthStore((state) => state.setTransitionDirection);
+
+  // Animaciones de entrada
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const textTranslate = useRef(new Animated.Value(24)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const btnOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      // 1. Logo fade + scale-in
+      Animated.parallel([
+        Animated.timing(logoScale, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+        }),
+      ]),
+      // 2. Texto slide-up con stagger
+      Animated.parallel([
+        Animated.timing(textTranslate, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(textOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]),
+      // 3. Botón fade-in
+      Animated.timing(btnOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [logoOpacity, logoScale, textOpacity, textTranslate, btnOpacity]);
 
   const handleContinue = () => {
     setTransitionDirection("forward");
@@ -17,14 +59,35 @@ const WelcomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ToolBarPresentation titleText="¡Bienvenido a NexoFix!" />
-      <View style={styles.contentContainer}>
-        <Text style={styles.subtitle}>Soluciones para habitar</Text>
+      {/* Logo */}
+      <Animated.View
+        style={[styles.logoArea, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}
+      >
+        <Text style={styles.logoNexo}>Nexo</Text>
+        <Text style={styles.logoFix}>Fix</Text>
+      </Animated.View>
 
-        <View style={styles.buttonContainer}>
-          <LargeButton title="CONTINUAR" onPress={handleContinue} iconName="arrow-forward-circle" />
-        </View>
-      </View>
+      {/* Tagline */}
+      <Animated.View
+        style={{
+          opacity: textOpacity,
+          transform: [{ translateY: textTranslate }],
+          alignItems: "center",
+        }}
+      >
+        <Text style={styles.tagline}>Tu casa, resuelta.</Text>
+        <Text style={styles.sub}>Conectamos personas con oficios verificados.</Text>
+      </Animated.View>
+
+      {/* CTA */}
+      <Animated.View style={[styles.btnContainer, { opacity: btnOpacity }]}>
+        <LargeButton
+          title="Empezar"
+          onPress={handleContinue}
+          variant="accent"
+          iconName="arrow-forward"
+        />
+      </Animated.View>
     </View>
   );
 };
@@ -34,25 +97,41 @@ export default WelcomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    justifyContent: "space-between",
+    backgroundColor: COLORS.brandDeep,
     alignItems: "center",
-    paddingBottom: 40,
-  },
-  subtitle: {
-    fontSize: SIZES.h2,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: COLORS.textSecondary,
-    marginTop: 60,
-  },
-  buttonContainer: {
     justifyContent: "center",
-    alignItems: "center",
+    paddingHorizontal: SIZES.xl,
+    gap: SIZES.xxxl,
+  },
+  logoArea: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  logoNexo: {
+    ...FONTS.display,
+    color: COLORS.white,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 48,
+  },
+  logoFix: {
+    ...FONTS.display,
+    color: COLORS.accent,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 48,
+  },
+  tagline: {
+    ...FONTS.display,
+    color: COLORS.white,
+    textAlign: "center",
+    marginBottom: SIZES.sm,
+  },
+  sub: {
+    ...FONTS.body,
+    color: COLORS.brandLight,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  btnContainer: {
     width: "100%",
   },
 });

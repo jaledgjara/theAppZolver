@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/appASSETS/theme";
-import { BaseCard } from "@/appCOMP/cards/BaseCard";
-import { useAvatar } from "@/appSRC/users/Professional/General/Hooks/useAvatar";
+import { COLORS, FONTS, RADIUS, SHADOWS, SIZES } from "@/appASSETS/theme";
+import { RatingBadge } from "@/appCOMP/badge/RatingBadge";
 import UserAvatar from "@/appCOMP/avatar/UserAvatar";
 
 interface ProfessionalCardProps {
@@ -12,9 +11,12 @@ interface ProfessionalCardProps {
   category: string;
   rating: number;
   reviewsCount?: number;
-  price?: number;
+  description?: string;
+  verified?: boolean;
+  completedJobs?: number;
   distance?: number | null;
   onPress?: () => void;
+  onContactPress?: () => void;
 }
 
 export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
@@ -23,129 +25,180 @@ export const ProfessionalCard: React.FC<ProfessionalCardProps> = ({
   category,
   rating,
   reviewsCount = 0,
-  price,
+  description,
+  verified = false,
+  completedJobs,
   distance,
   onPress,
+  onContactPress,
 }) => {
-  const [imageError, setImageError] = useState(false);
-
   const formattedDistance = distance
     ? distance > 1000
       ? `${(distance / 1000).toFixed(1)} km`
       : `${Math.round(distance)} m`
     : null;
-  const { url, showFallback, onError } = useAvatar(avatar, "avatars");
 
   return (
-    <BaseCard onPress={onPress}>
-      <View style={styles.row}>
-        {/* 1. Avatar */}
-        <UserAvatar
-          path={avatar}
-          name={name}
-          size={56}
-          style={styles.avatar} // Mantienes tus márgenes de la Card
-        />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.card}>
+      {/* ── Fila superior: Avatar + Info + Rating ── */}
+      <View style={styles.topRow}>
+        <UserAvatar path={avatar} name={name} size={48} style={styles.avatar} />
 
-        {/* 2. Info Central */}
-        <View style={styles.infoContainer}>
-          <View style={styles.headerRow}>
-            <Text style={styles.category} numberOfLines={1}>
-              {category}
-            </Text>
-          </View>
-
+        <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
-
-          <View style={styles.ratingRow}>
-            <FontAwesome name="star" size={14} color="#FFD700" />
-            {/* CAMBIO: Color actualizado a gris */}
-            <Text style={styles.ratingNumber}>
-              {rating > 0 ? rating.toFixed(1) : "Nuevo"}
+          <View style={styles.metaRow}>
+            <Text style={styles.category} numberOfLines={1}>
+              {category}
             </Text>
-            {reviewsCount > 0 && (
-              <Text style={styles.reviewCount}>({reviewsCount})</Text>
+            {formattedDistance && (
+              <>
+                <Text style={styles.dot}> · </Text>
+                <Ionicons name="location-sharp" size={11} color={COLORS.textTertiary} />
+                <Text style={styles.distance}>{formattedDistance}</Text>
+              </>
             )}
           </View>
         </View>
 
-        {/* 3. Datos Derecha (Precio y Distancia) */}
-        <View style={styles.rightContainer}>
-          {/* CAMBIO: Eliminada la condición "else" para "A convenir" */}
-          {price && price > 0 ? (
-            <View style={styles.priceTag}>
-              <Text style={styles.currency}>$</Text>
-              <Text style={styles.priceValue}>{price.toLocaleString()}</Text>
-            </View>
-          ) : null}
+        <RatingBadge rating={rating} filled />
+      </View>
 
-          {formattedDistance && (
-            <View style={styles.distanceBadge}>
-              <Ionicons
-                name="location-sharp"
-                size={10}
-                color={COLORS.textSecondary || "#888"}
-              />
-              <Text style={styles.distanceText}>{formattedDistance}</Text>
+      {/* ── Descripción ── */}
+      {description ? (
+        <Text style={styles.description} numberOfLines={2}>
+          {description}
+        </Text>
+      ) : null}
+
+      {/* ── Chips + CTA ── */}
+      <View style={styles.bottomRow}>
+        <View style={styles.chips}>
+          {verified && (
+            <View style={styles.chipVerified}>
+              <Text style={styles.chipVerifiedText}>Verificado</Text>
+            </View>
+          )}
+          {completedJobs != null && completedJobs > 0 && (
+            <View style={styles.chipJobs}>
+              <Text style={styles.chipJobsText}>+{completedJobs} trabajos</Text>
             </View>
           )}
         </View>
+
+        {onContactPress && (
+          <TouchableOpacity
+            onPress={onContactPress}
+            style={styles.ctaBtn}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          >
+            <Text style={styles.ctaText}>Contactar</Text>
+          </TouchableOpacity>
+        )}
       </View>
-    </BaseCard>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center" },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#F0F0F0",
-    marginRight: 12,
+  card: {
+    backgroundColor: COLORS.bgCard,
+    borderRadius: RADIUS.md,
+    padding: SIZES.lg,
+    marginVertical: SIZES.xs + 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: SIZES.md,
+    ...SHADOWS.card,
   },
-  infoContainer: { flex: 1, justifyContent: "center", gap: 2 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between" },
-  category: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    paddingBottom: 5,
-  },
-  name: { fontSize: 16, fontWeight: "700", color: "#1A1A1A" },
-  ratingRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
-  ratingNumber: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: COLORS.textSecondary || "#888", // CAMBIO: Gris (Hardcoded o desde theme)
-    marginLeft: 4,
-  },
-  reviewCount: { fontSize: 12, color: "#888", marginLeft: 2 },
-  rightContainer: { alignItems: "flex-end", minWidth: 70 },
-  priceTag: {
+  topRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    backgroundColor: "#F0F9FF",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4,
+    alignItems: "center",
+    gap: SIZES.md,
   },
-  currency: {
-    fontSize: 10,
-    color: COLORS.primary,
-    fontWeight: "bold",
-    marginBottom: 2,
-    marginRight: 1,
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: COLORS.brandLight,
   },
-  priceValue: { fontSize: 16, fontWeight: "800", color: COLORS.textPrimary },
-  distanceBadge: { flexDirection: "row", alignItems: "center" },
-  distanceText: {
-    fontSize: 11,
-    color: COLORS.textSecondary || "#888",
+  info: {
+    flex: 1,
+    gap: 3,
+  },
+  name: {
+    ...FONTS.h3,
+    color: COLORS.textPrimary,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  category: {
+    ...FONTS.caption,
+    color: COLORS.textSecondary,
+  },
+  dot: {
+    ...FONTS.caption,
+    color: COLORS.textTertiary,
+  },
+  distance: {
+    ...FONTS.caption,
+    color: COLORS.textTertiary,
     marginLeft: 2,
+  },
+  description: {
+    ...FONTS.body,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: SIZES.xs,
+  },
+  chips: {
+    flexDirection: "row",
+    gap: SIZES.sm,
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  chipVerified: {
+    backgroundColor: COLORS.brandLight,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  chipVerifiedText: {
+    ...FONTS.micro,
+    color: COLORS.brandDeep,
+    fontFamily: "PlusJakartaSans_700Bold",
+  },
+  chipJobs: {
+    backgroundColor: COLORS.accentLight,
+    borderRadius: RADIUS.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  chipJobsText: {
+    ...FONTS.micro,
+    color: COLORS.textPrimary,
+  },
+  ctaBtn: {
+    backgroundColor: COLORS.brandDeep,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  ctaText: {
+    ...FONTS.caption,
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: COLORS.white,
   },
 });

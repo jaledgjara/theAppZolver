@@ -117,12 +117,12 @@ const styles = StyleSheet.create({
 
   // ─── NAVBAR STYLES ───
   navbar: {
-    backgroundColor: COLORS.tertiary,
+    backgroundColor: COLORS.brandDeep,
     height: 120, // Altura aumentada para acomodar el logo "Huge"
     justifyContent: "center",
     zIndex: 100,
     elevation: 4,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

@@ -226,7 +226,7 @@ const FormProfessionalTwo = () => {
 export default FormProfessionalTwo;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: { padding: 20, paddingBottom: 40 },
   section: { marginBottom: 24 },
   label: {

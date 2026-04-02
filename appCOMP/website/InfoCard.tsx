@@ -10,11 +10,7 @@ interface InfoCardProps {
   iconName: keyof typeof Ionicons.glyphMap;
 }
 
-export default function InfoCard({
-  title,
-  description,
-  iconName,
-}: InfoCardProps) {
+export default function InfoCard({ title, description, iconName }: InfoCardProps) {
   return (
     <View style={styles.card}>
       {/* Icono Vectorial */}
@@ -38,7 +34,7 @@ const styles = StyleSheet.create({
     borderColor: "#f0f0f0",
     alignItems: "center",
     // Sombras suaves
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,

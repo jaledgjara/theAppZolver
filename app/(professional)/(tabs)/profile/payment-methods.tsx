@@ -140,7 +140,7 @@ export default function ProfessionalPayoutConfigScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: { padding: 20, paddingBottom: 40 },
   infoBanner: {
     flexDirection: "row",

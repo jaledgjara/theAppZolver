@@ -24,9 +24,11 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
     if (isDisabled) return;
     if (allowHybrid) {
       // Toggle instant on/off. If quote is also on, result is hybrid or quote-only.
-      if (isInstant && isQuote) onSelect("quote");       // was hybrid → remove instant
-      else if (isInstant) return;                          // can't deselect both
-      else onSelect(isQuote ? "hybrid" : "instant");       // add instant
+      if (isInstant && isQuote)
+        onSelect("quote"); // was hybrid → remove instant
+      else if (isInstant)
+        return; // can't deselect both
+      else onSelect(isQuote ? "hybrid" : "instant"); // add instant
     } else {
       onSelect("instant");
     }
@@ -35,9 +37,11 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
   const handleQuotePress = () => {
     if (allowHybrid) {
       // Toggle quote on/off. If instant is also on, result is hybrid or instant-only.
-      if (isQuote && isInstant) onSelect("instant");      // was hybrid → remove quote
-      else if (isQuote) return;                             // can't deselect both
-      else onSelect(isInstant ? "hybrid" : "quote");       // add quote
+      if (isQuote && isInstant)
+        onSelect("instant"); // was hybrid → remove quote
+      else if (isQuote)
+        return; // can't deselect both
+      else onSelect(isInstant ? "hybrid" : "quote"); // add quote
     } else {
       onSelect("quote");
     }
@@ -64,57 +68,37 @@ export const ServiceSwitcherCatalog: React.FC<Props> = ({
             isDisabled && styles.switchButtonDisabled,
           ]}
           onPress={handleInstantPress}
-          activeOpacity={isDisabled ? 1 : 0.8}>
+          activeOpacity={isDisabled ? 1 : 0.8}
+        >
           {isInstant && (
-            <Ionicons
-              name="flash"
-              size={16}
-              color={COLORS.primary}
-              style={styles.icon}
-            />
+            <Ionicons name="flash" size={16} color={COLORS.primary} style={styles.icon} />
           )}
           <Text
             style={[
               styles.switchText,
               isInstant && styles.switchTextActive,
               isDisabled && { color: "#CCC" },
-            ]}>
+            ]}
+          >
             Zolver Ya
           </Text>
         </TouchableOpacity>
 
         {/* BOTÓN: PRESUPUESTO (QUOTE) */}
         <TouchableOpacity
-          style={[
-            styles.switchButton,
-            isQuote && styles.switchButtonActive,
-          ]}
+          style={[styles.switchButton, isQuote && styles.switchButtonActive]}
           onPress={handleQuotePress}
-          activeOpacity={0.8}>
+          activeOpacity={0.8}
+        >
           {isQuote && (
-            <Ionicons
-              name="document-text"
-              size={16}
-              color={COLORS.primary}
-              style={styles.icon}
-            />
+            <Ionicons name="document-text" size={16} color={COLORS.primary} style={styles.icon} />
           )}
-          <Text
-            style={[
-              styles.switchText,
-              isQuote && styles.switchTextActive,
-            ]}>
-            Presupuesto
-          </Text>
+          <Text style={[styles.switchText, isQuote && styles.switchTextActive]}>Presupuesto</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.infoBox}>
-        <Ionicons
-          name="information-circle-outline"
-          size={20}
-          color={COLORS.primary}
-        />
+        <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
         <Text style={styles.infoText}>{getModeDescriptionText()}</Text>
       </View>
     </View>
@@ -141,7 +125,7 @@ const styles = StyleSheet.create({
   switchButtonActive: {
     marginHorizontal: 5,
     backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

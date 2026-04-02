@@ -27,20 +27,9 @@ export const ChatBubble = ({ message, isMine }: ChatBubbleProps) => {
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        isMsgMine ? styles.rightContainer : styles.leftContainer,
-      ]}>
-      <View
-        style={[
-          styles.bubble,
-          isMsgMine ? styles.rightBubble : styles.leftBubble,
-        ]}>
-        <Text
-          style={[styles.text, isMsgMine ? styles.rightText : styles.leftText]}>
-          {content}
-        </Text>
+    <View style={[styles.container, isMsgMine ? styles.rightContainer : styles.leftContainer]}>
+      <View style={[styles.bubble, isMsgMine ? styles.rightBubble : styles.leftBubble]}>
+        <Text style={[styles.text, isMsgMine ? styles.rightText : styles.leftText]}>{content}</Text>
       </View>
 
       {/* Validación de fecha para evitar otro crash si createdAt viene mal */}
@@ -72,7 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   leftBubble: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: "#E5E7EB",

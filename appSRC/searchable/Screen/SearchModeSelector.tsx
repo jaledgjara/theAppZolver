@@ -14,37 +14,30 @@ const SearchModeSelector: React.FC<Props> = ({ currentMode, onModeChange }) => {
     <View style={styles.container}>
       {/* Botón Zolver Ya (Instant) */}
       <TouchableOpacity
-        style={[
-          styles.button,
-          currentMode === "instant" && styles.activeInstant,
-        ]}
+        style={[styles.button, currentMode === "instant" && styles.activeInstant]}
         onPress={() => onModeChange("instant")}
-        activeOpacity={0.8}>
+        activeOpacity={0.8}
+      >
         <Ionicons
           name="flash"
           size={16}
           color={currentMode === "instant" ? "white" : COLORS.textSecondary}
         />
-        <Text
-          style={[styles.text, currentMode === "instant" && styles.activeText]}>
-          Zolver Ya
-        </Text>
+        <Text style={[styles.text, currentMode === "instant" && styles.activeText]}>Zolver Ya</Text>
       </TouchableOpacity>
 
       {/* Botón Presupuesto (Quote) */}
       <TouchableOpacity
         style={[styles.button, currentMode === "quote" && styles.activeQuote]}
         onPress={() => onModeChange("quote")}
-        activeOpacity={0.8}>
+        activeOpacity={0.8}
+      >
         <Ionicons
           name="document-text"
           size={16}
           color={currentMode === "quote" ? "white" : COLORS.textSecondary}
         />
-        <Text
-          style={[styles.text, currentMode === "quote" && styles.activeText]}>
-          Presupuesto
-        </Text>
+        <Text style={[styles.text, currentMode === "quote" && styles.activeText]}>Presupuesto</Text>
       </TouchableOpacity>
     </View>
   );
@@ -81,14 +74,14 @@ const styles = StyleSheet.create({
   // Estilos activos
   activeInstant: {
     backgroundColor: COLORS.primary, // Amarillo Zolver
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   activeQuote: {
     backgroundColor: COLORS.tertiary, // Verde azulado
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,

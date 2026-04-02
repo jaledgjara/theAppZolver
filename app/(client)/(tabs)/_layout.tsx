@@ -1,8 +1,9 @@
 import { Tabs } from "expo-router";
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
-
+import { View, StyleSheet } from "react-native";
+import React from "react";
 
 export default function TabsClientLayout() {
   const { unreadCount } = useUnreadCount();
@@ -10,64 +11,105 @@ export default function TabsClientLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: '#A0AEC0',
-        tabBarStyle: {
-          backgroundColor: 'white',
-        },
+        tabBarActiveTintColor: COLORS.brandDeep,
+        tabBarInactiveTintColor: COLORS.textTertiary,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabLabel,
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Inicio',
+          title: "Inicio",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="home" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon iconName="home" color={color} focused={focused} />
           ),
         }}
       />
+
       <Tabs.Screen
         name="reservations"
         options={{
-          title: 'Reservas',
+          title: "Reservas",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="calendar" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon iconName="calendar" color={color} focused={focused} />
           ),
         }}
       />
+
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Mensajes',
+          title: "Mensajes",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <Ionicons size={28} name="chatbubbles" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon iconName="chatbubbles" color={color} focused={focused} />
           ),
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: "Perfil",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="user" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon iconName="person" color={color} focused={focused} />
           ),
           tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: COLORS.tertiary,
-            color: COLORS.white,
-            fontSize: 11,
-            fontWeight: "700",
-            minWidth: 18,
-            height: 18,
-            borderRadius: 9,
-            lineHeight: 18,
-          },
+          tabBarBadgeStyle: styles.badge,
         }}
       />
     </Tabs>
   );
 }
+
+// Ícono con fondo circular sutil cuando está activo
+interface TabIconProps {
+  iconName: React.ComponentProps<typeof Ionicons>["name"];
+  color: string;
+  focused: boolean;
+}
+
+const TabIcon: React.FC<TabIconProps> = ({ iconName, color, focused }) => (
+  <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+    <Ionicons name={iconName} size={22} color={color} />
+  </View>
+);
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    height: 60,
+    paddingBottom: 6,
+    paddingTop: 6,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontFamily: "PlusJakartaSans_500Medium",
+  },
+  iconWrap: {
+    width: 44,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconWrapActive: {
+    backgroundColor: COLORS.brandLight,
+  },
+  badge: {
+    backgroundColor: COLORS.brandDeep,
+    color: COLORS.white,
+    fontSize: 11,
+    fontFamily: "PlusJakartaSans_700Bold",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    lineHeight: 18,
+  },
+});

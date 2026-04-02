@@ -1,12 +1,5 @@
 import React, { useState, useCallback } from "react"; // Agregamos useCallback
-import {
-  FlatList,
-  StyleSheet,
-  View,
-  ActivityIndicator,
-  RefreshControl,
-  Text,
-} from "react-native";
+import { FlatList, StyleSheet, View, ActivityIndicator, RefreshControl, Text } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router"; // Agregamos useFocusEffect
 
 // Componentes UI
@@ -22,11 +15,11 @@ import { useClientReservations } from "@/appSRC/reservations/Hooks/useClientFetc
 import { mapReservationToCard } from "@/appSRC/reservations/Helper/MapStatusToUIClient";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
+import { COLORS } from "@/appASSETS/theme";
 
 const Reservations = () => {
   const router = useRouter();
-  const [currentFilter, setCurrentFilter] =
-    useState<ReservationFilterType>("active");
+  const [currentFilter, setCurrentFilter] = useState<ReservationFilterType>("active");
 
   // 1. Hook de Datos
   const {
@@ -48,7 +41,7 @@ const Reservations = () => {
     useCallback(() => {
       // console.log("🔄 [CLIENT UI] Refrescando reservas al enfocar...");
       refreshAll();
-    }, [])
+    }, []),
   );
 
   // 2. Selector de Datos
@@ -75,11 +68,7 @@ const Reservations = () => {
   };
 
   const handleEndReached = () => {
-    if (
-      currentFilter === "historical" &&
-      hasNextHistory &&
-      !isFetchingNextHistory
-    ) {
+    if (currentFilter === "historical" && hasNextHistory && !isFetchingNextHistory) {
       fetchNextHistory();
     }
   };
@@ -95,14 +84,11 @@ const Reservations = () => {
     <View style={styles.container}>
       <ToolBarTitle titleText="Mis Reservas" />
 
-      <TabbedReservationFilters
-        currentFilter={currentFilter}
-        onFilterChange={handleFilterChange}
-      />
+      <TabbedReservationFilters currentFilter={currentFilter} onFilterChange={handleFilterChange} />
 
       {showInitialLoader ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={COLORS.brandDeep} />
         </View>
       ) : (
         <FlatList
@@ -122,15 +108,13 @@ const Reservations = () => {
           removeClippedSubviews={true}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refreshAll} />
-          }
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refreshAll} />}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             currentFilter === "historical" && isFetchingNextHistory ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#9CA3AF" />
+                <ActivityIndicator size="small" color={COLORS.textTertiary} />
               </View>
             ) : null
           }
@@ -154,7 +138,7 @@ export default Reservations;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: COLORS.backgroundLight,
   },
   listContent: {
     paddingHorizontal: 16,

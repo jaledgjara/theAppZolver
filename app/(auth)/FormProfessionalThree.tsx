@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Pressable,
-} from "react-native";
-import {
-  MapView,
-  Circle,
-  Marker,
-} from "@/appCOMP/maps/extensions/NativeMapView";
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Pressable } from "react-native";
+import { MapView, Circle, Marker } from "@/appCOMP/maps/extensions/NativeMapView";
 import * as Location from "expo-location";
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
@@ -38,10 +27,7 @@ const FormProfessionalThree = () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Permiso denegado",
-          "Habilita la ubicación en configuración."
-        );
+        Alert.alert("Permiso denegado", "Habilita la ubicación en configuración.");
         setLoadingLocation(false);
         return;
       }
@@ -105,7 +91,8 @@ const FormProfessionalThree = () => {
                 latitude: reg.latitude,
                 longitude: reg.longitude,
               });
-            }}>
+            }}
+          >
             <Marker
               coordinate={{
                 latitude: region.latitude,
@@ -118,7 +105,7 @@ const FormProfessionalThree = () => {
                 longitude: region.longitude,
               }}
               radius={coverageRadius * 1000}
-              fillColor="rgba(255, 193, 7, 0.2)"
+              fillColor={`${COLORS.accent}33`}
               strokeColor={COLORS.primary}
             />
           </MapView>
@@ -132,7 +119,8 @@ const FormProfessionalThree = () => {
             </Pressable>
             <Pressable
               style={[styles.zoomBtn, styles.locationBtn]}
-              onPress={handleGetCurrentLocation}>
+              onPress={handleGetCurrentLocation}
+            >
               {loadingLocation ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
               ) : (
@@ -146,9 +134,7 @@ const FormProfessionalThree = () => {
           <View style={styles.cardHeader}>
             <View>
               <Text style={styles.cardLabel}>Radio de Trabajo</Text>
-              <Text style={styles.cardSubtitle}>
-                Distancia máxima de viaje
-              </Text>
+              <Text style={styles.cardSubtitle}>Distancia máxima de viaje</Text>
             </View>
             <View style={styles.radiusBadge}>
               <Text style={styles.radiusText}>{coverageRadius} km</Text>
@@ -222,30 +208,30 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   zoomBtn: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     width: 38,
     height: 38,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
   locationBtn: { marginTop: 4 },
   layerCard: {
     marginTop: 30,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 20,
     padding: 20,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    borderColor: COLORS.border,
   },
   cardHeader: {
     flexDirection: "row",

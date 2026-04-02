@@ -1,6 +1,7 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { COLORS } from "@/appASSETS/theme";
 import { useRouter } from "expo-router";
 import MessageCard from "@/appSRC/messages/Screens/MessageCard";
 import { useProFetchingConversation } from "@/appSRC/conversation/Hooks/useProFetchingConversation";
@@ -11,8 +12,7 @@ const Messages = () => {
   const router = useRouter();
 
   // 1. Consumimos el estado del Hook
-  const { conversations, loading, refreshConversations } =
-    useProFetchingConversation();
+  const { conversations, loading, refreshConversations } = useProFetchingConversation();
 
   // ESTADO 1: CARGANDO (Si es la carga inicial)
   if (loading && conversations.length === 0) {
@@ -80,7 +80,7 @@ export default Messages;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   emptyContainer: {
     flex: 1,

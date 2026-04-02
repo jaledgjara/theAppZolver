@@ -1,11 +1,9 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { COLORS, FONTS } from "@/appASSETS/theme"; // Ajusta rutas si es necesario
+import { COLORS, FONTS, RADIUS, SHADOWS, SIZES } from "@/appASSETS/theme";
 import React from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-type MaterialIconName = React.ComponentProps<
-  typeof MaterialCommunityIcons
->["name"];
+type MaterialIconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 interface StatusPlaceholderProps {
   icon: MaterialIconName;
@@ -22,20 +20,20 @@ const StatusPlaceholder: React.FC<StatusPlaceholderProps> = ({
   buttonTitle,
   onButtonPress,
 }) => {
-  // Ajustamos altura dinámica, pero permitimos flexibilidad
-  const containerHeight = buttonTitle ? 260 : 200;
-
   return (
-    <View style={[styles.cardContainer, { minHeight: containerHeight }]}>
+    <View style={styles.container}>
       <View style={styles.iconCircle}>
-        <MaterialCommunityIcons name={icon} size={32} color={COLORS.tertiary} />
+        <MaterialCommunityIcons name={icon} size={32} color={COLORS.brandDeep} />
       </View>
 
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
 
       {buttonTitle && (
-        <Pressable onPress={onButtonPress} style={styles.button}>
+        <Pressable
+          onPress={onButtonPress}
+          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+        >
           <Text style={styles.buttonText}>{buttonTitle}</Text>
         </Pressable>
       )}
@@ -46,66 +44,56 @@ const StatusPlaceholder: React.FC<StatusPlaceholderProps> = ({
 export default StatusPlaceholder;
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: "white",
-    // ELIMINAMOS width: '100%' para que respete el padding del padre
+  container: {
+    backgroundColor: COLORS.bgCard,
     alignSelf: "stretch",
-    borderRadius: 16,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    marginHorizontal: 20, // Margen seguro horizontal
-    marginTop: 40, // Separación superior
+    borderRadius: RADIUS.lg,
+    paddingVertical: 40,
+    paddingHorizontal: SIZES.xl,
+    marginHorizontal: SIZES.xl,
+    marginTop: SIZES.xxxl,
     alignItems: "center",
     justifyContent: "center",
-
-    // Sombras más suaves
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    ...SHADOWS.card,
   },
   iconCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 100,
-    backgroundColor: COLORS.backgroundLight, // Fondo suave para el icono
+    width: 72,
+    height: 72,
+    borderRadius: RADIUS.xl,
+    backgroundColor: COLORS.bgSecondary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: SIZES.lg,
   },
   title: {
     ...FONTS.h2,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
+    color: COLORS.textPrimary,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: SIZES.sm,
   },
   subtitle: {
-    ...FONTS.body3,
-    fontSize: 14,
+    ...FONTS.body,
     color: COLORS.textSecondary,
     textAlign: "center",
     lineHeight: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: SIZES.sm,
   },
   button: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.brandDeep,
     paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 50,
-    marginTop: 24,
+    paddingHorizontal: 28,
+    borderRadius: RADIUS.md,
+    marginTop: SIZES.xxl,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonPressed: {
+    opacity: 0.85,
   },
   buttonText: {
-    ...FONTS.h4,
-    fontWeight: "700",
-    color: "white",
+    ...FONTS.bodyMedium,
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: COLORS.white,
   },
 });

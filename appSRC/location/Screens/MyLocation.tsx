@@ -13,7 +13,8 @@ const MyLocation: React.FC<MyLocationProps> = ({ isSelected, onPress }) => {
     <TouchableOpacity
       style={[styles.gpsContainer, isSelected && styles.gpsSelected]}
       onPress={onPress}
-      activeOpacity={0.7}>
+      activeOpacity={0.7}
+    >
       <View style={styles.gpsIconBox}>
         <Ionicons name="navigate" size={24} color={COLORS.primary} />
       </View>
@@ -23,9 +24,7 @@ const MyLocation: React.FC<MyLocationProps> = ({ isSelected, onPress }) => {
         <Text style={styles.gpsSubtitle}>Activar GPS</Text>
       </View>
 
-      {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
-      )}
+      {isSelected && <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />}
     </TouchableOpacity>
   );
 };
@@ -51,11 +50,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,

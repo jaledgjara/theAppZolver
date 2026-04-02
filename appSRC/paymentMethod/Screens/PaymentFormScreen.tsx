@@ -204,7 +204,7 @@ export const PaymentFormScreen = ({ mode, onSuccess }: PaymentFormProps) => {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "white" },
+  screen: { flex: 1, backgroundColor: COLORS.backgroundLight },
   container: { flex: 1 },
   scrollContent: { padding: 20 },
   formContainer: { marginVertical: 10 },

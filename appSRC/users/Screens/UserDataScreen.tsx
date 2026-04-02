@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { useUserProfile } from "@/appSRC/users/Client/Hooks/useClientProfile";
@@ -13,8 +7,7 @@ import { DataBox } from "@/appCOMP/inputs/Screens/DataBox";
 import { TypeDataProps } from "../Model/UserDataType";
 
 export default function PrivacyScreen() {
-  const { userData, handleNameEditPress, handleLockedFieldPress } =
-    useUserProfile();
+  const { userData, handleNameEditPress, handleLockedFieldPress } = useUserProfile();
 
   return (
     <View style={styles.container}>
@@ -63,7 +56,7 @@ export default function PrivacyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scroll: { paddingHorizontal: 20, marginTop: 20 },
   avatarSection: { alignItems: "center", marginBottom: 30, marginTop: 10 },
   avatarCircle: {
@@ -73,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,

@@ -313,10 +313,10 @@ const styles = StyleSheet.create({
   modelCard: {
     width: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "45%" : "100%",
     minWidth: 320,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.bgCard,
     borderRadius: 24,
     padding: 40,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 20,

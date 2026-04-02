@@ -1,12 +1,5 @@
 import React, { useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 
 // 1. Assets & Theme
@@ -33,7 +26,7 @@ export default function AddressesScreen() {
     loading,
     refreshAddresses,
     selectAddress,
-    useCurrentLocation,
+    useCurrentLocation: activateCurrentLocation,
     removeAddress,
   } = useLocation();
 
@@ -41,38 +34,31 @@ export default function AddressesScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshAddresses();
-    }, [refreshAddresses])
+    }, [refreshAddresses]),
   );
 
   // Lógica: Eliminar
   const handleDelete = (item: Address) => {
-    Alert.alert(
-      "Eliminar dirección",
-      "¿Estás seguro de que quieres eliminar esta ubicación?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            // removeAddress ya maneja el estado de carga internamente si el hook está bien hecho,
-            // pero aquí confiamos en el refresh automático o actualización optimista.
-            await removeAddress(item.id);
-          },
+    Alert.alert("Eliminar dirección", "¿Estás seguro de que quieres eliminar esta ubicación?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          // removeAddress ya maneja el estado de carga internamente si el hook está bien hecho,
+          // pero aquí confiamos en el refresh automático o actualización optimista.
+          await removeAddress(item.id);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Lógica: Usar GPS
   const handleGPSPress = async () => {
-    const success = await useCurrentLocation();
+    const success = await activateCurrentLocation();
 
     if (success) {
-      Alert.alert(
-        "Ubicación Actualizada",
-        "Se ha establecido tu ubicación actual."
-      );
+      Alert.alert("Ubicación Actualizada", "Se ha establecido tu ubicación actual.");
     }
   };
 
@@ -82,20 +68,13 @@ export default function AddressesScreen() {
 
       <View style={styles.contentContainer}>
         {/* 1. Opción de GPS / Ubicación Actual */}
-        <MyLocation
-          isSelected={activeAddress?.id === "gps_current"}
-          onPress={handleGPSPress}
-        />
+        <MyLocation isSelected={activeAddress?.id === "gps_current"} onPress={handleGPSPress} />
 
         <Text style={styles.sectionHeader}>Mis Direcciones</Text>
 
         {/* 2. Lista de Direcciones */}
         {loading && addresses.length === 0 ? (
-          <ActivityIndicator
-            size="large"
-            color={COLORS.primary}
-            style={{ marginTop: 20 }}
-          />
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
         ) : (
           <FlatList
             data={addresses}
@@ -128,9 +107,7 @@ export default function AddressesScreen() {
         <View style={styles.footerContainer}>
           <LargeButton
             title="Agregar Nueva"
-            onPress={() =>
-              router.push("/(client)/(tabs)/profile/AddLocationScreen")
-            }
+            onPress={() => router.push("/(client)/(tabs)/profile/AddLocationScreen")}
             iconName="add-circle-outline"
           />
         </View>
@@ -142,7 +119,7 @@ export default function AddressesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,

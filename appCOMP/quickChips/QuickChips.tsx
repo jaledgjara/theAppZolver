@@ -1,94 +1,99 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { COLORS } from "@/appASSETS/theme";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { COLORS, FONTS, RADIUS, SIZES } from "@/appASSETS/theme";
 
-// Definimos una interfaz compatible con ServiceTag
 export interface ChipItem {
   id: string;
   label: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface QuickChipsProps {
-  items: ChipItem[]; // ✅ Ahora acepta Objetos, no solo strings
-  selectedIds: string[]; // Array de IDs seleccionados
-  onToggle: (item: any) => void;
+  items: ChipItem[];
+  selectedIds: string[];
+  onToggle: (item: ChipItem) => void;
+  /** Si true, renderiza en scroll horizontal (modo filtros) */
+  scrollable?: boolean;
 }
 
 const QuickChips: React.FC<QuickChipsProps> = ({
   items,
   selectedIds,
   onToggle,
+  scrollable = false,
 }) => {
-  // GUARDIA DE SEGURIDAD VISUAL
-  if (!items || items.length === 0) {
-    return null;
+  if (!items || items.length === 0) return null;
+
+  const chips = items.map((item) => {
+    const isSelected = selectedIds.includes(item.id);
+    return (
+      <TouchableOpacity
+        key={item.id}
+        onPress={() => onToggle(item)}
+        activeOpacity={0.75}
+        style={[styles.chip, isSelected ? styles.chipActive : styles.chipInactive]}
+      >
+        <Text style={[styles.chipText, isSelected ? styles.textActive : styles.textInactive]}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  });
+
+  if (scrollable) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {chips}
+      </ScrollView>
+    );
   }
 
-  return (
-    <View style={styles.container}>
-      {items.map((item) => {
-        // Verificamos si este ID está en la lista de seleccionados
-        const isSelected = selectedIds.includes(item.id);
-
-        return (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.chip,
-              isSelected ? styles.chipSelected : styles.chipUnselected,
-            ]}
-            onPress={() => onToggle(item)}>
-            <Text
-              style={[
-                styles.chipText,
-                isSelected
-                  ? styles.chipTextSelected
-                  : styles.chipTextUnselected,
-              ]}>
-              {/* ✅ Renderizamos label, no el objeto entero */}
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+  return <View style={styles.wrap}>{chips}</View>;
 };
 
 export default QuickChips;
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContent: {
+    paddingHorizontal: 0,
+    gap: SIZES.sm,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  wrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
+    gap: SIZES.sm,
   },
   chip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 20,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
-    marginBottom: 4,
+    minHeight: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  chipUnselected: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E0E0E0",
+  chipInactive: {
+    backgroundColor: COLORS.bgSecondary,
+    borderColor: COLORS.border,
   },
-  chipSelected: {
-    backgroundColor: COLORS.textSecondary + "15", // Opacidad baja
-    borderColor: COLORS.textSecondary,
+  chipActive: {
+    backgroundColor: COLORS.brandDeep,
+    borderColor: COLORS.brandDeep,
   },
   chipText: {
-    fontSize: 14,
-    fontWeight: "500",
+    ...FONTS.caption,
+    fontFamily: "PlusJakartaSans_600SemiBold",
   },
-  chipTextUnselected: {
-    color: "#666666",
-  },
-  chipTextSelected: {
+  textInactive: {
     color: COLORS.textSecondary,
-    fontWeight: "700",
+  },
+  textActive: {
+    color: COLORS.white,
   },
 });

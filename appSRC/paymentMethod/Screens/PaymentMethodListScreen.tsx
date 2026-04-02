@@ -225,7 +225,7 @@ export const PaymentMethodListScreen = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,

@@ -31,11 +31,7 @@ export const CategorySelectorModal: React.FC<Props> = ({
   onSelect,
 }) => {
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}>
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.content}>
           <View style={styles.header}>
@@ -46,11 +42,7 @@ export const CategorySelectorModal: React.FC<Props> = ({
           </View>
 
           {loading ? (
-            <ActivityIndicator
-              size="large"
-              color={COLORS.primary}
-              style={{ margin: 20 }}
-            />
+            <ActivityIndicator size="large" color={COLORS.primary} style={{ margin: 20 }} />
           ) : (
             <FlatList
               data={categories}
@@ -61,28 +53,22 @@ export const CategorySelectorModal: React.FC<Props> = ({
                 return (
                   <TouchableOpacity
                     style={[styles.item, isSelected && styles.itemSelected]}
-                    onPress={() => onSelect(item)}>
+                    onPress={() => onSelect(item)}
+                  >
                     <View
-                      style={[
-                        styles.iconBox,
-                        isSelected && { backgroundColor: COLORS.primary },
-                      ]}>
+                      style={[styles.iconBox, isSelected && { backgroundColor: COLORS.primary }]}
+                    >
                       <CategoryIcon
                         categoryName={item.name}
                         size={20}
                         color={isSelected ? "white" : COLORS.textSecondary}
                       />
                     </View>
-                    <Text
-                      style={[styles.text, isSelected && styles.textSelected]}>
+                    <Text style={[styles.text, isSelected && styles.textSelected]}>
                       {item.name}
                     </Text>
                     {isSelected && (
-                      <Ionicons
-                        name="radio-button-on"
-                        size={22}
-                        color={COLORS.primary}
-                      />
+                      <Ionicons name="radio-button-on" size={22} color={COLORS.primary} />
                     )}
                   </TouchableOpacity>
                 );
@@ -103,7 +89,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   content: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,

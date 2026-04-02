@@ -89,7 +89,7 @@ const ProfessionalSettingsWorkScreen = () => {
 export default ProfessionalSettingsWorkScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: { padding: 20 },
   card: { marginBottom: 24 },
   label: { fontSize: SIZES.h3, fontWeight: "700", color: COLORS.textPrimary },

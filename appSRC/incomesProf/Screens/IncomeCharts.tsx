@@ -45,17 +45,13 @@ const IncomeCharts: React.FC<IncomeChartsProps> = ({ data }) => {
 
       <View style={styles.chartContainer}>
         {chartData.map((item, index) => {
-          const barHeight =
-            item.value === 0 ? 4 : (item.value / maxValue) * MAX_BAR_HEIGHT;
+          const barHeight = item.value === 0 ? 4 : (item.value / maxValue) * MAX_BAR_HEIGHT;
 
           const isMax = item.value === maxValue && item.value > 0;
 
           return (
             <View key={index} style={styles.barColumn}>
-              <Text
-                style={styles.valueLabel}
-                numberOfLines={1}
-                adjustsFontSizeToFit>
+              <Text style={styles.valueLabel} numberOfLines={1} adjustsFontSizeToFit>
                 {formatCurrency(item.value)}
               </Text>
 
@@ -87,7 +83,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginVertical: 10,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

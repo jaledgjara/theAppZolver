@@ -30,16 +30,16 @@ const ProfessionalHomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   header: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.bgCard,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F2",
+    borderBottomColor: COLORS.border,
   },
   switcherContainer: {
     flexDirection: "row",
-    backgroundColor: "#F5F5F7",
+    backgroundColor: COLORS.bgSecondary,
     marginHorizontal: 20,
     marginTop: 10,
     borderRadius: 12,
@@ -53,9 +53,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   activeTab: {
-    backgroundColor: COLORS.white,
-    // Sombra suave para efecto de elevación "Apple-style"
-    shadowColor: "#000",
+    backgroundColor: COLORS.bgCard,
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -64,12 +63,12 @@ const styles = StyleSheet.create({
   tabText: {
     ...FONTS.body4,
     color: COLORS.textSecondary,
-    fontWeight: "600",
+    fontFamily: "PlusJakartaSans_600SemiBold",
     letterSpacing: 0.5,
   },
   activeTabText: {
-    color: COLORS.primary,
-    fontWeight: "800",
+    color: COLORS.brandDeep,
+    fontFamily: "PlusJakartaSans_700Bold",
   },
   content: { flex: 1 },
 });

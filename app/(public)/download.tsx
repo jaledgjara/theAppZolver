@@ -14,9 +14,7 @@ import { COLORS, SIZES } from "@/appASSETS/theme";
 
 // ─── UTILS: Link Handling ───
 const openLink = (url: string) => {
-  Linking.openURL(url).catch((err) =>
-    console.error("Error opening link:", err),
-  );
+  Linking.openURL(url).catch((err) => console.error("Error opening link:", err));
 };
 
 // ─── COMPONENT: Store Badge Button ───
@@ -30,12 +28,7 @@ function StoreBadge({ type }: { type: "ios" | "android" }) {
 
   return (
     <Pressable style={styles.storeBadge} onPress={() => openLink(url)}>
-      <Ionicons
-        name={iconName}
-        size={32}
-        color="#fff"
-        style={{ marginRight: 12 }}
-      />
+      <Ionicons name={iconName} size={32} color="#fff" style={{ marginRight: 12 }} />
       <View>
         <Text style={styles.badgeSubText}>{subText}</Text>
         <Text style={styles.badgeStoreName}>{storeName}</Text>
@@ -52,8 +45,8 @@ export default function DownloadPage() {
       <View style={styles.textSection}>
         <Text style={styles.title}>Lleva las soluciones en tu bolsillo.</Text>
         <Text style={styles.subtitle}>
-          Accede a miles de profesionales verificados, gestiona tus servicios y
-          paga de forma segura desde cualquier lugar.
+          Accede a miles de profesionales verificados, gestiona tus servicios y paga de forma segura
+          desde cualquier lugar.
         </Text>
       </View>
 
@@ -141,7 +134,7 @@ const styles = StyleSheet.create({
     minWidth: 200,
     justifyContent: "center",
     // Efecto de elevación suave
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -165,23 +158,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qrCard: {
-    flexDirection:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "row"
-        : "column",
-    backgroundColor: COLORS.white,
+    flexDirection: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "row" : "column",
+    backgroundColor: COLORS.bgCard,
     padding: 50,
     borderRadius: 30,
     alignItems: "center",
     gap: 40,
     // Sombra elegante para destacar el QR
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 30,
     elevation: 10,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: COLORS.border,
   },
   // EL CUADRO NEGRO SOLICITADO
   qrBlackPlaceholder: {
@@ -195,27 +185,19 @@ const styles = StyleSheet.create({
   qrTextCol: {
     maxWidth: 300,
     alignItems:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "flex-start"
-        : "center",
+      Platform.OS === "web" && Dimensions.get("window").width > 768 ? "flex-start" : "center",
   },
   qrTitle: {
     fontSize: 24,
     fontWeight: "600",
     color: COLORS.textPrimary,
     marginBottom: 8,
-    textAlign:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "left"
-        : "center",
+    textAlign: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "left" : "center",
   },
   qrDesc: {
     fontSize: 16,
     color: COLORS.textSecondary,
     lineHeight: 24,
-    textAlign:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "left"
-        : "center",
+    textAlign: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "left" : "center",
   },
 });

@@ -12,9 +12,7 @@ interface ReviewSummaryCardProps {
 /**
  * Shows an existing review inline (inside reservation detail).
  */
-export const ReviewSummaryCard: React.FC<ReviewSummaryCardProps> = ({
-  review,
-}) => {
+export const ReviewSummaryCard: React.FC<ReviewSummaryCardProps> = ({ review }) => {
   return (
     <BaseCard>
       <Text style={styles.label}>Tu calificación</Text>
@@ -24,15 +22,13 @@ export const ReviewSummaryCard: React.FC<ReviewSummaryCardProps> = ({
             key={i}
             name={i < review.score ? "star" : "star-outline"}
             size={22}
-            color={i < review.score ? COLORS.primary : "#D1D5DB"}
+            color={i < review.score ? COLORS.accent : COLORS.border}
             style={styles.starIcon}
           />
         ))}
         <Text style={styles.scoreText}>{review.score}/5</Text>
       </View>
-      {review.comment ? (
-        <Text style={styles.comment}>{review.comment}</Text>
-      ) : null}
+      {review.comment ? <Text style={styles.comment}>{review.comment}</Text> : null}
     </BaseCard>
   );
 };

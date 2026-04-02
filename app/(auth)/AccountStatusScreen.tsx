@@ -184,7 +184,7 @@ export default function AccountStatusScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white ?? "#FFFFFF",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,

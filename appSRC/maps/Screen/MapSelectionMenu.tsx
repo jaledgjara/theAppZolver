@@ -10,18 +10,10 @@ interface Props {
   onSelect: (url: string) => void;
 }
 
-export const MapSelectionMenu = ({
-  isVisible,
-  onClose,
-  options,
-  onSelect,
-}: Props) => {
+export const MapSelectionMenu = ({ isVisible, onClose, options, onSelect }: Props) => {
   return (
     <Modal visible={isVisible} transparent animationType="slide">
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.content}>
           <Text style={styles.title}>Selecciona un mapa</Text>
           {options.map((map, index) => (
@@ -31,7 +23,8 @@ export const MapSelectionMenu = ({
               onPress={() => {
                 onSelect(map.url);
                 onClose();
-              }}>
+              }}
+            >
               <Text style={styles.optionText}>{map.appName}</Text>
             </TouchableOpacity>
           ))}
@@ -84,7 +77,7 @@ const styles = StyleSheet.create({
   cancelButton: { paddingLeft: 20, marginTop: 10, alignItems: "flex-start" },
   cancelText: { ...FONTS.h2, color: COLORS.error, marginVertical: 10 },
   content: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 10,

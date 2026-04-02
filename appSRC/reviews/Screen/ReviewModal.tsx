@@ -33,14 +33,26 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   const [score, setScore] = useState(0);
   const [comment, setComment] = useState("");
 
-  console.log("[REVIEW-MODAL] Render - visible:", visible, "score:", score, "isLoading:", isLoading);
+  console.log(
+    "[REVIEW-MODAL] Render - visible:",
+    visible,
+    "score:",
+    score,
+    "isLoading:",
+    isLoading,
+  );
 
   const handleSubmit = () => {
     if (score === 0) {
       console.log("[REVIEW-MODAL] handleSubmit blocked - score is 0");
       return;
     }
-    console.log("[REVIEW-MODAL] handleSubmit - score:", score, "comment:", comment.trim() || "(empty)");
+    console.log(
+      "[REVIEW-MODAL] handleSubmit - score:",
+      score,
+      "comment:",
+      comment.trim() || "(empty)",
+    );
     onSubmit(score, comment.trim());
   };
 
@@ -52,14 +64,11 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <View style={styles.card}>
           {/* Close button */}
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
@@ -68,7 +77,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
 
           {/* Header */}
           <View style={styles.iconCircle}>
-            <Ionicons name="star" size={32} color={COLORS.primary} />
+            <Ionicons name="star" size={32} color={COLORS.accent} />
           </View>
           <Text style={styles.title}>Calificar Profesional</Text>
           <Text style={styles.subtitle} numberOfLines={1}>
@@ -84,11 +93,12 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
                   key={starIndex}
                   onPress={() => setScore(starIndex)}
                   activeOpacity={0.7}
-                  style={styles.starTouch}>
+                  style={styles.starTouch}
+                >
                   <Ionicons
                     name={starIndex <= score ? "star" : "star-outline"}
                     size={40}
-                    color={starIndex <= score ? COLORS.primary : "#D1D5DB"}
+                    color={starIndex <= score ? COLORS.accent : COLORS.border}
                   />
                 </TouchableOpacity>
               );
@@ -119,13 +129,11 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
 
           {/* Submit button */}
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              score === 0 && styles.submitButtonDisabled,
-            ]}
+            style={[styles.submitButton, score === 0 && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={score === 0 || isLoading}
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+          >
             {isLoading ? (
               <ActivityIndicator size="small" color={COLORS.white} />
             ) : (
@@ -155,7 +163,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 380,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -220,7 +228,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 50,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,

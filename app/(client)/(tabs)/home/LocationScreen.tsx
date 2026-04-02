@@ -1,12 +1,5 @@
 import React, { useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -29,35 +22,31 @@ const LocationScreen = () => {
     loading,
     refreshAddresses,
     selectAddress,
-    useCurrentLocation,
+    useCurrentLocation: activateCurrentLocation,
     removeAddress,
   } = useLocation();
 
   const handleDelete = (item: Address) => {
-    Alert.alert(
-      "Eliminar dirección",
-      "¿Estás seguro de que quieres eliminar esta ubicación?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: () => removeAddress(item.id),
-        },
-      ]
-    );
+    Alert.alert("Eliminar dirección", "¿Estás seguro de que quieres eliminar esta ubicación?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: () => removeAddress(item.id),
+      },
+    ]);
   };
 
   useFocusEffect(
     useCallback(() => {
       refreshAddresses();
-    }, [refreshAddresses])
+    }, [refreshAddresses]),
   );
 
   // 🟢 Handler para el botón GPS
   const handleGPSPress = async () => {
     // 1. Llamamos a la lógica del hook
-    const success = await useCurrentLocation();
+    const success = await activateCurrentLocation();
 
     // 2. Si tuvo éxito (consiguió coords y actualizó el store), volvemos
     if (success) {
@@ -71,20 +60,13 @@ const LocationScreen = () => {
 
       <View style={styles.contentContainer}>
         {/* Botón GPS */}
-        <MyLocation
-          isSelected={activeAddress?.id === "gps_current"}
-          onPress={handleGPSPress}
-        />
+        <MyLocation isSelected={activeAddress?.id === "gps_current"} onPress={handleGPSPress} />
 
         <Text style={styles.sectionHeader}>Mis Direcciones</Text>
 
         {/* Lista de Direcciones */}
         {loading && addresses.length === 0 ? (
-          <ActivityIndicator
-            size="large"
-            color={COLORS.primary}
-            style={{ marginTop: 20 }}
-          />
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
         ) : (
           <FlatList
             data={addresses}
@@ -132,7 +114,7 @@ export default LocationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,
@@ -144,25 +126,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 15,
-    backgroundColor: "#F9F9F9",
+    backgroundColor: COLORS.bgSecondary,
     borderRadius: 12,
     marginBottom: 25,
     borderWidth: 1,
-    borderColor: "#EEEEEE",
+    borderColor: COLORS.border,
   },
   gpsSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: "#FFFBF0",
+    borderColor: COLORS.brandDeep,
+    backgroundColor: COLORS.bgSecondary,
   },
   gpsIconBox: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,

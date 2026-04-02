@@ -1,18 +1,12 @@
 import React, { useMemo } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  RefreshControl,
-} from "react-native";
+import { StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 // Components & Theme
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import ReservationDetailsCard from "@/appSRC/reservations/Screens/Client/ReservationDetailsCard";
 import { QuoteJobControlCard } from "@/appSRC/reservations/Screens/Quote/QuoteJobControlCard";
@@ -53,8 +47,7 @@ const ReservationsDetailsScreen = () => {
       priceService: reservation.financials?.price || 0,
       platformFee: reservation.financials?.platformFee || 0,
       totalAmount:
-        (reservation.financials?.price || 0) +
-        (reservation.financials?.platformFee || 0),
+        (reservation.financials?.price || 0) + (reservation.financials?.platformFee || 0),
 
       // ✅ LÓGICA DE CONTROL:
       isCompleted: reservation.statusDTO === "completed",
@@ -76,9 +69,8 @@ const ReservationsDetailsScreen = () => {
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={false} onRefresh={refresh} />
-        }>
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} />}
+      >
         <ReservationDetailsCard
           type="identity"
           name={displayData.clientName}
@@ -96,10 +88,7 @@ const ReservationsDetailsScreen = () => {
           time={displayData.timeFormatted}
           viewRole={"professional"}
         />
-        <ReservationDetailsCard
-          type="location"
-          location={displayData.address}
-        />
+        <ReservationDetailsCard type="location" location={displayData.address} />
 
         {/* NOTA DEL CLIENTE */}
         <View style={styles.descriptionContainer}>
@@ -121,11 +110,7 @@ const ReservationsDetailsScreen = () => {
           {displayData.isCompleted ? (
             // 1. SI ESTÁ COMPLETADO: Mostrar badge de éxito
             <View style={styles.finishedBadge}>
-              <Ionicons
-                name="checkmark-circle"
-                size={26}
-                color={COLORS.success}
-              />
+              <Ionicons name="checkmark-circle" size={26} color={COLORS.success} />
               <Text style={styles.finishedText}>TRABAJO FINALIZADO</Text>
             </View>
           ) : displayData.isCanceled ? null : ( // 2. SI ESTÁ CANCELADO: No mostrar controlador
@@ -141,35 +126,33 @@ const ReservationsDetailsScreen = () => {
 export default ReservationsDetailsScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: { padding: 16, paddingBottom: 60 },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   descriptionContainer: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     padding: 16,
     borderRadius: 14,
     marginBottom: 16,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
-    shadowColor: "#000",
+    borderColor: COLORS.border,
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   sectionHeader: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#9CA3AF",
+    ...FONTS.label,
+    color: COLORS.textTertiary,
     marginBottom: 8,
-    textTransform: "uppercase",
   },
-  descriptionText: { fontSize: 15, color: "#374151", lineHeight: 22 },
+  descriptionText: { ...FONTS.h3, color: COLORS.textSecondary, lineHeight: 22 },
   actionContainer: { marginTop: 24 },
   finishedBadge: {
     flexDirection: "row",
-    backgroundColor: "#E8F5E9",
+    backgroundColor: COLORS.bgSecondary,
     padding: 20,
     borderRadius: 16,
     alignItems: "center",
@@ -180,7 +163,7 @@ const styles = StyleSheet.create({
   finishedText: {
     marginLeft: 10,
     color: COLORS.success,
-    fontWeight: "800",
-    fontSize: 16,
+    ...FONTS.h3,
+    fontFamily: "PlusJakartaSans_700Bold",
   },
 });

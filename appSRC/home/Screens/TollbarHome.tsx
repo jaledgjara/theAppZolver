@@ -1,67 +1,57 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, Platform, StatusBar } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLocation } from "@/appSRC/location/Hooks/useLocation";
 import { formatAddress } from "@/appSRC/location/Type/LocationType";
-import { COLORS, FONTS } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 
 interface ToolBarHomeProps {
   showMenukButton?: boolean;
 }
 
-export const ToolBarHome: React.FC<ToolBarHomeProps> = ({
-  showMenukButton = true,
-}) => {
+export const ToolBarHome: React.FC<ToolBarHomeProps> = ({ showMenukButton = true }) => {
   const router = useRouter();
-
-  // 🟢 Lógica de Ubicación (Smart Component)
   const { activeAddress, loading } = useLocation();
 
   const titleText = activeAddress
     ? formatAddress(activeAddress)
     : loading
-    ? "Cargando ubicación..."
-    : "Seleccionar ubicación";
+      ? "Cargando ubicación..."
+      : "Seleccionar ubicación";
 
-  // Acción única para toda la barra
   const handleGlobalPress = () => {
-    console.log("📍 [ToolBarHome] Navegando a selección de dirección...");
     router.push("/(client)/home/LocationScreen");
   };
 
   return (
     <Pressable
       onPress={handleGlobalPress}
-      // Efecto visual nativo para Android
       android_ripple={{ color: "rgba(255,255,255,0.2)" }}
-      // ✅ CORRECCIÓN: Un solo prop 'style' dinámico
-      style={({ pressed }) => [
-        styles.container,
-        pressed && { opacity: 0.9 }, // Efecto de opacidad para iOS (y Android si no usa ripple)
-      ]}>
-      {/* Icono Menú (Solo visual, el click lo captura el padre) */}
+      style={({ pressed }) => [styles.container, pressed && { opacity: 0.9 }]}
+    >
       {showMenukButton ? (
         <View style={styles.menuIconWrapper}>
-          <MaterialIcons name="menu" size={28} color="white" />
+          <MaterialIcons name="menu" size={26} color={COLORS.white} />
         </View>
       ) : (
-        <View style={{ width: 28 }} />
+        <View style={styles.spacer} />
       )}
 
-      {/* Contenedor Central de Texto */}
       <View style={styles.textContainer}>
+        <MaterialIcons name="location-on" size={16} color={COLORS.accent} />
         <Text style={styles.title} numberOfLines={1}>
           {titleText}
         </Text>
-        <MaterialIcons name="keyboard-arrow-down" size={20} color="white" />
+        <MaterialIcons name="keyboard-arrow-down" size={18} color={COLORS.brandLight} />
       </View>
 
-      {/* Espaciador para balancear layout */}
-      <View style={{ width: 28 }} />
+      <View style={styles.spacer} />
     </Pressable>
   );
 };
+
+const STATUS_BAR_HEIGHT = Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 44;
 
 const styles = StyleSheet.create({
   container: {
@@ -69,33 +59,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    height: 130, // Altura cómoda
-    paddingHorizontal: 20,
-    paddingTop: 50, // Status bar
-    paddingBottom: 15,
-    backgroundColor: COLORS.tertiary,
+    paddingHorizontal: SIZES.xl,
+    paddingTop: STATUS_BAR_HEIGHT + SIZES.lg,
+    paddingBottom: SIZES.lg,
+    backgroundColor: COLORS.brandDeep,
   },
   menuIconWrapper: {
-    // No es touchable por sí mismo, es parte del bloque
+    width: 28,
     justifyContent: "center",
     alignItems: "center",
+  },
+  spacer: {
+    width: 28,
   },
   textContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.15)", // Fondo sutil
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginHorizontal: 10,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    paddingVertical: SIZES.sm,
+    paddingHorizontal: SIZES.md,
+    borderRadius: SIZES.xxxl,
+    marginHorizontal: SIZES.md,
+    gap: 4,
   },
   title: {
-    ...FONTS.body3,
+    ...FONTS.body,
     color: COLORS.white,
-    fontWeight: "600",
-    marginRight: 4,
-    maxWidth: "85%",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    flex: 1,
+    textAlign: "center",
   },
 });

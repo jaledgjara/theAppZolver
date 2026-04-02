@@ -12,9 +12,7 @@ const HelpCenterScreen = ({ mode }: HelpCenterProps) => {
     <View style={styles.container}>
       <ToolBarTitle titleText="Soporte al cliente" showBackButton={true} />
 
-      <ScrollView
-        style={styles.contentContainer}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.contentContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <HelpCenterSelector />
         </View>
@@ -22,11 +20,7 @@ const HelpCenterScreen = ({ mode }: HelpCenterProps) => {
         <View style={styles.faqSection}>
           <Text style={styles.faqTitle}>Preguntas Frecuentes</Text>
           {QUESTIONS_AND_ANSWERS.map((item) => (
-            <FaqAccordion
-              key={item.id}
-              title={item.title}
-              answer={item.answer}
-            />
+            <FaqAccordion key={item.id} title={item.title} answer={item.answer} />
           ))}
         </View>
 
@@ -41,7 +35,7 @@ export default HelpCenterScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,

@@ -24,7 +24,7 @@ There is no lint script or test runner configured in package.json.
 
 ## Architecture
 
-Zolver is a React Native + Expo marketplace app connecting clients with service professionals. It targets iOS, Android, and Web from a single codebase using Expo Router (file-based routing).
+NexoFix is a React Native + Expo marketplace app connecting clients with service professionals. It targets iOS, Android, and Web from a single codebase using Expo Router (file-based routing).
 
 ### Directory Layout
 
@@ -70,3 +70,12 @@ Never use inline styles or hardcoded color/font values.
 ### TypeScript
 
 Strict mode is enabled. Path alias `@/*` maps to the project root. No `any` types.
+
+## Directiva Final y Restricciones del Proyecto (Core Guardrails)
+
+Al auditar, refactorizar o generar nuevo código para Zolver, se DEBEN verificar y cumplir estrictamente estas reglas:
+
+1. **Flujo Unidireccional:** Ninguna vista (`Screen`) puede invocar a un `Service` directamente sin pasar por un `Hook`.
+2. **Estilos:** Todos los estilos deben generarse con `StyleSheet.create`. Prohibido el uso de estilos en línea.
+3. **Lógica Sensible:** Absolutamente ninguna lógica de negocio crítica o sensible (como validación de pagos o emisión de OTPs) debe ejecutarse en el cliente.
+4. **Stack Tecnológico Cerrado:** Las dependencias tecnológicas principales están estrictamente limitadas a React Native, Expo, Supabase, PostgreSQL, Firebase Auth y Twilio. No sugiera ni instale proveedores alternativos (ej. AWS, Auth0, Stripe) a menos que se apruebe explícitamente una actualización de la arquitectura.

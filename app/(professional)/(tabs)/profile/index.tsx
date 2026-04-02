@@ -1,10 +1,4 @@
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 
@@ -28,15 +22,13 @@ const ProfileProfessional = () => {
         data={PROFESSIONAL_MENU_ITEMS}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => router.push(item.route as any)}
-            activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => router.push(item.route as any)} activeOpacity={0.7}>
             <ProfileCard
               icon={
                 <Ionicons
                   name={item.icon as keyof typeof Ionicons.glyphMap}
                   size={25}
-                  color={"black"}
+                  color={COLORS.textPrimary}
                 />
               }
               title={item.title}
@@ -54,7 +46,7 @@ export default ProfileProfessional;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
     flex: 1,
   },
 });

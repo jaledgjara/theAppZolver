@@ -1,12 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  Platform,
-  Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Dimensions } from "react-native";
 import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { getCategoryVectorIcon } from "@/appSRC/categories/Screens/CategoryIcons";
@@ -21,10 +14,8 @@ import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 // Diccionario auxiliar para descripciones ricas en la web
 // (Ya que es posible que tu BD solo tenga el nombre corto)
 const WEB_DESCRIPTIONS: Record<string, string> = {
-  limpieza:
-    "Servicio integral de limpieza para hogares y oficinas. Personal de confianza.",
-  electricista:
-    "Instalaciones, reparaciones de cortocircuitos y mantenimiento certificado.",
+  limpieza: "Servicio integral de limpieza para hogares y oficinas. Personal de confianza.",
+  electricista: "Instalaciones, reparaciones de cortocircuitos y mantenimiento certificado.",
   plomeria: "Solución a fugas, destape de cañerías e instalación de grifería.",
   gasista: "Instalaciones de gas y reparación de estufas por matriculados.",
   pintor: "Renovación de interiores y exteriores con acabados prolijos.",
@@ -42,9 +33,7 @@ function ServiceCard({ title, slug }: { title: string; slug: string }) {
 
   return (
     <View style={styles.card}>
-      <View style={styles.iconWrapper}>
-        {getCategoryVectorIcon(slug, 40, COLORS.primary)}
-      </View>
+      <View style={styles.iconWrapper}>{getCategoryVectorIcon(slug, 40, COLORS.primary)}</View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{title}</Text>
         <Text style={styles.cardDescription}>{description}</Text>
@@ -56,8 +45,7 @@ function ServiceCard({ title, slug }: { title: string; slug: string }) {
 // ─── PAGE COMPONENT ───
 export default function ServicesPage() {
   // 2. USAMOS EL HOOK (Igual que en tu App Home)
-  const { categories, loadingCategories, fetchCategories, error } =
-    useServiceSelection();
+  const { categories, loadingCategories, fetchCategories, error } = useServiceSelection();
 
   // 3. Efecto para cargar datos al montar la página web
   useEffect(() => {
@@ -69,8 +57,7 @@ export default function ServicesPage() {
       <View style={styles.header}>
         <Text style={styles.pageTitle}>Catálogo de Servicios</Text>
         <Text style={styles.pageSubtitle}>
-          Encuentra al profesional calificado ideal para cada necesidad de tu
-          hogar.
+          Encuentra al profesional calificado ideal para cada necesidad de tu hogar.
         </Text>
       </View>
 
@@ -78,17 +65,11 @@ export default function ServicesPage() {
       {loadingCategories ? (
         <View style={styles.centerBox}>
           <MiniLoaderScreen />
-          <Text style={{ marginTop: 10, color: "#888" }}>
-            Cargando servicios...
-          </Text>
+          <Text style={{ marginTop: 10, color: "#888" }}>Cargando servicios...</Text>
         </View>
       ) : error ? (
         <View style={styles.centerBox}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={50}
-            color={COLORS.error || "red"}
-          />
+          <Ionicons name="alert-circle-outline" size={50} color={COLORS.error || "red"} />
           <Text style={{ marginTop: 10, color: COLORS.textSecondary }}>
             No pudimos cargar los servicios.
           </Text>
@@ -156,12 +137,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 32,
     // Lógica Responsive: 3 columnas en escritorio, 1 en móvil
-    width:
-      Platform.OS === "web" && Dimensions.get("window").width > 768
-        ? "30%"
-        : "100%",
+    width: Platform.OS === "web" && Dimensions.get("window").width > 768 ? "30%" : "100%",
     minWidth: 300,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 20,

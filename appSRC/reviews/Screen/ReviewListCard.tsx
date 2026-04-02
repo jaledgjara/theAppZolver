@@ -34,15 +34,13 @@ export const ReviewListCard: React.FC<ReviewListCardProps> = ({ review }) => {
             key={i}
             name={i < review.score ? "star" : "star-outline"}
             size={18}
-            color={i < review.score ? COLORS.primary : "#D1D5DB"}
+            color={i < review.score ? COLORS.accent : COLORS.border}
             style={styles.starIcon}
           />
         ))}
       </View>
 
-      {review.comment ? (
-        <Text style={styles.comment}>{review.comment}</Text>
-      ) : null}
+      {review.comment ? <Text style={styles.comment}>{review.comment}</Text> : null}
     </BaseCard>
   );
 };

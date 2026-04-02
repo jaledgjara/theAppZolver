@@ -1,8 +1,7 @@
 import { Tabs } from "expo-router";
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
-
 
 export default function TabsProfessionalLayout() {
   const { unreadCount } = useUnreadCount();
@@ -10,65 +9,56 @@ export default function TabsProfessionalLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: '#A0AEC0',
+        tabBarActiveTintColor: COLORS.brandDeep,
+        tabBarInactiveTintColor: COLORS.textTertiary,
         tabBarStyle: {
-          backgroundColor: 'white',
+          backgroundColor: COLORS.white,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
         },
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Inicio',
+          title: "Inicio",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="home" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <FontAwesome size={28} name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="reservations"
         options={{
-          title: 'Reservas',
+          title: "Reservas",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="calendar" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <FontAwesome size={28} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
         name="incomes"
         options={{
-          title: 'Ingresos',
+          title: "Ingresos",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="stats-chart" size={24} color={color} />
-
-          ),
+          tabBarIcon: ({ color }) => <Ionicons name="stats-chart" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Mensajes',
+          title: "Mensajes",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <Ionicons size={28} name="chatbubbles" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="chatbubbles" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: "Perfil",
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="user" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <FontAwesome size={28} name="user" color={color} />,
           tabBarBadge: unreadCount > 0 ? (unreadCount > 99 ? "99+" : unreadCount) : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: COLORS.tertiary,
+            backgroundColor: COLORS.brandDeep,
             color: COLORS.white,
             fontSize: 11,
             fontWeight: "700",

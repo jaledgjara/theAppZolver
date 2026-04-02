@@ -74,11 +74,7 @@ const UserBasicInfoScreen = () => {
         console.log("📝 Guardando nombre legal nuevo:", name);
         await updateUserLegalName(name.trim());
       } else {
-        console.log(
-          "✅ Nombre ya existe:",
-          user?.legalName,
-          "-> Saltando guardado."
-        );
+        console.log("✅ Nombre ya existe:", user?.legalName, "-> Saltando guardado.");
       }
 
       // 3. Enviar Código SMS (Siempre)
@@ -102,7 +98,8 @@ const UserBasicInfoScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
           <ToolBarTitle
@@ -154,7 +151,7 @@ export default UserBasicInfoScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,

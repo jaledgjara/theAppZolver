@@ -8,12 +8,7 @@ import {
   Platform,
   Keyboard,
 } from "react-native";
-import {
-  useLocalSearchParams,
-  useRouter,
-  useFocusEffect,
-  router,
-} from "expo-router";
+import { useLocalSearchParams, useRouter, useFocusEffect, router } from "expo-router";
 
 // UI Components
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -32,14 +27,10 @@ const MessagesDetailsClientScreen = () => {
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const { id, name, conversationId } = useLocalSearchParams();
 
-  const {
-    messages,
-    loading,
-    loadingMore,
-    loadMore,
-    sendMessage,
-    refreshMessages,
-  } = useMessages(conversationId as string, id as string);
+  const { messages, loading, loadingMore, loadMore, sendMessage, refreshMessages } = useMessages(
+    conversationId as string,
+    id as string,
+  );
 
   const { pickImage } = useMessageImagePicker((uri) => setPendingImage(uri));
 
@@ -76,7 +67,7 @@ const MessagesDetailsClientScreen = () => {
       // Re-focus (ej: volver de otra pantalla): refrescar datos
       console.log("[Screen] 🎯 Re-focus detected, refreshing messages...");
       refreshMessages();
-    }, [refreshMessages])
+    }, [refreshMessages]),
   );
 
   const renderMessageItem = ({ item }: { item: ChatMessage }) => (
@@ -84,18 +75,13 @@ const MessagesDetailsClientScreen = () => {
       style={[
         styles.bubbleWrapper,
         item.isMine ? styles.myBubbleWrapper : styles.theirBubbleWrapper,
-      ]}>
+      ]}
+    >
       {item.type === "budget" ? (
-        <ChatBudgetCard
-          message={item}
-          onPress={() => handleBudgetPress(item.data, item.id)}
-        />
+        <ChatBudgetCard message={item} onPress={() => handleBudgetPress(item.data, item.id)} />
       ) : item.type === "image" ? (
         <View style={styles.imageCard}>
-          <Image
-            source={{ uri: item.data.imageUrl }}
-            style={styles.chatImage}
-          />
+          <Image source={{ uri: item.data.imageUrl }} style={styles.chatImage} />
         </View>
       ) : (
         <ChatBubble message={item} isMine={item.isMine} />
@@ -106,7 +92,8 @@ const MessagesDetailsClientScreen = () => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <ToolBarTitle titleText={(name as string) || "Chat"} showBackButton />
 
       <View style={styles.chatArea}>
@@ -142,7 +129,7 @@ const MessagesDetailsClientScreen = () => {
 export default MessagesDetailsClientScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   chatArea: { flex: 1 },
   listContent: {
     paddingHorizontal: 20,

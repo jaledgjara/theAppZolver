@@ -1,13 +1,6 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Linking,
-  Platform,
-} from "react-native";
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, Platform } from "react-native";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { COLORS, SIZES } from "@/appASSETS/theme";
 import { LargeButton } from "../button/LargeButton";
 
@@ -82,16 +75,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderRadius: 24,
     marginHorizontal: 20,
-    paddingVertical: 28,       // equal top & bottom padding
+    paddingVertical: 28, // equal top & bottom padding
     paddingHorizontal: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.10,
+    shadowColor: COLORS.brandDeep,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
 
     // Smooth vertical alignment
     justifyContent: "center",
-    gap: 26,                   // perfect spacing between sections
+    gap: 26, // perfect spacing between sections
   },
 
   addressRow: {
@@ -122,7 +115,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 14,
-    marginTop: 7
+    marginTop: 7,
   },
 
   btnLight: {

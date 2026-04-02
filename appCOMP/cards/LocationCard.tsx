@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 import { Address, formatAddress } from "@/appSRC/location/Type/LocationType";
@@ -33,13 +27,9 @@ const LocationCard: React.FC<LocationCardProps> = ({
       return <Ionicons name="home-outline" size={24} color={COLORS.tertiary} />;
     }
     if (labelLower.includes("trabajo") || labelLower.includes("work")) {
-      return (
-        <Ionicons name="briefcase-outline" size={24} color={COLORS.tertiary} />
-      );
+      return <Ionicons name="briefcase-outline" size={24} color={COLORS.tertiary} />;
     }
-    return (
-      <Ionicons name="location-outline" size={24} color={COLORS.tertiary} />
-    );
+    return <Ionicons name="location-outline" size={24} color={COLORS.tertiary} />;
   };
 
   // Acción de swipe
@@ -64,11 +54,10 @@ const LocationCard: React.FC<LocationCardProps> = ({
       <TouchableOpacity
         style={[styles.container, isSelected && styles.selectedContainer]}
         onPress={onPress}
-        activeOpacity={0.7}>
+        activeOpacity={0.7}
+      >
         {/* Icon Circle */}
-        <View style={[styles.iconBox, isSelected && styles.selectedIconBox]}>
-          {getIcon()}
-        </View>
+        <View style={[styles.iconBox, isSelected && styles.selectedIconBox]}>{getIcon()}</View>
 
         {/* Text Info */}
         <View style={styles.infoContainer}>
@@ -86,9 +75,7 @@ const LocationCard: React.FC<LocationCardProps> = ({
         </View>
 
         {/* Selection Indicator */}
-        {isSelected && (
-          <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />
-        )}
+        {isSelected && <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />}
       </TouchableOpacity>
     </Swipeable>
   );
@@ -101,12 +88,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -126,7 +113,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   selectedIconBox: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
   },
   infoContainer: {
     flex: 1,

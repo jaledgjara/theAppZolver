@@ -45,7 +45,7 @@ const TermsAndConditions = () => {
 export default TermsAndConditions;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   content: { paddingHorizontal: 20 },
   date: { fontSize: 12, color: COLORS.textSecondary, marginTop: 20 },
   sectionTitle: {

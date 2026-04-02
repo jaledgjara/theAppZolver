@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 // Componentes
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import { COLORS, SIZES } from "@/appASSETS/theme";
+import { COLORS, FONTS, SIZES } from "@/appASSETS/theme";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import PortfolioCard from "@/appSRC/searchable/Screen/PortfolioCard";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
@@ -89,12 +89,12 @@ const ProfessionalDetailsView = () => {
               <Text style={mainStyles.proCategory}>{profile.category_name || "Profesional"}</Text>
 
               <View style={mainStyles.ratingRow}>
-                <Ionicons name="star" size={14} color={COLORS.primary} />
+                <Ionicons name="star" size={14} color={COLORS.accent} />
                 <Text style={mainStyles.ratingText}>
                   {profile.rating > 0 ? profile.rating.toFixed(1) : "Nuevo"}
                 </Text>
                 <View style={mainStyles.dotSeparator} />
-                <Ionicons name="shield-checkmark" size={14} color={COLORS.primary} />
+                <Ionicons name="shield-checkmark" size={14} color={COLORS.brandDeep} />
                 <Text style={mainStyles.verifiedText}>Verificado</Text>
               </View>
             </View>
@@ -105,16 +105,16 @@ const ProfessionalDetailsView = () => {
             style={[
               mainStyles.typeBadge,
               {
-                backgroundColor: isInstant ? COLORS.primary + "15" : "#FFF3E0",
+                backgroundColor: isInstant ? COLORS.bgSecondary : COLORS.accentLight,
               },
             ]}
           >
             <Ionicons
               name={isInstant ? "flash" : "document-text"}
               size={12}
-              color={COLORS.primary}
+              color={COLORS.brandDeep}
             />
-            <Text style={[mainStyles.typeBadgeText, { color: COLORS.primary }]}>
+            <Text style={[mainStyles.typeBadgeText, { color: COLORS.brandDeep }]}>
               {isInstant ? "Servicio de Respuesta Inmediata" : "Servicio de Presupuesto "}
             </Text>
           </View>
@@ -160,23 +160,22 @@ const ProfessionalDetailsView = () => {
 };
 
 const mainStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContent: { padding: 20, gap: 16 },
 
-  // Bloque Base para todas las secciones (ESTANDARIZACIÓN)
   sectionCard: {
-    backgroundColor: COLORS.backgroundLight || "#F8F9FA",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 20,
     padding: 16,
     width: "100%",
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: "700",
+    ...FONTS.label,
     color: COLORS.textSecondary,
-    textTransform: "uppercase",
     marginBottom: 12,
     letterSpacing: 1,
   },
@@ -189,7 +188,7 @@ const mainStyles = StyleSheet.create({
 
   avatarShadow: {
     elevation: 4,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -202,16 +201,13 @@ const mainStyles = StyleSheet.create({
   },
 
   proName: {
-    fontSize: 20,
-    fontWeight: "800",
+    ...FONTS.h1,
     color: COLORS.textPrimary,
   },
 
   proCategory: {
-    fontSize: 13,
-    color: COLORS.primary,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    ...FONTS.label,
+    color: COLORS.brandMid,
     marginTop: 2,
   },
 
@@ -232,7 +228,7 @@ const mainStyles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: "#CCC",
+    backgroundColor: COLORS.border,
     marginHorizontal: 8,
   },
 
@@ -255,13 +251,13 @@ const mainStyles = StyleSheet.create({
   },
 
   typeBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
+    ...FONTS.micro,
+    fontFamily: "PlusJakartaSans_700Bold",
   },
 
   aboutText: {
-    fontSize: 15,
-    color: "#4A4A4A",
+    ...FONTS.body,
+    color: COLORS.textSecondary,
     lineHeight: 22,
   },
 

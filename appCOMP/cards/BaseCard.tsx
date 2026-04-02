@@ -1,11 +1,11 @@
 import React from "react";
 import { TouchableOpacity, View, StyleSheet, ViewStyle } from "react-native";
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, RADIUS, SHADOWS, SIZES } from "@/appASSETS/theme";
 
 interface BaseCardProps {
   children: React.ReactNode;
   onPress?: () => void;
-  style?: ViewStyle; // Para sobreescribir márgenes si es necesario
+  style?: ViewStyle;
   disabled?: boolean;
 }
 
@@ -18,12 +18,13 @@ export const BaseCard: React.FC<BaseCardProps> = ({
   const Container = onPress ? TouchableOpacity : View;
 
   return (
-    // @ts-ignore: TouchableOpacity types vs View types compatibility
+    // @ts-ignore: TouchableOpacity / View types
     <Container
       style={[styles.card, style]}
       onPress={!disabled ? onPress : undefined}
-      activeOpacity={0.7}
-      disabled={disabled || !onPress}>
+      activeOpacity={0.75}
+      disabled={disabled || !onPress}
+    >
       {children}
     </Container>
   );
@@ -31,20 +32,12 @@ export const BaseCard: React.FC<BaseCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "white",
-    borderRadius: 15, // Radio consistente en toda la app
-    padding: 16, // AUMENTADO: Padding interno para dar más altura y aire
-    marginVertical: 7,
-
-    // Sombra "Nativa" Robusta
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, // Sutil pero visible
-    shadowRadius: 6,
-    elevation: 3, // Android
-
-    // Borde sutil para definición extra
+    backgroundColor: COLORS.bgCard,
+    borderRadius: RADIUS.md,
+    padding: SIZES.lg,
+    marginVertical: SIZES.xs + 2,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: COLORS.border,
+    ...SHADOWS.card,
   },
 });

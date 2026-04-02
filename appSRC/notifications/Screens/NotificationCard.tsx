@@ -1,19 +1,10 @@
 // appSRC/notifications/Screens/NotificationCard.tsx
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
 import { COLORS, FONTS } from "@/appASSETS/theme";
-import {
-  Notification,
-  NotificationType,
-} from "@/appSRC/notifications/Type/NotificationType";
+import { Notification, NotificationType } from "@/appSRC/notifications/Type/NotificationType";
 
 // ---------------------------------------------------------------------------
 // MAPA DE ÍCONOS POR TIPO
@@ -21,25 +12,23 @@ import {
 // Cada tipo de notificación tiene su ícono y color para que el usuario
 // identifique visualmente de qué se trata sin leer el título.
 // ---------------------------------------------------------------------------
-const ICON_MAP: Record<
-  NotificationType,
-  { name: keyof typeof Ionicons.glyphMap; color: string }
-> = {
-  reservation_new: { name: "calendar-outline", color: COLORS.tertiary },
-  reservation_accepted: {
-    name: "checkmark-circle-outline",
-    color: COLORS.success,
-  },
-  reservation_rejected: { name: "close-circle-outline", color: COLORS.error },
-  reservation_completed: { name: "trophy-outline", color: COLORS.primary },
-  reservation_cancelled: { name: "ban-outline", color: COLORS.error },
-  message_new: { name: "chatbubble-outline", color: COLORS.tertiary },
-  budget_received: { name: "document-text-outline", color: COLORS.warning },
-  budget_accepted: { name: "checkmark-done-outline", color: COLORS.success },
-  payment_received: { name: "wallet-outline", color: COLORS.success },
-  payment_refund: { name: "arrow-undo-outline", color: COLORS.warning },
-  general: { name: "notifications-outline", color: COLORS.tertiary },
-};
+const ICON_MAP: Record<NotificationType, { name: keyof typeof Ionicons.glyphMap; color: string }> =
+  {
+    reservation_new: { name: "calendar-outline", color: COLORS.tertiary },
+    reservation_accepted: {
+      name: "checkmark-circle-outline",
+      color: COLORS.success,
+    },
+    reservation_rejected: { name: "close-circle-outline", color: COLORS.error },
+    reservation_completed: { name: "trophy-outline", color: COLORS.primary },
+    reservation_cancelled: { name: "ban-outline", color: COLORS.error },
+    message_new: { name: "chatbubble-outline", color: COLORS.tertiary },
+    budget_received: { name: "document-text-outline", color: COLORS.warning },
+    budget_accepted: { name: "checkmark-done-outline", color: COLORS.success },
+    payment_received: { name: "wallet-outline", color: COLORS.success },
+    payment_refund: { name: "arrow-undo-outline", color: COLORS.warning },
+    general: { name: "notifications-outline", color: COLORS.tertiary },
+  };
 
 // ---------------------------------------------------------------------------
 // HELPER: Tiempo relativo ("hace 5 min", "hace 2 h", "hace 3 d")
@@ -75,11 +64,7 @@ interface NotificationCardProps {
 // Sigue el mismo patrón de Swipeable que LocationCard y SavedCardRow.
 // El swipe a la izquierda revela el botón de eliminar con animación de escala.
 // ---------------------------------------------------------------------------
-const NotificationCard: React.FC<NotificationCardProps> = ({
-  item,
-  onPress,
-  onDelete,
-}) => {
+const NotificationCard: React.FC<NotificationCardProps> = ({ item, onPress, onDelete }) => {
   const iconConfig = ICON_MAP[item.type] || ICON_MAP.general;
 
   const renderRightActions = (
@@ -93,10 +78,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     });
 
     return (
-      <TouchableOpacity
-        onPress={onDelete}
-        style={styles.deleteButtonContainer}
-        activeOpacity={0.6}>
+      <TouchableOpacity onPress={onDelete} style={styles.deleteButtonContainer} activeOpacity={0.6}>
         <Animated.View style={{ transform: [{ scale }] }}>
           <Ionicons name="trash-outline" size={24} color="white" />
         </Animated.View>
@@ -109,22 +91,17 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       <TouchableOpacity
         style={[styles.container, !item.is_read && styles.unreadContainer]}
         onPress={onPress}
-        activeOpacity={0.7}>
+        activeOpacity={0.7}
+      >
         {/* Ícono */}
-        <View
-          style={[
-            styles.iconBox,
-            { backgroundColor: iconConfig.color + "15" },
-          ]}>
+        <View style={[styles.iconBox, { backgroundColor: iconConfig.color + "15" }]}>
           <Ionicons name={iconConfig.name} size={24} color={iconConfig.color} />
         </View>
 
         {/* Contenido */}
         <View style={styles.infoContainer}>
           <View style={styles.headerRow}>
-            <Text
-              style={[styles.title, !item.is_read && styles.unreadTitle]}
-              numberOfLines={1}>
+            <Text style={[styles.title, !item.is_read && styles.unreadTitle]} numberOfLines={1}>
               {item.title}
             </Text>
             <Text style={styles.time}>{timeAgo(item.created_at)}</Text>
@@ -151,12 +128,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#F2F2F2",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 8,

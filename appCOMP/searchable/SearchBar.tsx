@@ -1,113 +1,119 @@
-import { COLORS, SIZES } from '@/appASSETS/theme';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useRef } from "react";
 import {
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ViewStyle
-} from 'react-native';
+  ViewStyle,
+  Animated,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, FONTS, RADIUS, SHADOWS, SIZES } from "@/appASSETS/theme";
 
 interface SearchBarProps {
   value: string;
   onChangeText?: (text: string) => void;
   placeholder?: string;
-  onPress?: () => void; 
+  /** Si se proporciona, la barra completa es presionable (modo navegación) */
+  onPress?: () => void;
 }
 
 /**
  * SearchBar
- * - Two modes:
- *   1) Navigational mode → full bar is pressable (like Airbnb home search)
- *   2) Editable mode → normal text input
- * - Visual improvements: softer radius, subtle shadow, balanced padding.
+ * - Modo navegación: barra presionable (ej. home screen de Airbnb)
+ * - Modo edición: TextInput normal con focus animado
+ * - Fondo blanco sobre bg-primary de pantalla para máximo contraste
  */
 const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
-  placeholder = "Buscar...",
-  onPress
+  placeholder = "¿Qué servicio necesitás hoy?",
+  onPress,
 }) => {
+  const borderAnim = useRef(new Animated.Value(0)).current;
+  const isNavigational = !!onPress;
 
-  const isNavigationalMode = !!onPress;
-  const ContainerComponent = onPress ? TouchableOpacity : View;
-
-  // Dynamic container style applied properly
-  const containerStyle: ViewStyle = {
-    ...styles.container,
-    marginTop: isNavigationalMode ? 55 : 10,
-    marginHorizontal: isNavigationalMode ? 25 : 0
+  const handleFocus = () => {
+    Animated.timing(borderAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
   };
 
-  return (
-    <ContainerComponent 
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={containerStyle}
-    >
-      <View style={styles.contentWrapper}>
-        <Ionicons
-          name="search"
-          size={22}
-          color="#9CA3AF"
-          style={styles.icon}
-        />
+  const handleBlur = () => {
+    Animated.timing(borderAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
+  };
 
-        {isNavigationalMode ? (
-          <Text style={styles.placeholderText}>{placeholder}</Text>
-        ) : (
-          <TextInput
-            style={styles.input}
-            placeholder={placeholder}
-            value={value}
-            onChangeText={onChangeText}
-            placeholderTextColor="rgba(156, 163, 175, 0.7)" // softer gray
-          />
-        )}
-      </View>
-    </ContainerComponent>
+  const borderColor = borderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLORS.border, COLORS.brandMid],
+  });
+
+  if (isNavigational) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.navigationalContainer}>
+        <Ionicons name="search" size={20} color={COLORS.textTertiary} style={styles.icon} />
+        <Text style={styles.placeholder}>{placeholder}</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <Animated.View style={[styles.editableContainer, { borderColor }]}>
+      <Ionicons name="search" size={20} color={COLORS.textTertiary} style={styles.icon} />
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textTertiary}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+      />
+    </Animated.View>
   );
 };
 
 export default SearchBar;
 
-const styles = StyleSheet.create({
-  container: {
-    height: 60,
-    backgroundColor: COLORS.backgroundInput,
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+const baseContainer: ViewStyle = {
+  height: 52,
+  backgroundColor: COLORS.bgCard,
+  borderRadius: RADIUS.md,
+  paddingHorizontal: 16,
+  flexDirection: "row",
+  alignItems: "center",
+  borderWidth: 1,
+  ...SHADOWS.card,
+};
 
-    // subtle depth
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 2, height: 2 },
-    shadowRadius: 10,
-    elevation: 1,
+const styles = StyleSheet.create({
+  navigationalContainer: {
+    ...baseContainer,
+    borderColor: COLORS.border,
   },
-  contentWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    flex: 1,
+  editableContainer: {
+    ...baseContainer,
+    borderColor: COLORS.border,
   },
   icon: {
-    marginRight: 12,
+    marginRight: 10,
+  },
+  placeholder: {
+    ...FONTS.body,
+    color: COLORS.textTertiary,
+    flex: 1,
   },
   input: {
-    flex: 1,
-    height: 50,
+    ...FONTS.body,
     color: COLORS.textPrimary,
-    fontSize: SIZES.h3 + 1,
-    padding: 0,
-  },
-  placeholderText: {
     flex: 1,
-    color: "rgba(156,163,175,0.8)",
-    fontSize: SIZES.h3 + 1,
+    padding: 0,
   },
 });

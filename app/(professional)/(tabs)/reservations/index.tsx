@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { FlatList, StyleSheet, View, Text } from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { COLORS } from "@/appASSETS/theme";
 import { router, useFocusEffect } from "expo-router";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import { useProHistoryReservations } from "@/appSRC/reservations/Hooks/useProHistoryReservations";
@@ -9,25 +10,22 @@ import { ReservationCard } from "@/appCOMP/cards/ReservationCard";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
 const ReservationsProfessional = () => {
-  const { history, isLoading, isFetchingMore, refresh, loadMore } =
-    useProHistoryReservations();
+  const { history, isLoading, isFetchingMore, refresh, loadMore } = useProHistoryReservations();
 
   // LOG DE RENDERIZADO
   console.log(
-    `🖥️ [UI_HISTORY_DEBUG] Render. History Length: ${history.length} | Loading: ${isLoading}`
+    `🖥️ [UI_HISTORY_DEBUG] Render. History Length: ${history.length} | Loading: ${isLoading}`,
   );
 
   // REFRESH AUTOMÁTICO AL ENFOCAR
   useFocusEffect(
     useCallback(() => {
-      console.log(
-        "👁️ [UI_HISTORY_DEBUG] useFocusEffect -> Disparando refresh()"
-      );
+      console.log("👁️ [UI_HISTORY_DEBUG] useFocusEffect -> Disparando refresh()");
       refresh();
       return () => {
         console.log("👋 [UI_HISTORY_DEBUG] useFocusEffect -> Blur (salida)");
       };
-    }, [])
+    }, []),
   );
 
   return (
@@ -43,9 +41,7 @@ const ReservationsProfessional = () => {
             <ReservationCard
               {...mapReservationToCard(item, "professional")}
               onPress={() =>
-                router.push(
-                  `/(professional)/(tabs)/reservations/ReservationsDetails/${item.id}`
-                )
+                router.push(`/(professional)/(tabs)/reservations/ReservationsDetails/${item.id}`)
               }
             />
           )}
@@ -88,12 +84,12 @@ export default ReservationsProfessional;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
     flex: 1,
   },
   divider: {
     height: 1,
-    backgroundColor: "#E9E9E9",
+    backgroundColor: COLORS.border,
   },
   contentContainer: {
     flex: 1,

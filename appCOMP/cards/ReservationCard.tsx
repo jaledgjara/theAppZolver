@@ -59,9 +59,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
             {serviceName}
           </Text>
           <View style={[styles.badge, { backgroundColor: config.bg }]}>
-            <Text style={[styles.badgeText, { color: config.color }]}>
-              {config.text}
-            </Text>
+            <Text style={[styles.badgeText, { color: config.color }]}>{config.text}</Text>
           </View>
         </View>
 
@@ -92,11 +90,7 @@ export const ReservationCard: React.FC<ReservationCardProps> = ({
               {counterpartName}
             </Text>
             <View style={styles.metaRow}>
-              <Ionicons
-                name="calendar-outline"
-                size={14}
-                color={COLORS.textSecondary}
-              />
+              <Ionicons name="calendar-outline" size={14} color={COLORS.textSecondary} />
               <Text style={styles.metaText}>
                 {date} • {time}
               </Text>
@@ -150,7 +144,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   avatarWrapper: {
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { COLORS } from "@/appASSETS/theme";
 
 // Componentes UI (Tus componentes visuales)
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -15,8 +16,7 @@ const MessagesProfesional = () => {
   const router = useRouter();
 
   // 1. Consumimos el estado del Hook
-  const { conversations, loading, refreshConversations } =
-    useProFetchingConversation();
+  const { conversations, loading, refreshConversations } = useProFetchingConversation();
 
   // ESTADO 1: CARGANDO (Si es la carga inicial)
   if (loading && conversations.length === 0) {
@@ -63,8 +63,7 @@ const MessagesProfesional = () => {
           <Pressable
             onPress={() =>
               router.push({
-                pathname:
-                  "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
+                pathname: "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
                 // Pasamos datos clave para que la siguiente pantalla cargue rápido
                 params: {
                   id: item.partner.id, // ID del Cliente
@@ -72,7 +71,8 @@ const MessagesProfesional = () => {
                   conversationId: item.id, // ID de la Conversación (Optimización)
                 },
               })
-            }>
+            }
+          >
             <MessageCard
               name={item.partner.name}
               lastMessage={item.preview.content}
@@ -80,8 +80,7 @@ const MessagesProfesional = () => {
               userType={item.partner.role}
               onPress={() =>
                 router.push({
-                  pathname:
-                    "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
+                  pathname: "(professional)/messages/MessagesDetailsProfessionalScreen/[id]",
                   params: {
                     id: item.partner.id,
                     name: item.partner.name,
@@ -102,7 +101,7 @@ export default MessagesProfesional;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   emptyContainer: {
     flex: 1,

@@ -31,7 +31,7 @@ export default ConfirmationEmailScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,

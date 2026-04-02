@@ -1,17 +1,28 @@
 import React, { useState, useRef } from "react";
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, ScrollView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
+  Platform,
+} from "react-native";
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { usePhoneVerification } from "@/appSRC/auth/Hooks/usePhoneVerification";
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 
 export default function PhoneVerificationScreen() {
   const router = useRouter();
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const inputs = useRef<Array<TextInput | null>>([]);
+  const inputs = useRef<(TextInput | null)[]>([]);
 
   const joinedCode = code.join("");
 
@@ -31,10 +42,7 @@ export default function PhoneVerificationScreen() {
   const handleConfirm = async () => {
     // 🚨 VALIDAR TEMPPHONENUMBER
     if (!tempPhoneNumber) {
-      Alert.alert(
-        "Error",
-        "No hay un teléfono registrado. Intenta nuevamente."
-      );
+      Alert.alert("Error", "No hay un teléfono registrado. Intenta nuevamente.");
       return;
     }
 
@@ -46,24 +54,17 @@ export default function PhoneVerificationScreen() {
     await verifyCode(tempPhoneNumber, joinedCode);
   };
 
-
   return (
-<KeyboardAvoidingView
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView>
-          <ToolBarTitle 
-            titleText="Verificación de teléfono" 
-            showBackButton
-          />
+          <ToolBarTitle titleText="Verificación de teléfono" showBackButton />
 
           <View style={styles.contentContainer}>
-            <Text style={styles.subtitle}>
-              Ingresa el código de 6 dígitos enviado por SMS
-            </Text>
-
+            <Text style={styles.subtitle}>Ingresa el código de 6 dígitos enviado por SMS</Text>
 
             <View style={styles.boxContainer}>
               {code.map((digit, i) => (
@@ -104,26 +105,25 @@ export default function PhoneVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    justifyContent: 'space-between', 
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingBottom: 50,
-    marginTop: 60
+    marginTop: 60,
   },
   codeContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   subtitle: {
-    fontSize: 16,
+    ...FONTS.h3,
     color: COLORS.textPrimary,
     marginBottom: 30,
     textAlign: "center",
-    fontWeight: '700'
   },
   boxContainer: {
     flexDirection: "row",
@@ -134,20 +134,20 @@ const styles = StyleSheet.create({
     width: 45,
     height: 55,
     borderWidth: 2,
-    borderColor: "#ccc",
+    borderColor: COLORS.border,
     borderRadius: 10,
     fontSize: 22,
-    fontWeight: "600",
-    color: COLORS.primary ?? "#333",
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: COLORS.textPrimary,
   },
   inputFilled: {
-    borderColor: COLORS.primary ?? "#007AFF",
+    borderColor: COLORS.brandDeep,
   },
   codePreview: {
     marginTop: 40,
-    fontSize: 18,
-    color: "#aaa",
+    ...FONTS.body,
+    color: COLORS.textTertiary,
     letterSpacing: 2,
-  }, 
-  error: { color: "red", marginTop: 10 },
+  },
+  error: { color: COLORS.error, marginTop: 10 },
 });

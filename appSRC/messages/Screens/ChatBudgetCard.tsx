@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     width: "80%",
     marginVertical: 8,
     borderRadius: 12,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     elevation: 2,
     overflow: "hidden",
   },

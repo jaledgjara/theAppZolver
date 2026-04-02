@@ -1,12 +1,5 @@
 import React, { useCallback } from "react";
-import {
-  View,
-  StyleSheet,
-  Text,
-  FlatList,
-  RefreshControl,
-  ScrollView,
-} from "react-native";
+import { View, StyleSheet, Text, FlatList, RefreshControl, ScrollView } from "react-native";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { useRouter } from "expo-router";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
@@ -23,17 +16,13 @@ import { ServiceRequestCard } from "@/appCOMP/cards/ServiceRequestCard";
 import { ActiveJobControlCard } from "@/appCOMP/cards/ActiveJobControlCard";
 import { formatForUI } from "@/appSRC/timeAndData/Builder/TimeBuilder";
 import { useIsActive } from "@/appSRC/users/Professional/General/Hooks/useIsActive";
-import { useMapNavigation } from "@/appSRC/maps/Hooks/openMapMenu";
+import { useMapNavigation as openMapNavigation } from "@/appSRC/maps/Hooks/openMapMenu";
 
 const IndexInstantScreen = () => {
   const router = useRouter();
 
   // 1. Trabajo Activo
-  const {
-    currentJob,
-    isLoading: loadingJob,
-    refresh: refreshActiveJob,
-  } = useCurrentActiveJob();
+  const { currentJob, isLoading: loadingJob, refresh: refreshActiveJob } = useCurrentActiveJob();
 
   // 2. Radar y Solicitudes
   const { isActive, toggleStatus, isLoading: switchingStatus } = useIsActive();
@@ -72,17 +61,15 @@ const IndexInstantScreen = () => {
               onRefresh={handleManualRefresh}
               colors={[COLORS.primary]}
             />
-          }>
-          <ActiveJobControlCard
-            job={currentJob}
-            onJobCompleted={refreshActiveJob}
-          />
+          }
+        >
+          <ActiveJobControlCard job={currentJob} onJobCompleted={refreshActiveJob} />
           <Text style={styles.hintText}>Desliza para actualizar</Text>
 
           <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
             <LargeButton
               title="Ver dirección en Mapa"
-              onPress={() => useMapNavigation(currentJob.address)}
+              onPress={() => openMapNavigation(currentJob.address)}
               iconName="map-outline"
               backgroundColor={COLORS.tertiary}
             />
@@ -97,13 +84,7 @@ const IndexInstantScreen = () => {
     <View style={styles.headerContainer}>
       <View style={styles.statusSection}>
         <LargeButton
-          title={
-            switchingStatus
-              ? "CARGANDO..."
-              : isActive
-              ? "ESTOY ACTIVO"
-              : "DESCONECTADO"
-          }
+          title={switchingStatus ? "CARGANDO..." : isActive ? "ESTOY ACTIVO" : "DESCONECTADO"}
           onPress={toggleStatus}
           style={{
             backgroundColor: isActive ? COLORS.primary : COLORS.textSecondary,
@@ -138,9 +119,7 @@ const IndexInstantScreen = () => {
       </View>
 
       {isActive && (
-        <Text style={styles.sectionTitle}>
-          Solicitudes Entrantes ({requests.length})
-        </Text>
+        <Text style={styles.sectionTitle}>Solicitudes Entrantes ({requests.length})</Text>
       )}
     </View>
   );
@@ -160,10 +139,7 @@ const IndexInstantScreen = () => {
             />
           }
           renderItem={({ item }) => {
-            const targetDate =
-              item.modality === "instant"
-                ? item.createdAt
-                : item.scheduledStart;
+            const targetDate = item.modality === "instant" ? item.createdAt : item.scheduledStart;
             const { time } = formatForUI(targetDate);
 
             return (
@@ -193,12 +169,8 @@ const IndexInstantScreen = () => {
       ) : (
         <ScrollView
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={false}
-              onRefresh={handleManualRefresh}
-            />
-          }>
+          refreshControl={<RefreshControl refreshing={false} onRefresh={handleManualRefresh} />}
+        >
           {renderHeader()}
         </ScrollView>
       )}
@@ -209,7 +181,7 @@ const IndexInstantScreen = () => {
 export default IndexInstantScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   centerContentScroll: { flexGrow: 1, justifyContent: "center", padding: 20 },
   headerContainer: { padding: 20, alignItems: "center" },
   statusSection: { width: "100%", marginBottom: 20 },

@@ -27,17 +27,11 @@ const CategoryDetailsView = () => {
 
   return (
     <View style={styles.container}>
-      <ToolBarTitle
-        titleText={categoryName ?? "Categoría"}
-        showBackButton={true}
-      />
+      <ToolBarTitle titleText={categoryName ?? "Categoría"} showBackButton={true} />
 
       {/* Selector de Modo */}
       <View style={styles.contentContainer}>
-        <SearchModeSelector
-          currentMode={mode}
-          onModeChange={handleModeChange}
-        />
+        <SearchModeSelector currentMode={mode} onModeChange={handleModeChange} />
       </View>
 
       <FlatList
@@ -67,11 +61,7 @@ const CategoryDetailsView = () => {
         // Componente de carga al final
         ListFooterComponent={
           loading ? (
-            <ActivityIndicator
-              size="large"
-              color={COLORS.primary}
-              style={{ marginTop: 20 }}
-            />
+            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
           ) : null
         }
         // Estado vacío
@@ -96,7 +86,7 @@ export default CategoryDetailsView;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     marginHorizontal: 20,

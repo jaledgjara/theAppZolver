@@ -98,7 +98,7 @@ const SearchScreen = () => {
         }
         ListFooterComponent={
           loading ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color={COLORS.brandDeep} style={{ marginTop: 20 }} />
           ) : null
         }
       />
@@ -111,7 +111,7 @@ export default SearchScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   headerContainer: {
     marginHorizontal: 20,

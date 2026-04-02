@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS } from "@/appASSETS/theme";
 import { UISavedCard } from "@/appSRC/paymentMethod/Type/PaymentMethodType";
@@ -20,12 +14,7 @@ interface Props {
   onDelete: () => void; // 🟢 Nueva Prop
 }
 
-export const SavedCardRow = ({
-  card,
-  isSelected,
-  onPress,
-  onDelete,
-}: Props) => {
+export const SavedCardRow = ({ card, isSelected, onPress, onDelete }: Props) => {
   // 🟢 Lógica de Animación (Igual a tu LocationCard)
   const renderRightActions = (progress: any, dragX: any) => {
     const scale = dragX.interpolate({
@@ -35,10 +24,7 @@ export const SavedCardRow = ({
     });
 
     return (
-      <TouchableOpacity
-        onPress={onDelete}
-        style={styles.deleteButtonContainer}
-        activeOpacity={0.6}>
+      <TouchableOpacity onPress={onDelete} style={styles.deleteButtonContainer} activeOpacity={0.6}>
         <Animated.View style={{ transform: [{ scale }] }}>
           <Ionicons name="trash-outline" size={24} color="white" />
         </Animated.View>
@@ -51,7 +37,8 @@ export const SavedCardRow = ({
       <TouchableOpacity
         style={[styles.container, isSelected && styles.selectedContainer]}
         onPress={onPress}
-        activeOpacity={0.7}>
+        activeOpacity={0.7}
+      >
         {/* Icono de la Marca */}
         <View style={styles.iconBox}>
           <Ionicons name="card" size={24} color="#555" />
@@ -61,9 +48,7 @@ export const SavedCardRow = ({
         <View style={styles.info}>
           <Text style={styles.brand}>{card.brand.toUpperCase()}</Text>
           <Text style={styles.number}>•••• {card.last4}</Text>
-          <Text style={styles.typeLabel}>
-            {card.type === "credit_card" ? "Crédito" : "Débito"}
-          </Text>
+          <Text style={styles.typeLabel}>{card.type === "credit_card" ? "Crédito" : "Débito"}</Text>
         </View>
 
         {/* Radio Button Visual */}
@@ -84,7 +69,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,

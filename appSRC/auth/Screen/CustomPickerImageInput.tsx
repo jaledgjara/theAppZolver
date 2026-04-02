@@ -23,7 +23,8 @@ export const CustomPickerImageInput: React.FC<Props> = ({
     <TouchableOpacity
       style={[styles.container, isUploaded && styles.containerSuccess]}
       onPress={onPress}
-      activeOpacity={0.7}>
+      activeOpacity={0.7}
+    >
       {/* Icono del Tipo de Documento */}
       <View style={styles.iconWrapper}>
         <Ionicons
@@ -60,7 +61,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F3F4F6",
     // Sombra suave
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,

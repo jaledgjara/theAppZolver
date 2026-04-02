@@ -51,10 +51,9 @@ const IncomeCard: React.FC<IncomeCardProps> = ({
         styles.card,
         width === "half" && styles.halfWidth,
         width === "full" && styles.fullWidth,
-      ]}>
-      <Text style={[titleVariant === "h2" ? styles.titleH2 : styles.titleH3]}>
-        {title}
-      </Text>
+      ]}
+    >
+      <Text style={[titleVariant === "h2" ? styles.titleH2 : styles.titleH3]}>{title}</Text>
 
       {renderValue()}
 
@@ -74,7 +73,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
 
     // Shadow for iOS
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 6,

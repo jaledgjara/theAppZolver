@@ -1,72 +1,39 @@
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS, RADIUS, SHADOWS, SIZES } from "@/appASSETS/theme";
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  ViewStyle,
-  TextStyle,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle, TextStyle } from "react-native";
+
+// Alterna entre fondo verde-claro y amarillo-claro para variedad visual
+const ICON_BG_COLORS = ["#E8F4F1", "#FFF8E0"];
 
 interface CategoryItemProps {
   name: string;
-  icon: React.ReactNode; // Accepts Emojis, Ionicons, MaterialIcons, etc.
+  icon: React.ReactNode;
   onPress: () => void;
-
-  // Optional overrides
-  backgroundColor?: string;
-  borderRadius?: number;
-  shadow?: boolean;
-  size?: number; // Controls width/height square
-  nameColor?: string;
-  nameSize?: number;
-  containerStyle?: ViewStyle; // Full custom container override
-  textStyle?: TextStyle; // Custom text style override
+  index?: number; // usado para alternar fondo del icon-wrap
+  size?: number;
+  containerStyle?: ViewStyle;
+  textStyle?: TextStyle;
 }
 
-/**
- * CategoryItem
- * Universal category grid component.
- * - accepts ANY icon type (emoji, Ionicons, MaterialIcons, etc.)
- * - customizable size, colors, radius, shadow
- * - designed for grid usage with aspectRatio = 1
- */
 const CategoryItem: React.FC<CategoryItemProps> = ({
   name,
   icon,
   onPress,
-
-  backgroundColor = COLORS.backgroundInput,
-  borderRadius = 20,
-  shadow = true,
+  index = 0,
   size = 100,
-  nameColor = "black",
-  nameSize = 14,
-
   containerStyle,
   textStyle,
 }) => {
-  const dynamicStyle: ViewStyle = {
-    backgroundColor,
-    borderRadius,
-    width: size,
-    height: size,
-    ...(shadow ? styles.shadow : {}),
-  };
+  const iconBg = ICON_BG_COLORS[index % ICON_BG_COLORS.length];
 
   return (
     <TouchableOpacity
-      style={[styles.container, dynamicStyle, containerStyle]}
       onPress={onPress}
-      activeOpacity={0.85}>
-      {icon}
-
-      <Text
-        style={[
-          styles.nameText,
-          { color: nameColor, fontSize: nameSize },
-          textStyle,
-        ]}>
+      activeOpacity={0.85}
+      style={[styles.card, { width: size, minHeight: size }, containerStyle]}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>{icon}</View>
+      <Text style={[styles.label, textStyle]} numberOfLines={2}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -76,24 +43,29 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
 export default CategoryItem;
 
 const styles = StyleSheet.create({
-  container: {
-    justifyContent: "center",
+  card: {
+    backgroundColor: COLORS.bgCard,
+    borderRadius: RADIUS.lg,
     alignItems: "center",
-    margin: 10,
+    justifyContent: "center",
+    padding: SIZES.sm,
+    margin: SIZES.sm,
+    borderWidth: 0.5,
+    borderColor: COLORS.border,
+    ...SHADOWS.card,
   },
-  nameText: {
-    color: COLORS.primary,
-    marginTop: 17,
-    fontWeight: "600",
+  iconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: RADIUS.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SIZES.sm,
+  },
+  label: {
+    ...FONTS.caption,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: COLORS.textPrimary,
     textAlign: "center",
-  },
-
-  // subtle modern shadow
-  shadow: {
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
 });

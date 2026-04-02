@@ -1,12 +1,5 @@
 import React, { useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
@@ -56,8 +49,7 @@ const InstantRequestDetailScreen: React.FC<InstantRequestDetailScreenProps> = ({
       priceService: reservation.financials?.price || 0,
       platformFee: reservation.financials?.platformFee || 0,
       totalAmount:
-        (reservation.financials?.price || 0) +
-        (reservation.financials?.platformFee || 0),
+        (reservation.financials?.price || 0) + (reservation.financials?.platformFee || 0),
     };
   }, [reservation]);
 
@@ -70,14 +62,10 @@ const InstantRequestDetailScreen: React.FC<InstantRequestDetailScreenProps> = ({
   }
 
   const handleRejectPress = () => {
-    Alert.alert(
-      "Rechazar solicitud",
-      "El cliente recibirá un reembolso automático. ¿Confirmar?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Rechazar", style: "destructive", onPress: onReject },
-      ]
-    );
+    Alert.alert("Rechazar solicitud", "El cliente recibirá un reembolso automático. ¿Confirmar?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Rechazar", style: "destructive", onPress: onReject },
+    ]);
   };
 
   return (
@@ -94,10 +82,7 @@ const InstantRequestDetailScreen: React.FC<InstantRequestDetailScreenProps> = ({
           viewRole="professional"
         />
 
-        <ReservationDetailsCard
-          type="title"
-          title={displayData.serviceTitle}
-        />
+        <ReservationDetailsCard type="title" title={displayData.serviceTitle} />
 
         <ReservationDetailsCard
           type="date"
@@ -106,10 +91,7 @@ const InstantRequestDetailScreen: React.FC<InstantRequestDetailScreenProps> = ({
           viewRole="professional"
         />
 
-        <ReservationDetailsCard
-          type="location"
-          location={displayData.address}
-        />
+        <ReservationDetailsCard type="location" location={displayData.address} />
 
         {/* Nota del cliente */}
         <View style={styles.descriptionContainer}>
@@ -143,7 +125,8 @@ const InstantRequestDetailScreen: React.FC<InstantRequestDetailScreenProps> = ({
             style={styles.rejectButton}
             onPress={handleRejectPress}
             disabled={isRejecting || isAccepting}
-            activeOpacity={0.7}>
+            activeOpacity={0.7}
+          >
             <Ionicons name="close-circle-outline" size={20} color={COLORS.error} />
             <Text style={styles.rejectText}>Rechazar</Text>
           </TouchableOpacity>
@@ -166,18 +149,18 @@ const InstantRequestDetailScreen: React.FC<InstantRequestDetailScreenProps> = ({
 export default InstantRequestDetailScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: { padding: 16, paddingBottom: 60 },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   descriptionContainer: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     padding: 16,
     borderRadius: 14,
     marginBottom: 16,
     marginTop: 12,
     borderWidth: 1,
     borderColor: "#F3F4F6",
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,

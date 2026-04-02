@@ -52,19 +52,13 @@ const FormProfessionalOne = () => {
 
   return (
     <View style={styles.container}>
-      <ToolBarTitle
-        titleText="Verificación de Identidad"
-        showBackButton={true}
-      />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
+      <ToolBarTitle titleText="Verificación de Identidad" showBackButton={true} />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* SECCIÓN SUPERIOR: Textos e Inputs */}
         <View>
           <View style={styles.header}>
             <Text style={styles.sectionSubtitle}>
-              Para garantizar la seguridad de la comunidad, necesitamos validar
-              tu identidad.
+              Para garantizar la seguridad de la comunidad, necesitamos validar tu identidad.
             </Text>
           </View>
 
@@ -119,7 +113,7 @@ export default FormProfessionalOne;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   scrollContent: {
     flexGrow: 1, // Permite que el contenido ocupe todo el alto disponible

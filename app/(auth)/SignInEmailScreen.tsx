@@ -1,10 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React, { useState } from 'react'
-import { ToolBarTitle } from '@/appCOMP/toolbar/Toolbar'
-import { router, useRouter } from 'expo-router'
-import AuthInput from '@/appSRC/auth/Screen/AuthInput'
-import { LargeButton } from '@/appCOMP/button/LargeButton'
-import { usePasswordlessEmail } from '@/appSRC/auth/Hooks/usePasswordlessEmail'
+import { StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
+import { router, useRouter } from "expo-router";
+import AuthInput from "@/appSRC/auth/Screen/AuthInput";
+import { LargeButton } from "@/appCOMP/button/LargeButton";
+import { usePasswordlessEmail } from "@/appSRC/auth/Hooks/usePasswordlessEmail";
 
 const SignInEmailScreen = () => {
   const [email, setEmail] = useState("");
@@ -30,31 +30,30 @@ const SignInEmailScreen = () => {
         />
 
         <LargeButton
-          title={'ENVIAR EMAIL'}
-          iconName='mail'
+          title={"ENVIAR EMAIL"}
+          iconName="mail"
           onPress={() => sendEmailLink(email)}
           loading={loading}
           disabled={loading || !email.trim()}
         />
       </View>
-
     </View>
   );
 };
 
-export default SignInEmailScreen
+export default SignInEmailScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.backgroundLight,
   },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    justifyContent: 'space-between', 
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingBottom: 45,
     marginTop: 30,
-  }
-})
+  },
+});

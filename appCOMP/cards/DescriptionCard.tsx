@@ -18,13 +18,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 16,
     borderRadius: 16,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
     marginBottom: 20,
-    marginHorizontal: 20
+    marginHorizontal: 20,
   },
   description: {
     fontSize: 15,

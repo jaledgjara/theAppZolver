@@ -24,13 +24,13 @@ interface Props {
 
 export const AddLocationScreen = ({ origin }: Props) => {
   // 🟢 INYECCIÓN DE DEPENDENCIAS (Con el origin correcto)
-  const { form, setters, loading, handleTypeSelect, handleSave } =
-    useAddLocationForm(origin);
+  const { form, setters, loading, handleTypeSelect, handleSave } = useAddLocationForm(origin);
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: "white" }}>
+      style={{ flex: 1, backgroundColor: COLORS.backgroundLight }}
+    >
       <View style={styles.container}>
         <ToolBarTitle titleText="Nueva Dirección" showBackButton={true} />
 
@@ -42,21 +42,15 @@ export const AddLocationScreen = ({ origin }: Props) => {
               return (
                 <TouchableOpacity
                   key={type.id}
-                  style={[
-                    styles.typeButton,
-                    isSelected && styles.typeButtonSelected,
-                  ]}
-                  onPress={() => handleTypeSelect(type.id)}>
+                  style={[styles.typeButton, isSelected && styles.typeButtonSelected]}
+                  onPress={() => handleTypeSelect(type.id)}
+                >
                   <Ionicons
                     name={type.icon as any}
                     size={24}
                     color={isSelected ? COLORS.primary : "#666"}
                   />
-                  <Text
-                    style={[
-                      styles.typeText,
-                      isSelected && styles.typeTextSelected,
-                    ]}>
+                  <Text style={[styles.typeText, isSelected && styles.typeTextSelected]}>
                     {type.label}
                   </Text>
                 </TouchableOpacity>
@@ -130,7 +124,7 @@ export const AddLocationScreen = ({ origin }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   scrollContent: { padding: 20 },
   sectionTitle: {
     ...FONTS.h3,

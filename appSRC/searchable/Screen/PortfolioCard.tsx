@@ -20,14 +20,11 @@ export const PortfolioCard: React.FC<PortfolioCardProps> = ({ images }) => {
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToAlignment="start"
-        decelerationRate="fast">
+        decelerationRate="fast"
+      >
         {urls.map((url, index) => (
           <View key={index} style={styles.imageWrapper}>
-            <Image
-              source={{ uri: url }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: url }} style={styles.image} resizeMode="cover" />
           </View>
         ))}
       </ScrollView>
@@ -42,7 +39,7 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     // Sombra sutil para cada foto del portafolio
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

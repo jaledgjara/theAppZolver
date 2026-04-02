@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Alert, ActivityIndicator } from "react-native";
-import {
-  MapView,
-  Circle,
-  Marker,
-} from "@/appCOMP/maps/extensions/NativeMapView";
+import { MapView, Circle, Marker } from "@/appCOMP/maps/extensions/NativeMapView";
 import * as Location from "expo-location";
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
@@ -94,10 +90,7 @@ const ProfessionalMapAreaScreen = () => {
         </View>
 
         <View style={styles.mapWrapper}>
-          <MapView
-            style={styles.map}
-            region={region}
-            onRegionChangeComplete={setRegion}>
+          <MapView style={styles.map} region={region} onRegionChangeComplete={setRegion}>
             <Marker
               coordinate={{
                 latitude: region.latitude,
@@ -110,7 +103,7 @@ const ProfessionalMapAreaScreen = () => {
                 longitude: region.longitude,
               }}
               radius={coverageRadius * 1000}
-              fillColor="rgba(255, 193, 7, 0.2)"
+              fillColor={`${COLORS.accent}33`}
               strokeColor={COLORS.primary}
             />
           </MapView>
@@ -124,7 +117,8 @@ const ProfessionalMapAreaScreen = () => {
             </Pressable>
             <Pressable
               style={[styles.zoomBtn, styles.locationBtn]}
-              onPress={handleGetCurrentLocation}>
+              onPress={handleGetCurrentLocation}
+            >
               {loadingLocation ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
               ) : (
@@ -181,7 +175,7 @@ const ProfessionalMapAreaScreen = () => {
 export default ProfessionalMapAreaScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FBFBFB" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 10 },
   headerText: { marginBottom: 20 },
   sectionTitle: {
@@ -202,7 +196,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#EEE",
+    backgroundColor: COLORS.border,
   },
   map: { width: "100%", height: "100%" },
 
@@ -214,14 +208,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   zoomBtn: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     width: 38,
     height: 38,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
@@ -230,17 +224,17 @@ const styles = StyleSheet.create({
   // Layer Card Slider
   layerCard: {
     marginTop: 30,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 20,
     padding: 20,
     // Sombra suave para efecto de capa
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
+    borderColor: COLORS.border,
   },
   cardHeader: {
     flexDirection: "row",
@@ -277,8 +271,8 @@ const styles = StyleSheet.create({
 
   footer: {
     padding: 20,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderTopWidth: 1,
-    borderTopColor: "#EEE",
+    borderTopColor: COLORS.border,
   },
 });

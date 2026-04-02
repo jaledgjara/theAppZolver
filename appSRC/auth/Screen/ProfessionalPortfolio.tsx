@@ -32,19 +32,15 @@ export const ProfessionalPortfolio: React.FC<Props> = ({
       <Text style={styles.label}>
         Subir trabajos ({images.length}/{maxImages})
       </Text>
-      <Text style={styles.helperText}>
-        Agrega fotos de trabajos terminados para destacar.
-      </Text>
+      <Text style={styles.helperText}>Agrega fotos de trabajos terminados para destacar.</Text>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.scroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
         {/* Botón Agregar */}
         <TouchableOpacity
           style={styles.addImageButton}
           onPress={onAddImage}
-          disabled={images.length >= maxImages || isLoading}>
+          disabled={images.length >= maxImages || isLoading}
+        >
           {isLoading ? (
             <ActivityIndicator color={COLORS.primary} />
           ) : (
@@ -52,17 +48,14 @@ export const ProfessionalPortfolio: React.FC<Props> = ({
               <MaterialCommunityIcons
                 name="camera-plus-outline"
                 size={32}
-                color={
-                  images.length >= maxImages
-                    ? COLORS.textSecondary
-                    : COLORS.primary
-                }
+                color={images.length >= maxImages ? COLORS.textSecondary : COLORS.primary}
               />
               <Text
                 style={[
                   styles.addImageText,
                   images.length >= maxImages && { color: COLORS.textSecondary },
-                ]}>
+                ]}
+              >
                 Subir
               </Text>
             </>
@@ -73,9 +66,7 @@ export const ProfessionalPortfolio: React.FC<Props> = ({
         {images.map((uri, index) => (
           <View key={index} style={styles.imageContainer}>
             <Image source={{ uri }} style={styles.image} />
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => onRemoveImage(index)}>
+            <TouchableOpacity style={styles.removeButton} onPress={() => onRemoveImage(index)}>
               <Ionicons name="close-circle" size={24} color={COLORS.error} />
             </TouchableOpacity>
           </View>
@@ -136,7 +127,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -8,
     right: -8,
-    backgroundColor: "white",
+    backgroundColor: COLORS.bgCard,
     borderRadius: 12,
   },
 });

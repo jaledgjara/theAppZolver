@@ -56,7 +56,8 @@ export default function NotificationsScreen() {
         <TouchableOpacity
           style={styles.markAllButton}
           onPress={handleMarkAllRead}
-          activeOpacity={0.7}>
+          activeOpacity={0.7}
+        >
           <Text style={styles.markAllText}>Marcar todas como leídas</Text>
         </TouchableOpacity>
       )}
@@ -101,7 +102,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.backgroundLight,
   },
   listContent: {
     paddingHorizontal: 16,

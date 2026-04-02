@@ -100,7 +100,7 @@ export default MessagesDetailsProfessionalScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.backgroundLight,
   },
   chatArea: {
     flex: 1, // 🔥 CRITICAL: Makes the chat area take remaining space
@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     marginVertical: 8,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.bgCard,
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: COLORS.brandDeep,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   chatImage: {
     width: 240,
     height: 180,
-    backgroundColor: "#EEE",
+    backgroundColor: COLORS.bgSecondary,
   },
   imageCard: {
     borderRadius: 16,

@@ -205,7 +205,7 @@ const ReservationRequestScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   flex1: { flex: 1 },
   scrollContent: {
     padding: 20,

@@ -231,7 +231,7 @@ export default IndexQuoteScreen;
 // ============================================================================
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   statsCard: {

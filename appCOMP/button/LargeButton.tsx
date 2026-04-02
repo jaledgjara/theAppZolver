@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   TouchableOpacity,
   Text,
@@ -7,113 +7,142 @@ import {
   StyleProp,
   ActivityIndicator,
   View,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "@/appASSETS/theme";
+import { COLORS, FONTS, RADIUS, SHADOWS } from "@/appASSETS/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
+
+type ButtonVariant = "primary" | "secondary" | "accent" | "ghost" | "destructive";
 
 interface LargeButtonProps {
   title: string;
   onPress: () => void;
+  variant?: ButtonVariant;
 
-  /** Custom styling */
+  /** Overrides de color manual (opcional, prefiere variant) */
   style?: StyleProp<ViewStyle>;
   backgroundColor?: string;
   textColor?: string;
   disabled?: boolean;
 
-  /** Optional icon */
+  /** Ícono opcional */
   iconName?: IoniconName;
   iconColor?: string;
   iconSize?: number;
 
-  /** Loader */
+  /** Estado de carga */
   loading?: boolean;
   loaderColor?: string;
 }
 
+const VARIANT_STYLES: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
+  primary: { bg: COLORS.brandDeep, text: COLORS.white },
+  secondary: { bg: COLORS.brandLight, text: COLORS.brandDeep },
+  accent: { bg: COLORS.accent, text: COLORS.textPrimary },
+  ghost: { bg: "transparent", text: COLORS.brandDeep, border: COLORS.brandDeep },
+  destructive: { bg: COLORS.error, text: COLORS.white },
+};
+
 export const LargeButton: React.FC<LargeButtonProps> = ({
   title,
   onPress,
+  variant = "primary",
   style,
-  backgroundColor = COLORS.primary,
-  textColor = COLORS.white,
+  backgroundColor,
+  textColor,
   disabled = false,
   iconName,
   iconColor,
-  iconSize = 22,
+  iconSize = 20,
   loading = false,
   loaderColor,
 }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
   const isDisabled = disabled || loading;
 
-  // Default margin — only applies if user does not override margin in style
-  const defaultMargin = { marginVertical: 30 };
+  const variantStyle = VARIANT_STYLES[variant];
+  const resolvedBg = isDisabled ? "#C8DBD6" : (backgroundColor ?? variantStyle.bg);
+  const resolvedText = textColor ?? variantStyle.text;
 
-  // Merge logic: user styles always override default margin
-  const mergedStyle = Array.isArray(style)
-    ? [defaultMargin, ...style]
-    : [defaultMargin, style];
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.97,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      disabled={isDisabled}
-      onPress={onPress}
-      style={[
-        styles.buttonContainer,
-        { backgroundColor: isDisabled ? "#CFCFCF" : backgroundColor },
-        mergedStyle, // THIS handles the default + override logic
-      ]}>
-      {loading ? (
-        <ActivityIndicator size="small" color={loaderColor || textColor} />
-      ) : (
-        <View style={styles.contentRow}>
-          {iconName && (
-            <Ionicons
-              name={iconName}
-              size={iconSize}
-              color={iconColor || textColor}
-              style={styles.iconStyle}
-            />
-          )}
-
-          <Text style={[styles.buttonText, { color: textColor }]}>{title}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+      <TouchableOpacity
+        activeOpacity={1}
+        disabled={isDisabled}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={[
+          styles.button,
+          { backgroundColor: resolvedBg },
+          variantStyle.border ? { borderWidth: 1.5, borderColor: variantStyle.border } : undefined,
+          isDisabled && styles.disabled,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color={loaderColor ?? resolvedText} />
+        ) : (
+          <View style={styles.contentRow}>
+            {iconName && (
+              <Ionicons
+                name={iconName}
+                size={iconSize}
+                color={iconColor ?? resolvedText}
+                style={styles.icon}
+              />
+            )}
+            <Text style={[styles.label, { color: resolvedText }]}>{title}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  buttonContainer: {
-    flexDirection: "row",
+  button: {
+    height: 48,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 50,
     width: "100%",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
+    ...SHADOWS.card,
   },
-
+  disabled: {
+    opacity: 0.55,
+  },
   contentRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  iconStyle: {
+  icon: {
     marginRight: 8,
   },
-
-  buttonText: {
-    fontSize: SIZES.h3,
-    fontWeight: "600",
+  label: {
+    ...FONTS.bodyMedium,
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 14,
+    letterSpacing: 0.3,
     textAlign: "center",
   },
 });

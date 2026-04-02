@@ -47,7 +47,7 @@ const PrivacyPolicy = () => {
 export default PrivacyPolicy;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: COLORS.backgroundLight },
   content: { paddingHorizontal: 20, marginTop: 20 },
   sectionTitle: {
     fontSize: SIZES.h3,

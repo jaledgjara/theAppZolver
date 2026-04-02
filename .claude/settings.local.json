@@ -31,7 +31,16 @@
       "Bash(npm test:*)",
       "Bash(npm info:*)",
       "Bash(git commit:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Read(//Users/jaledjara/.claude/plugins/**)",
+      "Read(//Users/jaledjara/.claude/**)",
+      "Bash(cp:*)",
+      "Bash(sed -i '' 's/container: { flex: 1, backgroundColor: \"white\" }/container: { flex: 1, backgroundColor: COLORS.backgroundLight }/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/users/Screens/UserDataScreen.tsx /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/reservations/Screens/Instant/IndexInstantScreen.tsx /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/reservations/Screens/Quote/IndexQuoteScreen.tsx /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/paymentMethod/Screens/PaymentMethodListScreen.tsx)",
+      "Bash(sed -i '' 's/screen: { flex: 1, backgroundColor: \"white\" }/screen: { flex: 1, backgroundColor: COLORS.backgroundLight }/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/paymentMethod/Screens/PaymentFormScreen.tsx)",
+      "Bash(sed -i '' 's/backgroundColor: \"white\",/backgroundColor: COLORS.backgroundLight,/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appCOMP/contentStates/LoadingScreen.tsx /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appCOMP/contentStates/MiniLoaderScreen.tsx)",
+      "Bash(sed -i '' 's/container: { flex: 1, backgroundColor: COLORS\\\\.white }/container: { flex: 1, backgroundColor: COLORS.backgroundLight }/' '/Users/jaledjara/ZZzzZzZzZzZzz/zolver/app/\\(professional\\)/profile-edit/briefcase-outline.tsx' '/Users/jaledjara/ZZzzZzZzZzZzz/zolver/app/\\(auth\\)/FormProfessionalTwo.tsx')",
+      "Bash(sed -i '' 's/backgroundColor: COLORS\\\\.white ?? \"#FFFFFF\"/backgroundColor: COLORS.backgroundLight/' '/Users/jaledjara/ZZzzZzZzZzZzz/zolver/app/\\(auth\\)/AccountStatusScreen.tsx')",
+      "Bash(sed -i '' 's/backgroundColor: COLORS\\\\.white,/backgroundColor: COLORS.backgroundLight,/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/helpCenter/Screens/HelpCenterScreen.tsx)"
     ]
   }
 }
