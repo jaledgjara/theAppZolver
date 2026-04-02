@@ -1,4 +1,4 @@
-import { FlatList, ScrollView, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import React, { useEffect } from "react";
 import { useRouter } from "expo-router";
 
@@ -81,21 +81,6 @@ const Home = () => {
             />
           )}
         </View>
-
-        {/* Banner CTA Profesional */}
-        <View style={styles.proBanner}>
-          <View style={styles.proBannerText}>
-            <Text style={styles.proBannerTitle}>¿Sos un profesional?</Text>
-            <Text style={styles.proBannerSub}>Llegá a más clientes. Registrate gratis.</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.proBannerBtn}
-            activeOpacity={0.85}
-            onPress={() => router.push("/(auth)/TypeOfUserScreen" as any)}
-          >
-            <Text style={styles.proBannerBtnText}>Unirme</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </View>
   );
@@ -119,42 +104,5 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: SIZES.xl,
     paddingTop: SIZES.xxxl,
-  },
-  proBanner: {
-    marginHorizontal: SIZES.xl,
-    marginTop: SIZES.xxxl,
-    backgroundColor: COLORS.brandDeep,
-    borderRadius: 16,
-    padding: SIZES.xl,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  proBannerText: {
-    flex: 1,
-    marginRight: SIZES.lg,
-  },
-  proBannerTitle: {
-    ...FONTS.h3,
-    color: COLORS.white,
-    marginBottom: SIZES.xs,
-  },
-  proBannerSub: {
-    ...FONTS.caption,
-    color: COLORS.brandLight,
-  },
-  proBannerBtn: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 10,
-    paddingVertical: SIZES.md,
-    paddingHorizontal: SIZES.lg,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  proBannerBtnText: {
-    ...FONTS.caption,
-    fontFamily: "PlusJakartaSans_700Bold",
-    color: COLORS.textPrimary,
   },
 });
