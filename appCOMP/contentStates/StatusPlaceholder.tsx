@@ -46,11 +46,10 @@ export default StatusPlaceholder;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.bgCard,
-    alignSelf: "stretch",
     borderRadius: RADIUS.lg,
     paddingVertical: 40,
-    paddingHorizontal: SIZES.xl,
-    marginHorizontal: SIZES.xl,
+    paddingHorizontal: 32,
+    marginHorizontal: 24,
     marginTop: SIZES.xxxl,
     alignItems: "center",
     justifyContent: "center",

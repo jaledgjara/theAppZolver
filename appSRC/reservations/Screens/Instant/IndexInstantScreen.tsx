@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, FlatList, RefreshControl, ScrollView } from "re
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import { useRouter } from "expo-router";
 import { LargeButton } from "@/appCOMP/button/LargeButton";
-import { COLORS } from "@/appASSETS/theme";
+import { COLORS, FONTS } from "@/appASSETS/theme";
 import MiniLoaderScreen from "@/appCOMP/contentStates/MiniLoaderScreen";
 import StatusPlaceholder from "@/appCOMP/contentStates/StatusPlaceholder";
 
@@ -84,11 +84,9 @@ const IndexInstantScreen = () => {
     <View style={styles.headerContainer}>
       <View style={styles.statusSection}>
         <LargeButton
-          title={switchingStatus ? "CARGANDO..." : isActive ? "ESTOY ACTIVO" : "DESCONECTADO"}
+          title={switchingStatus ? "Cargando..." : isActive ? "Estoy Activo" : "Desconectado"}
           onPress={toggleStatus}
-          style={{
-            backgroundColor: isActive ? COLORS.primary : COLORS.textSecondary,
-          }}
+          backgroundColor={isActive ? COLORS.primary : COLORS.textSecondary}
         />
       </View>
 
@@ -190,27 +188,26 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: "#E8F5E9",
+    backgroundColor: COLORS.bgSecondary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
-  radarInactive: { backgroundColor: "#ECEFF1" },
+  radarInactive: { backgroundColor: COLORS.bgSecondary },
   statusTextContainer: { alignItems: "center" },
   statusTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    ...FONTS.h2,
+    color: COLORS.textPrimary,
     marginBottom: 4,
   },
-  statusSubtitle: { fontSize: 14, color: "#666" },
+  statusSubtitle: { ...FONTS.body, color: COLORS.textSecondary },
   sectionTitle: {
-    fontSize: 16,
+    ...FONTS.h3,
     fontWeight: "700",
     alignSelf: "flex-start",
     marginTop: 20,
     marginBottom: 10,
-    color: "#444",
+    color: COLORS.textPrimary,
   },
   listContent: { paddingBottom: 40 },
   hintText: { textAlign: "center", color: "#999", fontSize: 12, marginTop: 20 },
