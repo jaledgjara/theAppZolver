@@ -109,7 +109,13 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
                 style={styles.icon}
               />
             )}
-            <Text style={[styles.label, { color: resolvedText }]}>{title}</Text>
+            <Text
+              style={[styles.label, { color: resolvedText }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {title}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -119,9 +125,10 @@ export const LargeButton: React.FC<LargeButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    height: 48,
+    minHeight: 48,
     borderRadius: RADIUS.md,
     paddingHorizontal: 20,
+    paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
@@ -134,6 +141,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 1,
   },
   icon: {
     marginRight: 8,
@@ -144,5 +152,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.3,
     textAlign: "center",
+    flexShrink: 1,
   },
 });
