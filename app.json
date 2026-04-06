@@ -80,8 +80,7 @@
           "project": "react-native",
           "organization": "the-zolver-app"
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "runtimeVersion": {
       "policy": "fingerprint"

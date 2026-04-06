@@ -14,9 +14,9 @@ const firebaseConfig = {
 };
 
 if (!firebaseConfig.apiKey) {
-  throw new Error(
-    "Firebase API key not configured. " +
-      "Create a .env file with EXPO_PUBLIC_FIREBASE_* variables. " +
+  console.error(
+    "[Firebase] API key not configured. " +
+      "Set EXPO_PUBLIC_FIREBASE_* environment variables. " +
       "See .env.example for required keys.",
   );
 }
