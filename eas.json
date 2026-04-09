@@ -9,7 +9,24 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EXPO_PUBLIC_FIREBASE_WEB_API_KEY": "AIzaSyDWVDtm18wXskL9r_gTJ-nTewe1IOzGpFg",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "thezolverapp.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "thezolverapp",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "thezolverapp.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "448534321463",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:448534321463:android:f5051a04990a16b58862b2",
+        "EXPO_PUBLIC_FIREBASE_IOS_CLIENT": "448534321463-l661go8v94d8j9im767is2n503pj9k4g.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT": "448534321463-b64uqadh5slt2rkli9g70cs397pop6mc.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_WEB_CLIENT": "448534321463-ldm3c9k8kdng29jc1284ssi4drc5rogf.apps.googleusercontent.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://uxfsxayzvfjyyaktliqz.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZnN4YXl6dmZqeXlha3RsaXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTMzMjcsImV4cCI6MjA3ODAyOTMyN30.Bf3UJiSEbFTsobEfkp6Q8WYF8-N9EFNpKE9Vl7wPApg",
+        "EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS": "https://uxfsxayzvfjyyaktliqz.functions.supabase.co",
+        "EXPO_PUBLIC_MP_PUBLIC_KEY": "APP_USR-1f0a6029-c5d7-4417-87ef-71561e877323",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://860f47c42454dd6877941d367e70c587@o4511020401754112.ingest.us.sentry.io/4511020410208256",
+        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thezolverapp.web.app/auth/email-link",
+        "EXPO_PUBLIC_IOS_BUNDLE_ID": "com.the.zolver.app",
+        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.the.zolver.app"
       }
     },
     "preview": {
@@ -17,7 +34,24 @@
       "channel": "staging",
       "env": {
         "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
-        "APP_VARIANT": "staging"
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_FIREBASE_WEB_API_KEY": "AIzaSyDWVDtm18wXskL9r_gTJ-nTewe1IOzGpFg",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "thezolverapp.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "thezolverapp",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "thezolverapp.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "448534321463",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:448534321463:android:f5051a04990a16b58862b2",
+        "EXPO_PUBLIC_FIREBASE_IOS_CLIENT": "448534321463-l661go8v94d8j9im767is2n503pj9k4g.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_ANDROID_CLIENT": "448534321463-b64uqadh5slt2rkli9g70cs397pop6mc.apps.googleusercontent.com",
+        "EXPO_PUBLIC_FIREBASE_WEB_CLIENT": "448534321463-ldm3c9k8kdng29jc1284ssi4drc5rogf.apps.googleusercontent.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://uxfsxayzvfjyyaktliqz.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZnN4YXl6dmZqeXlha3RsaXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NTMzMjcsImV4cCI6MjA3ODAyOTMyN30.Bf3UJiSEbFTsobEfkp6Q8WYF8-N9EFNpKE9Vl7wPApg",
+        "EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS": "https://uxfsxayzvfjyyaktliqz.functions.supabase.co",
+        "EXPO_PUBLIC_MP_PUBLIC_KEY": "APP_USR-1f0a6029-c5d7-4417-87ef-71561e877323",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://860f47c42454dd6877941d367e70c587@o4511020401754112.ingest.us.sentry.io/4511020410208256",
+        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thezolverapp.web.app/auth/email-link",
+        "EXPO_PUBLIC_IOS_BUNDLE_ID": "com.the.zolver.app",
+        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.the.zolver.app"
       }
     },
     "production": {

@@ -40,7 +40,13 @@
       "Bash(sed -i '' 's/backgroundColor: \"white\",/backgroundColor: COLORS.backgroundLight,/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appCOMP/contentStates/LoadingScreen.tsx /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appCOMP/contentStates/MiniLoaderScreen.tsx)",
       "Bash(sed -i '' 's/container: { flex: 1, backgroundColor: COLORS\\\\.white }/container: { flex: 1, backgroundColor: COLORS.backgroundLight }/' '/Users/jaledjara/ZZzzZzZzZzZzz/zolver/app/\\(professional\\)/profile-edit/briefcase-outline.tsx' '/Users/jaledjara/ZZzzZzZzZzZzz/zolver/app/\\(auth\\)/FormProfessionalTwo.tsx')",
       "Bash(sed -i '' 's/backgroundColor: COLORS\\\\.white ?? \"#FFFFFF\"/backgroundColor: COLORS.backgroundLight/' '/Users/jaledjara/ZZzzZzZzZzZzz/zolver/app/\\(auth\\)/AccountStatusScreen.tsx')",
-      "Bash(sed -i '' 's/backgroundColor: COLORS\\\\.white,/backgroundColor: COLORS.backgroundLight,/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/helpCenter/Screens/HelpCenterScreen.tsx)"
+      "Bash(sed -i '' 's/backgroundColor: COLORS\\\\.white,/backgroundColor: COLORS.backgroundLight,/' /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appSRC/helpCenter/Screens/HelpCenterScreen.tsx)",
+      "Bash(git push:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in sorted\\(deps.items\\(\\)\\)]\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('peerDependencies', {}\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('version:', d.get\\('version'\\)\\); print\\('expo-config-plugin:', 'expo-plugin' in json.dumps\\(d\\)\\)\")",
+      "Bash(npx eas:*)",
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,display_aspect_ratio,duration -of default=noprint_wrappers=1 /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/splash-video/nexofix.mp4)"
     ]
   }
 }

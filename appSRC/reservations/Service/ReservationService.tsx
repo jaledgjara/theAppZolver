@@ -8,6 +8,7 @@ import {
 } from "../Type/ReservationType";
 import { mapReservationFromDTO } from "../Mapper/ReservationMapper";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { reportRealtimeError } from "@/appSRC/utils/realtimeDiagnostics";
 
 // ============================================================================
 // MARK: - BUSINESS RULES: CONCURRENCIA DE TRABAJOS
@@ -38,19 +39,14 @@ import { RealtimeChannel } from "@supabase/supabase-js";
  * CREAR RESERVA PAGADA (Flow Principal - Instant)
  * Llama a la Edge Function. Maneja Pago + Reserva en una sola transacción atómica.
  */
-export const createPaidReservation = async (
-  payload: CreatePaidReservationPayload
-) => {
+export const createPaidReservation = async (payload: CreatePaidReservationPayload) => {
   console.log(
-    "[ReservationService] 📡 Invocando Edge Function: process-payment-reservation función"
+    "[ReservationService] 📡 Invocando Edge Function: process-payment-reservation función",
   );
 
-  const { data, error } = await supabase.functions.invoke(
-    "process-payment-reservation",
-    {
-      body: payload,
-    }
-  );
+  const { data, error } = await supabase.functions.invoke("process-payment-reservation", {
+    body: payload,
+  });
 
   if (error) {
     console.error("[ReservationService] 💥 Error de Red/Función:", error);
@@ -73,18 +69,15 @@ export const createPaidReservation = async (
 export const rejectReservationWithRefund = async (
   reservationId: string,
   reason: string,
-  triggeredBy: "professional" | "user" = "professional" // Por defecto pro, pero flexible
+  triggeredBy: "professional" | "user" = "professional", // Por defecto pro, pero flexible
 ) => {
-  const { data, error } = await supabase.functions.invoke(
-    "cancel-reservation-refund",
-    {
-      body: {
-        reservation_id: reservationId,
-        reason,
-        triggered_by: triggeredBy,
-      },
-    }
-  );
+  const { data, error } = await supabase.functions.invoke("cancel-reservation-refund", {
+    body: {
+      reservation_id: reservationId,
+      reason,
+      triggered_by: triggeredBy,
+    },
+  });
 
   if (error) {
     console.error("[ReservationService] Edge Function error:", error);
@@ -139,11 +132,9 @@ export const createReservationService = async (payload: ReservationPayload) => {
  */
 export const fetchReservationById = async (
   reservationId: string,
-  viewRole: "client" | "professional"
+  viewRole: "client" | "professional",
 ): Promise<Reservation> => {
-  console.log(
-    `🔍 [SERVICE] Fetching ID: ${reservationId} for Role: ${viewRole}`
-  );
+  console.log(`🔍 [SERVICE] Fetching ID: ${reservationId} for Role: ${viewRole}`);
 
   const { data, error } = await supabase
     .from("reservations")
@@ -163,7 +154,7 @@ export const fetchReservationById = async (
         phone,
         auth_uid
       )
-    `
+    `,
     )
     .eq("id", reservationId)
     .single();
@@ -175,10 +166,7 @@ export const fetchReservationById = async (
 
   // 1. LOG CRÍTICO: ¿Qué string EXACTO viene de la base de datos?
   // Aquí esperamos ver algo como: '["2024-01-20 15:30:00+00","2024-01-20..."]'
-  console.log(
-    "📦 [SERVICE] DATA CRUDO (Scheduled Range):",
-    data?.scheduled_range
-  );
+  console.log("📦 [SERVICE] DATA CRUDO (Scheduled Range):", data?.scheduled_range);
 
   // 2. TRANSFORMACIÓN
   const result = mapReservationFromDTO(data as any, viewRole);
@@ -188,9 +176,7 @@ export const fetchReservationById = async (
   console.log("🛠️ [SERVICE] MAPPED DATE:", result.scheduledStart);
 
   if (result.scheduledStart && isNaN(result.scheduledStart.getTime())) {
-    console.error(
-      "🚨 [SERVICE] ERROR FATAL: La fecha se corrompió dentro del Mapper."
-    );
+    console.error("🚨 [SERVICE] ERROR FATAL: La fecha se corrompió dentro del Mapper.");
   } else {
     console.log("✅ [SERVICE] Fecha procesada correctamente.");
   }
@@ -213,9 +199,7 @@ const HISTORY_PAGE_SIZE = 10;
  * Obtiene las reservas activas del cliente.
  * FIX: Agregamos order by created_at para desempatar rangos idénticos.
  */
-export const fetchClientActiveReservations = async (
-  clientId: string
-): Promise<Reservation[]> => {
+export const fetchClientActiveReservations = async (clientId: string): Promise<Reservation[]> => {
   const { data, error } = await supabase
     .from("reservations")
     .select(
@@ -225,7 +209,7 @@ export const fetchClientActiveReservations = async (
         legal_name,
         photo_url
       )
-    `
+    `,
     )
     .eq("client_id", clientId)
     .in("status", ["confirmed", "on_route", "in_progress"])
@@ -246,9 +230,7 @@ export const fetchClientActiveReservations = async (
 /**
  * Obtiene las reservas pendientes (Cliente).
  */
-export const fetchClientPendingReservations = async (
-  clientId: string
-): Promise<Reservation[]> => {
+export const fetchClientPendingReservations = async (clientId: string): Promise<Reservation[]> => {
   const { data, error } = await supabase
     .from("reservations")
     .select(
@@ -258,7 +240,7 @@ export const fetchClientPendingReservations = async (
         legal_name,
         photo_url
       )
-    `
+    `,
     )
     .eq("client_id", clientId)
     .in("status", ["pending_approval", "quoting", "draft"])
@@ -275,10 +257,7 @@ export const fetchClientPendingReservations = async (
 /**
  * Obtiene el historial del cliente.
  */
-export const fetchClientHistoryReservations = async (
-  clientId: string,
-  cursor?: string
-) => {
+export const fetchClientHistoryReservations = async (clientId: string, cursor?: string) => {
   let query = supabase
     .from("reservations")
     .select(
@@ -288,7 +267,7 @@ export const fetchClientHistoryReservations = async (
         legal_name,
         photo_url
       )
-    `
+    `,
     )
     .eq("client_id", clientId)
     .in("status", ["completed", "canceled_client", "canceled_pro", "disputed"])
@@ -312,9 +291,7 @@ export const fetchClientHistoryReservations = async (
   });
 
   const nextCursor =
-    data && data.length === HISTORY_PAGE_SIZE
-      ? data[data.length - 1].scheduled_range
-      : null;
+    data && data.length === HISTORY_PAGE_SIZE ? data[data.length - 1].scheduled_range : null;
 
   return {
     reservations: mappedData,
@@ -327,7 +304,7 @@ export const fetchClientHistoryReservations = async (
 export const confirmBudgetService = async (
   clientId: string,
   professionalId: string,
-  budgetData: any
+  budgetData: any,
 ) => {
   try {
     if (!budgetData || !budgetData.proposedDate) {
@@ -357,10 +334,7 @@ export const confirmBudgetService = async (
       p_platform_fee: 0,
     };
 
-    const { data, error } = await supabase.rpc(
-      "create_reservation_bypass",
-      payload
-    );
+    const { data, error } = await supabase.rpc("create_reservation_bypass", payload);
 
     if (error) throw error;
     return data;
@@ -370,10 +344,7 @@ export const confirmBudgetService = async (
   }
 };
 
-export const cancelReservationByClient = async (
-  reservationId: string,
-  clientId: string
-) => {
+export const cancelReservationByClient = async (reservationId: string, clientId: string) => {
   const { data, error } = await supabase
     .from("reservations")
     .update({
@@ -411,7 +382,7 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
           legal_name,
           photo_url
         )
-      `
+      `,
       )
       .eq("professional_id", professionalId)
       .eq("service_modality", "instant")
@@ -443,9 +414,7 @@ export const fetchProIncomingRequests = async (professionalId: string) => {
  * QUOTE FLOW: Solicitudes entrantes de presupuesto (Agenda - Sección Pendientes).
  * Solo devuelve reservas con service_modality = "quote" y estados pendientes.
  */
-export const fetchProQuoteRequests = async (
-  professionalId: string
-): Promise<Reservation[]> => {
+export const fetchProQuoteRequests = async (professionalId: string): Promise<Reservation[]> => {
   try {
     const { data, error } = await supabase
       .from("reservations")
@@ -459,7 +428,7 @@ export const fetchProQuoteRequests = async (
           legal_name,
           photo_url
         )
-      `
+      `,
       )
       .eq("professional_id", professionalId)
       .eq("service_modality", "quote")
@@ -501,7 +470,7 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
         *,
         client:user_accounts!client_id(legal_name), 
         professional:professional_profiles!professional_id(legal_name, photo_url)
-      `
+      `,
       )
       .eq("professional_id", professionalId)
       .eq("service_modality", "quote")
@@ -513,9 +482,7 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
       throw new Error(error.message);
     }
 
-    return (data as any[]).map((dto) =>
-      mapReservationFromDTO(dto, "professional")
-    );
+    return (data as any[]).map((dto) => mapReservationFromDTO(dto, "professional"));
   } catch (err: any) {
     console.error("Exception fetching quote confirmed works:", err);
     throw err;
@@ -530,7 +497,7 @@ export const fetchProConfirmedWorks = async (professionalId: string) => {
  */
 export const confirmQuoteReservationService = async (
   reservationId: string,
-  professionalId: string
+  professionalId: string,
 ): Promise<Reservation> => {
   console.log("Service - Confirming Quote Reservation");
 
@@ -548,7 +515,7 @@ export const confirmQuoteReservationService = async (
         *,
         client:user_accounts!client_id(legal_name),
         professional:professional_profiles!professional_id(legal_name, photo_url)
-      `
+      `,
       )
       .single();
 
@@ -572,10 +539,7 @@ const HISTORY_STATUSES_PRO: ReservationStatusDTO[] = [
   "disputed",
 ];
 
-export const fetchProHistoryReservations = async (
-  professionalId: string,
-  cursor?: string
-) => {
+export const fetchProHistoryReservations = async (professionalId: string, cursor?: string) => {
   console.log(`📡 [SERVICE] Fetching History for Pro: ${professionalId}`);
 
   let query = supabase
@@ -585,7 +549,7 @@ export const fetchProHistoryReservations = async (
       *,
       client:user_accounts!client_id(legal_name), 
       professional:professional_profiles!professional_id(legal_name, photo_url)
-    `
+    `,
       // 👆 NOTA: Quitamos 'avatar_url' de 'client' para evitar el error de columna.
     )
     .in("status", HISTORY_STATUSES_PRO)
@@ -610,14 +574,10 @@ export const fetchProHistoryReservations = async (
 
   // ✅ MAPEO OBLIGATORIO: Convertimos DTO (crudo) a Entidad (procesada)
   // Si falta esto, la UI recibe basura y explota.
-  const mappedData = dtos.map((dto) =>
-    mapReservationFromDTO(dto, "professional")
-  );
+  const mappedData = dtos.map((dto) => mapReservationFromDTO(dto, "professional"));
 
   const nextCursor =
-    data.length === HISTORY_PAGE_SIZE
-      ? data[data.length - 1].scheduled_range
-      : null;
+    data.length === HISTORY_PAGE_SIZE ? data[data.length - 1].scheduled_range : null;
 
   return { reservations: mappedData, nextCursor };
 };
@@ -626,7 +586,7 @@ export const fetchProHistoryReservations = async (
 
 export const confirmInstantReservationService = async (
   reservationId: string,
-  professionalId: string
+  professionalId: string,
 ) => {
   console.log("Service - Confirming Instant Reservation (RPC)");
 
@@ -650,7 +610,7 @@ export const confirmInstantReservationService = async (
 // --- WORKFLOW CONTROL ---
 
 export const fetchActiveProfessionalReservation = async (
-  professionalId: string
+  professionalId: string,
 ): Promise<Reservation | null> => {
   const { data, error } = await supabase
     .from("reservations")
@@ -663,7 +623,7 @@ export const fetchActiveProfessionalReservation = async (
         phone,
         email
       )
-    `
+    `,
     )
     .eq("professional_id", professionalId)
     .eq("service_modality", "instant")
@@ -683,9 +643,7 @@ export const fetchActiveProfessionalReservation = async (
   return null;
 };
 
-export const fetchReservationByIdForProfessional = async (
-  reservationId: string
-) => {
+export const fetchReservationByIdForProfessional = async (reservationId: string) => {
   const { data, error } = await supabase
     .from("reservations")
     .select(
@@ -701,7 +659,7 @@ export const fetchReservationByIdForProfessional = async (
           legal_name,
           photo_url
         )
-      `
+      `,
     )
     .eq("id", reservationId)
     .single();
@@ -730,7 +688,7 @@ export const fetchActiveReservationService = async (professionalId: string) => {
             avatar_url,
             phone
         )
-    `
+    `,
     )
     .eq("professional_id", professionalId)
     .in("status", ["on_route", "in_progress"])
@@ -746,7 +704,7 @@ export const fetchActiveReservationService = async (professionalId: string) => {
 export const updateReservationStatusService = async (
   reservationId: string,
   professionalId: string,
-  newStatus: "on_route" | "in_progress" | "completed"
+  newStatus: "on_route" | "in_progress" | "completed",
 ) => {
   const { data, error } = await supabase
     .from("reservations")
@@ -770,10 +728,7 @@ export const updateReservationStatusService = async (
   return data;
 };
 
-export const rejectReservationByPro = async (
-  reservationId: string,
-  professionalId: string
-) => {
+export const rejectReservationByPro = async (reservationId: string, professionalId: string) => {
   const { data, error } = await supabase
     .from("reservations")
     .update({
@@ -794,7 +749,7 @@ export const rejectReservationByPro = async (
 export const subscribeToIncomingRequestsService = (
   professionalId: string,
   onUpdate: () => void,
-  onConnectionError: (status: string, error?: any) => void
+  onConnectionError: (status: string, error?: any) => void,
 ): RealtimeChannel => {
   const channelName = `room_orders_${professionalId}`;
   console.log(`Service - Realtime Handshake for Pro: ${professionalId}`);
@@ -803,9 +758,7 @@ export const subscribeToIncomingRequestsService = (
   // Verificar si el cliente de Supabase ya tiene este canal registrado en memoria.
   // Si existe, lo removemos forzosamente antes de crear uno nuevo para evitar conflictos.
   const allChannels = supabase.getChannels();
-  const staleChannel = allChannels.find(
-    (ch) => ch.topic === `realtime:${channelName}`
-  );
+  const staleChannel = allChannels.find((ch) => ch.topic === `realtime:${channelName}`);
 
   if (staleChannel) {
     console.log("Service - Limpiando canal huérfano antes de suscribir...");
@@ -813,7 +766,8 @@ export const subscribeToIncomingRequestsService = (
   }
 
   // 2. Creación del Canal
-  const channel = supabase
+  let createdChannel: RealtimeChannel | null = null;
+  createdChannel = supabase
     .channel(channelName)
     .on(
       "postgres_changes",
@@ -826,7 +780,7 @@ export const subscribeToIncomingRequestsService = (
       (payload) => {
         console.log("Realtime Payload:", payload);
         onUpdate();
-      }
+      },
     )
     .subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
@@ -834,36 +788,33 @@ export const subscribeToIncomingRequestsService = (
       }
 
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        // Validación para evitar loguear 'undefined'
-        const errorDetail =
-          err || "Error de conexión desconocido o conflicto de canal";
-        console.error(`Realtime Error (${status}):`, errorDetail);
+        // Diagnóstico completo: serializa el error + estado del canal + JWT
+        reportRealtimeError("ProIncomingRequests", status, err, createdChannel);
 
         // Notificar al hook para que maneje el reintento
-        onConnectionError(status, errorDetail);
+        onConnectionError(status, err);
       }
     });
 
-  return channel;
+  return createdChannel;
 };
 
 export const subscribeToReservationStatusService = (
   reservationId: string,
-  onStatusChange: (newStatus: string) => void
+  onStatusChange: (newStatus: string) => void,
 ): RealtimeChannel => {
   const channelName = `reservation_status_${reservationId}`;
   console.log(`[REVIEW-RT] Subscribing to status changes for reservation: ${reservationId}`);
 
   const allChannels = supabase.getChannels();
-  const staleChannel = allChannels.find(
-    (ch) => ch.topic === `realtime:${channelName}`
-  );
+  const staleChannel = allChannels.find((ch) => ch.topic === `realtime:${channelName}`);
   if (staleChannel) {
     console.log("[REVIEW-RT] Cleaning stale channel before subscribing...");
     supabase.removeChannel(staleChannel);
   }
 
-  const channel = supabase
+  let createdChannel: RealtimeChannel | null = null;
+  createdChannel = supabase
     .channel(channelName)
     .on(
       "postgres_changes",
@@ -879,29 +830,25 @@ export const subscribeToReservationStatusService = (
         if (newStatus) {
           onStatusChange(newStatus);
         }
-      }
+      },
     )
     .subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log("[REVIEW-RT] Realtime connection established.");
       }
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        console.error(`[REVIEW-RT] Realtime Error (${status}):`, err);
+        reportRealtimeError(`ReservationStatus(${reservationId})`, status, err, createdChannel);
       }
     });
 
-  return channel;
+  return createdChannel;
 };
 
-export const unsubscribeFromChannel = async (
-  channel: RealtimeChannel | null
-) => {
+export const unsubscribeFromChannel = async (channel: RealtimeChannel | null) => {
   if (!channel) return;
 
   // Intentar encontrar el canal actual en el cliente para asegurar que lo tenemos referenciado
-  const currentChannel = supabase
-    .getChannels()
-    .find((ch) => ch.topic === channel.topic);
+  const currentChannel = supabase.getChannels().find((ch) => ch.topic === channel.topic);
 
   if (currentChannel && currentChannel.state !== "closed") {
     console.log(`Service - Closing channel ${currentChannel.topic} safely.`);

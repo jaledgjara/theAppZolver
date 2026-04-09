@@ -3,17 +3,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/appASSETS/theme";
 import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
 import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React from "react";
+
+// Altura base del tab bar sin incluir el inset inferior del device.
+// El inset (home indicator iPhone, gesture bar Android) se suma dinámicamente.
+const TAB_BAR_BASE_HEIGHT = 60;
+const TAB_BAR_MIN_BOTTOM_PADDING = 8;
 
 export default function TabsClientLayout() {
   const { unreadCount } = useUnreadCount();
+  const insets = useSafeAreaInsets();
+
+  // Respeta el safe area de cada device:
+  // - iPhone con notch: insets.bottom ~34 → altura total 94
+  // - Android con gesture bar: insets.bottom ~16-24 → altura total 76-84
+  // - Devices sin inset: cae al mínimo 8 → altura total 68
+  const bottomPadding = Math.max(insets.bottom, TAB_BAR_MIN_BOTTOM_PADDING);
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + bottomPadding;
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.brandDeep,
         tabBarInactiveTintColor: COLORS.textTertiary,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { height: tabBarHeight, paddingBottom: bottomPadding }],
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
@@ -84,8 +98,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    height: 85,
-    paddingBottom: 28,
     paddingTop: 8,
   },
   tabLabel: {

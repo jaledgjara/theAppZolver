@@ -5,13 +5,13 @@
     "scheme": "zolver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./appASSETS/logo/image.png",
+    "icon": "./appASSETS/nexofix_folder_assets/appstore.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./appASSETS/logo/image.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./appASSETS/nexofix_folder_assets/appstore.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#000000"
     },
     "ios": {
       "bundleIdentifier": "com.the.zolver.app",
@@ -41,13 +41,13 @@
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./appASSETS/logo/image.png",
+        "foregroundImage": "./appASSETS/nexofix_folder_assets/appstore.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "web": {
-      "favicon": "./appASSETS/logo/image.png"
+      "favicon": "./appASSETS/nexofix_folder_assets/appstore.png"
     },
     "plugins": [
       "expo-router",
@@ -69,7 +69,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./appASSETS/logo/image.png",
+          "icon": "./appASSETS/nexofix_folder_assets/appstore.png",
           "color": "#ffffff"
         }
       ],
@@ -79,6 +79,15 @@
           "url": "https://sentry.io/",
           "project": "react-native",
           "organization": "the-zolver-app"
+        }
+      ],
+      "expo-video",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./appASSETS/nexofix_folder_assets/appstore.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#000000"
         }
       ]
     ],

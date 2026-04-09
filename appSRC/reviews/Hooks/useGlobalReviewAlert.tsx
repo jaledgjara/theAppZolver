@@ -3,6 +3,7 @@ import { useAuthStore } from "@/appSRC/auth/Store/AuthStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/appSRC/services/supabaseClient";
+import { reportRealtimeError } from "@/appSRC/utils/realtimeDiagnostics";
 import {
   fetchPendingReview,
   PendingReviewReservation,
@@ -77,14 +78,14 @@ export const useGlobalReviewAlert = () => {
             // Small delay to let the DB settle
             setTimeout(() => checkPendingReview(), 800);
           }
-        }
+        },
       )
       .subscribe((status, err) => {
         if (status === "SUBSCRIBED") {
           console.log("[GLOBAL-REVIEW] Realtime connected");
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.error("[GLOBAL-REVIEW] Realtime error:", status, err);
+          reportRealtimeError("GlobalReviewAlert", status, err, channelRef.current);
         }
       });
 
