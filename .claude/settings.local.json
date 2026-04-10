@@ -46,7 +46,12 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('peerDependencies', {}\\)\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('version:', d.get\\('version'\\)\\); print\\('expo-config-plugin:', 'expo-plugin' in json.dumps\\(d\\)\\)\")",
       "Bash(npx eas:*)",
-      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,display_aspect_ratio,duration -of default=noprint_wrappers=1 /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/splash-video/nexofix.mp4)"
+      "Bash(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,display_aspect_ratio,duration -of default=noprint_wrappers=1 /Users/jaledjara/ZZzzZzZzZzZzz/zolver/appASSETS/splash-video/nexofix.mp4)",
+      "Bash(npm uninstall:*)",
+      "Bash(firebase target:apply:*)",
+      "Bash(firebase hosting:sites:create:*)",
+      "Bash(mkdir -p /tmp/redirect-dist)",
+      "Bash(cat)"
     ]
   }
 }

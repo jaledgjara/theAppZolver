@@ -52,7 +52,7 @@ function ProfessionalNavbar() {
           <Pressable style={styles.logoContainer}>
             <Image
               // Asegúrate de que esta ruta sea correcta en tu estructura
-              source={require("../../appASSETS/expo-icons/icon.png")}
+              source={require("../../appASSETS/logo/image.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
