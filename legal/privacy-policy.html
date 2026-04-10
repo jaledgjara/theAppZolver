@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidad — NexoFix</title>
+  <style>
+    :root {
+      --brand: #1A5C4A;
+      --brand-light: #C8DBD6;
+      --text: #0F2E25;
+      --text-secondary: #3D5A52;
+      --bg: #F7F9F8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: var(--brand);
+      color: #fff;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    header h1 { font-size: 24px; font-weight: 700; }
+    header p { font-size: 14px; opacity: 0.85; margin-top: 8px; }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+    .update-date {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--brand);
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+    p, li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    a { color: var(--brand); }
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--brand-light);
+      margin-top: 40px;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header>
+    <h1>Pol&iacute;tica de Privacidad</h1>
+    <p>NexoFix Argentina</p>
+  </header>
+
+  <div class="container">
+    <p class="update-date">&Uacute;ltima actualizaci&oacute;n: 10 de Abril de 2026</p>
+
+    <h2>1. Responsable del Tratamiento</h2>
+    <p>
+      Sus datos personales son tratados por NexoFix Argentina, con domicilio en la Rep&uacute;blica Argentina,
+      con el fin de gestionar la conexi&oacute;n entre oferta y demanda de servicios profesionales para el hogar,
+      bajo el amparo de la Ley 25.326 de Protecci&oacute;n de Datos Personales y su normativa complementaria.
+    </p>
+
+    <h2>2. Datos Recolectados</h2>
+    <p>Recopilamos las siguientes categor&iacute;as de datos personales:</p>
+    <ul>
+      <li><strong>Identidad:</strong> Nombre completo y direcci&oacute;n de correo electr&oacute;nico, obtenidos mediante inicio de sesi&oacute;n con Google o Apple.</li>
+      <li><strong>Verificaci&oacute;n:</strong> N&uacute;mero de tel&eacute;fono m&oacute;vil, verificado mediante c&oacute;digo SMS a trav&eacute;s de Twilio.</li>
+      <li><strong>Ubicaci&oacute;n:</strong> Geolocalizaci&oacute;n del dispositivo, utilizada para conectarlo con profesionales cercanos a su zona.</li>
+      <li><strong>Documentaci&oacute;n (profesionales):</strong> Foto de DNI y selfie de verificaci&oacute;n, almacenados de forma segura en Firebase Storage.</li>
+      <li><strong>Datos de uso:</strong> Informaci&oacute;n t&eacute;cnica del dispositivo y m&eacute;tricas de uso an&oacute;nimas para mejorar la experiencia (Sentry).</li>
+    </ul>
+
+    <h2>3. Finalidad del Tratamiento</h2>
+    <p>Sus datos son utilizados exclusivamente para:</p>
+    <ul>
+      <li>Crear y administrar su cuenta de usuario.</li>
+      <li>Verificar su identidad y n&uacute;mero telef&oacute;nico.</li>
+      <li>Conectar clientes con profesionales seg&uacute;n ubicaci&oacute;n y categor&iacute;a de servicio.</li>
+      <li>Gestionar reservas, pagos y comunicaciones entre las partes.</li>
+      <li>Enviar notificaciones relacionadas con el servicio (nuevas solicitudes, confirmaciones, mensajes).</li>
+      <li>Mejorar la calidad y seguridad de la plataforma.</li>
+    </ul>
+
+    <h2>4. Seguridad de los Datos</h2>
+    <p>
+      Implementamos medidas de seguridad t&eacute;cnicas y organizativas para proteger sus datos:
+    </p>
+    <ul>
+      <li>Row Level Security (RLS) en nuestra base de datos, garantizando que solo usted y las personas autorizadas por la l&oacute;gica de negocio accedan a su informaci&oacute;n.</li>
+      <li>Autenticaci&oacute;n segura mediante Firebase Auth (Google, Apple, email sin contrase&ntilde;a).</li>
+      <li>Tokens JWT con tiempo de vida limitado (2 horas) y validaci&oacute;n estricta.</li>
+      <li>Comunicaciones cifradas mediante HTTPS/TLS.</li>
+      <li>Rate limiting y validaci&oacute;n de entradas en todos los endpoints del servidor.</li>
+    </ul>
+
+    <h2>5. Transferencia Internacional de Datos</h2>
+    <p>
+      El usuario consiente la transferencia de datos a los servidores de Firebase (Google Cloud) y Supabase,
+      ubicados en Estados Unidos, los cuales cumplen con est&aacute;ndares internacionales de protecci&oacute;n
+      de datos, incluyendo certificaciones SOC 2 e ISO 27001.
+    </p>
+
+    <h2>6. Procesamiento de Pagos</h2>
+    <p>
+      Los pagos se procesan a trav&eacute;s de Mercado Pago. NexoFix no almacena datos de tarjetas de cr&eacute;dito
+      ni informaci&oacute;n financiera sensible. Toda la informaci&oacute;n de pago es gestionada directamente
+      por Mercado Pago conforme a sus pol&iacute;ticas de seguridad (PCI DSS).
+    </p>
+
+    <h2>7. Derechos ARCO</h2>
+    <p>
+      De acuerdo con la Ley 25.326, usted tiene derecho a:
+    </p>
+    <ul>
+      <li><strong>Acceso:</strong> Solicitar informaci&oacute;n sobre sus datos almacenados.</li>
+      <li><strong>Rectificaci&oacute;n:</strong> Corregir datos inexactos o incompletos.</li>
+      <li><strong>Cancelaci&oacute;n:</strong> Solicitar la eliminaci&oacute;n de sus datos personales.</li>
+      <li><strong>Oposici&oacute;n:</strong> Oponerse al tratamiento de sus datos en determinadas circunstancias.</li>
+    </ul>
+    <p>
+      Estos derechos pueden ejercerse de forma gratuita. El plazo de respuesta para solicitudes de acceso
+      es de 10 d&iacute;as corridos. Para ejercer sus derechos, cont&aacute;ctenos a
+      <a href="mailto:soporte@nexofix.com">soporte@nexofix.com</a>.
+    </p>
+
+    <h2>8. Eliminaci&oacute;n de Cuenta</h2>
+    <p>
+      Puede eliminar su cuenta en cualquier momento desde la secci&oacute;n de perfil dentro de la aplicaci&oacute;n
+      (bot&oacute;n &ldquo;Eliminar cuenta&rdquo;). Al hacerlo, se eliminar&aacute;n sus datos personales de nuestros
+      sistemas activos. Ciertos datos podr&aacute;n conservarse por el plazo legal requerido para obligaciones
+      fiscales o legales.
+    </p>
+
+    <h2>9. Cookies y Tecnolog&iacute;as Similares</h2>
+    <p>
+      La versi&oacute;n web de NexoFix puede utilizar almacenamiento local del navegador para mantener su sesi&oacute;n
+      activa. No utilizamos cookies de terceros con fines publicitarios.
+    </p>
+
+    <h2>10. Modificaciones</h2>
+    <p>
+      NexoFix se reserva el derecho de modificar esta pol&iacute;tica. Las actualizaciones ser&aacute;n notificadas
+      a trav&eacute;s de la aplicaci&oacute;n y entrar&aacute;n en vigencia a partir de su publicaci&oacute;n.
+    </p>
+
+    <h2>11. Contacto</h2>
+    <p>
+      Para consultas sobre privacidad o protecci&oacute;n de datos:<br />
+      <strong>Email:</strong> <a href="mailto:soporte@nexofix.com">soporte@nexofix.com</a><br />
+      <strong>App:</strong> Secci&oacute;n Ayuda &gt; Contacto dentro de NexoFix
+    </p>
+
+    <footer>
+      &copy; 2026 NexoFix Argentina. Todos los derechos reservados.
+    </footer>
+  </div>
+</body>
+</html>

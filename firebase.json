@@ -8,6 +8,7 @@
     {
       "target": "thenexofixapp",
       "public": "dist",
+      "cleanUrls": true,
       "ignore": ["firebase.json", "**/.*"],
       "headers": [
         {
