@@ -40,7 +40,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./appASSETS/nexofix_folder_assets/appstore.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1A5C4A"
       },
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
@@ -61,7 +61,7 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Necesitamos tu ubicación para mostrarte trabajos cercanos y definir tu zona de cobertura.",
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Necesitamos tu ubicación para mostrarte trabajos cercanos y definir tu zona de cobertura."
         }
       ],
       [

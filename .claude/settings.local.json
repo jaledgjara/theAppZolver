@@ -51,7 +51,9 @@
       "Bash(firebase target:apply:*)",
       "Bash(firebase hosting:sites:create:*)",
       "Bash(mkdir -p /tmp/redirect-dist)",
-      "Bash(cat)"
+      "Bash(cat)",
+      "Bash(npx eas-cli:*)",
+      "Bash(sips:*)"
     ]
   }
 }
