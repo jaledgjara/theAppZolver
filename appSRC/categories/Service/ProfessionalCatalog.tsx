@@ -24,15 +24,13 @@ export interface ProfessionalTemplate {
   price: number;
   estimatedMinutes: number;
   isUrgent: boolean;
+  [key: string]: unknown;
 }
 
 export const MasterDataService = {
   // ✅ 1. NUEVA FUNCIÓN AGREGADA (La que faltaba)
   async getCategories(): Promise<ServiceCategory[]> {
-    const { data, error } = await supabase
-      .from("service_categories")
-      .select("*")
-      .order("name"); // O order('id') según prefieras
+    const { data, error } = await supabase.from("service_categories").select("*").order("name"); // O order('id') según prefieras
 
     if (error) throw error;
     return data || [];

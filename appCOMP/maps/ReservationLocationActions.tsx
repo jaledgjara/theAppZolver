@@ -22,7 +22,7 @@ export const ReservationLocationActions: React.FC<LocationActionsProps> = ({
   const openMaps = () => {
     const google = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
     const waze = `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`;
-    const apple = `http://maps.apple.com/?ll=${latitude},${longitude}`;
+    const apple = `https://maps.apple.com/?ll=${latitude},${longitude}`;
 
     const url = Platform.select({
       ios: apple,

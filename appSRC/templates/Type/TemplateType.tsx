@@ -4,4 +4,5 @@ export interface ProfessionalTemplate {
   price: number;
   estimatedMinutes: number;
   isUrgent: boolean;
+  [key: string]: unknown;
 }

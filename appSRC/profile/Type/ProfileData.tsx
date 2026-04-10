@@ -1,4 +1,3 @@
-import { id } from "date-fns/locale";
 import { MenuItem } from "../Type/ProfileType";
 
 export const PROFESSIONAL_MENU_ITEMS: MenuItem[] = [

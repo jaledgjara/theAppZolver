@@ -1,21 +1,27 @@
 import { Tabs } from "expo-router";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "@/appASSETS/theme";
 import { useUnreadCount } from "@/appSRC/notifications/Hooks/useUnreadCount";
 
+const TAB_BAR_BASE_HEIGHT = 60;
+const TAB_BAR_MIN_BOTTOM_PADDING = 8;
+
 export default function TabsProfessionalLayout() {
   const { unreadCount } = useUnreadCount();
+  const insets = useSafeAreaInsets();
+
+  const bottomPadding = Math.max(insets.bottom, TAB_BAR_MIN_BOTTOM_PADDING);
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + bottomPadding;
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.brandDeep,
         tabBarInactiveTintColor: COLORS.textTertiary,
-        tabBarStyle: {
-          backgroundColor: COLORS.white,
-          borderTopWidth: 1,
-          borderTopColor: COLORS.border,
-        },
+        tabBarStyle: [styles.tabBar, { height: tabBarHeight, paddingBottom: bottomPadding }],
+        tabBarLabelStyle: styles.tabLabel,
       }}
     >
       <Tabs.Screen
@@ -72,3 +78,16 @@ export default function TabsProfessionalLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 8,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontFamily: "PlusJakartaSans_500Medium",
+  },
+});

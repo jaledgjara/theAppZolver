@@ -68,7 +68,6 @@ const SearchScreen = () => {
             category={item.specialization_title}
             rating={item.rating}
             reviewsCount={item.reviews_count}
-            price={item.price_per_hour}
             distance={item.dist_meters}
             onPress={() => {
               router.push({

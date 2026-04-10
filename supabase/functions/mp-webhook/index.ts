@@ -70,6 +70,14 @@ async function validateSignature(
       return false;
     }
 
+    // Reject stale webhooks (> 5 minutes old) to prevent replay attacks
+    const tsSeconds = parseInt(parts.ts, 10);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (isNaN(tsSeconds) || Math.abs(nowSeconds - tsSeconds) > 300) {
+      console.warn(`[mp-webhook] Stale timestamp: ${tsSeconds}, now: ${nowSeconds}`);
+      return false;
+    }
+
     const manifest = `id:${dataId};request-id:${xRequestId || ""};ts:${parts.ts};`;
 
     const key = await crypto.subtle.importKey(

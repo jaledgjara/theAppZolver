@@ -2,37 +2,44 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkRateLimit, getClientIP, rateLimitResponse } from "../_shared/rateLimit.ts";
 import { verifyFirebaseJWT } from "../_shared/verifyFirebaseJWT.ts";
 import { isValidPhoneAR } from "../_shared/validate.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Rate limit: 5 SMS per minute per IP (prevent SMS bombing)
 const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 
 serve(async (req: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(req);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   const ip = getClientIP(req);
   const rateCheck = checkRateLimit(ip, RATE_LIMIT);
   if (!rateCheck.allowed) {
-    return rateLimitResponse(rateCheck.retryAfterMs, { "Content-Type": "application/json" });
+    return rateLimitResponse(rateCheck.retryAfterMs, corsHeaders);
   }
 
   try {
     // Auth: require Firebase JWT (user must be signed in before phone verification)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader) return json({ error: "Unauthorized" }, 401, corsHeaders);
     try {
       await verifyFirebaseJWT(authHeader.replace("Bearer ", "").trim());
     } catch {
-      return json({ error: "Invalid token" }, 401);
+      return json({ error: "Invalid token" }, 401, corsHeaders);
     }
 
     const { phone } = await req.json().catch(() => ({}) as Record<string, unknown>);
 
     if (!phone || typeof phone !== "string") {
-      return json({ error: "Phone is required" }, 400);
+      return json({ error: "Phone is required" }, 400, corsHeaders);
     }
 
     if (!isValidPhoneAR(phone)) {
       return json(
         { error: "Formato de teléfono inválido. Usá +54 seguido de 10-11 dígitos." },
         400,
+        corsHeaders,
       );
     }
 
@@ -51,7 +58,7 @@ serve(async (req: Request): Promise<Response> => {
         WHITELIST_NUMBERS.some((num: string) => cleanPhone === num.trim())
       ) {
         console.log(`[DEV] Mocking SEND for whitelist number: ${phone}`);
-        return json({ sid: "dev_bypass", status: "pending" }, 200);
+        return json({ sid: "dev_bypass", status: "pending" }, 200, corsHeaders);
       }
     }
 
@@ -60,7 +67,7 @@ serve(async (req: Request): Promise<Response> => {
     const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SID");
 
     if (!SID || !TOKEN || !VERIFY_SID) {
-      return json({ error: "Missing Twilio credentials configuration" }, 500);
+      return json({ error: "Missing Twilio credentials configuration" }, 500, corsHeaders);
     }
 
     const url = `https://verify.twilio.com/v2/Services/${VERIFY_SID}/Verifications`;
@@ -79,19 +86,23 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!twilioRes.ok) {
       console.error("Twilio Error:", payload);
-      return json({ error: "No se pudo enviar el código. Intentá de nuevo." }, twilioRes.status);
+      return json(
+        { error: "No se pudo enviar el código. Intentá de nuevo." },
+        twilioRes.status,
+        corsHeaders,
+      );
     }
 
-    return json({ status: payload.status }, 200);
+    return json({ status: payload.status }, 200, corsHeaders);
   } catch (err) {
     console.error("Unexpected error:", err);
-    return json({ error: "Error del servicio. Intentá de nuevo." }, 500);
+    return json({ error: "Error del servicio. Intentá de nuevo." }, 500, corsHeaders);
   }
 });
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }

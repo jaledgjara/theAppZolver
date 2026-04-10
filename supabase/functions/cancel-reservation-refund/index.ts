@@ -76,6 +76,13 @@ serve(async (req) => {
       console.error("[Zolver-Refund] ERROR fetching reservation:", resError.message);
     }
 
+    if (!reservation) {
+      return new Response(JSON.stringify({ success: false, error: "Reserva no encontrada." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404,
+      });
+    }
+
     // ── AUTH: Only the client or professional of this reservation can cancel ──
     if (
       reservation &&

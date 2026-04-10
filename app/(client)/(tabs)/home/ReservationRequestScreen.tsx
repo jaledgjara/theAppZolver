@@ -19,7 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 // Componentes
 import { ToolBarTitle } from "@/appCOMP/toolbar/Toolbar";
-import QuickChips from "@/appCOMP/quickChips/QuickChips";
+import QuickChips, { ChipItem } from "@/appCOMP/quickChips/QuickChips";
 import { CheckoutSummaryCard } from "@/appCOMP/cards/CheckoutSummaryCard";
 
 // Hooks & Estilos
@@ -82,9 +82,12 @@ const ReservationRequestScreen = () => {
     );
   };
 
-  const onToggleService = useCallback((item: ProfessionalTemplate) => {
+  const onToggleService = useCallback((item: ChipItem) => {
+    const template = item as ProfessionalTemplate;
     setSelectedServices((prev) =>
-      prev.find((s) => s.id === item.id) ? prev.filter((s) => s.id !== item.id) : [...prev, item],
+      prev.find((s) => s.id === template.id)
+        ? prev.filter((s) => s.id !== template.id)
+        : [...prev, template],
     );
   }, []);
 
