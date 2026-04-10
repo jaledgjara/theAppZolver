@@ -9,6 +9,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
+      "image": "./appASSETS/nexofix_folder_assets/appstore.png",
+      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "ios": {
@@ -83,6 +85,8 @@
       [
         "expo-splash-screen",
         {
+          "image": "./appASSETS/nexofix_folder_assets/appstore.png",
+          "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
       ]
