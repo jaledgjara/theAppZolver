@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "thezolverapp"
-  }
+  },
+  "targets": {
+    "thezolverapp": {
+      "hosting": {
+        "thenexofixapp": [
+          "thenexofixapp"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
