@@ -17,7 +17,7 @@ interface SplashVideoProps {
  * - Cuando el video termina, llama a `onFinish` para que el padre lo desmonte.
  */
 export function SplashVideo({ onFinish }: SplashVideoProps) {
-  const player = useVideoPlayer(require("@/appASSETS/splash-video/nexofix.mp4"), (p) => {
+  const player = useVideoPlayer(require("@/appASSETS/splash-video/nexofix.mov"), (p) => {
     p.loop = false;
     p.muted = true;
     p.play();
