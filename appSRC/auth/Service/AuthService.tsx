@@ -395,7 +395,7 @@ export async function signOutFirebase(): Promise<void> {
 const ACTION_CODE_SETTINGS = {
   url:
     process.env.EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL ??
-    "https://thezolverapp.web.app/auth/email-link",
+    "https://thenexofixapp.web.app/auth/email-link",
   handleCodeInApp: true,
   iOS: { bundleId: process.env.EXPO_PUBLIC_IOS_BUNDLE_ID ?? "com.zolver.app" },
   android: {

@@ -15,7 +15,7 @@
       "bundleIdentifier": "com.the.zolver.app",
       "usesAppleSignIn": true,
       "googleServicesFile": "./GoogleService-Info.plist",
-      "associatedDomains": ["applinks:thezolverapp.web.app"],
+      "associatedDomains": ["applinks:thenexofixapp.web.app"],
       "infoPlist": {
         "CFBundleDisplayName": "NexoFix",
         "ITSAppUsesNonExemptEncryption": false,
@@ -32,7 +32,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "thezolverapp.web.app"
+              "host": "thenexofixapp.web.app"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

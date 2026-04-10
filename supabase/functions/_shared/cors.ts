@@ -7,7 +7,7 @@
 
 const ENVIRONMENT = Deno.env.get("ENVIRONMENT") ?? "production";
 
-const ALLOWED_ORIGINS = ["https://thezolverapp.web.app", "https://thezolverapp.firebaseapp.com"];
+const ALLOWED_ORIGINS = ["https://thenexofixapp.web.app", "https://thezolverapp.firebaseapp.com"];
 
 /**
  * Returns the appropriate Access-Control-Allow-Origin value

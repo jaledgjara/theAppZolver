@@ -30,7 +30,7 @@ import { fetchWithTimeout } from "../_shared/fetchWithTimeout.ts";
 // Webhook endpoints receive calls from MP servers, not browsers.
 // No CORS needed, but we keep minimal headers for compatibility.
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://thezolverapp.web.app",
+  "Access-Control-Allow-Origin": "https://thenexofixapp.web.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 

@@ -24,7 +24,7 @@
         "EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS": "https://uxfsxayzvfjyyaktliqz.functions.supabase.co",
         "EXPO_PUBLIC_MP_PUBLIC_KEY": "APP_USR-1f0a6029-c5d7-4417-87ef-71561e877323",
         "EXPO_PUBLIC_SENTRY_DSN": "https://860f47c42454dd6877941d367e70c587@o4511020401754112.ingest.us.sentry.io/4511020410208256",
-        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thezolverapp.web.app/auth/email-link",
+        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thenexofixapp.web.app/auth/email-link",
         "EXPO_PUBLIC_IOS_BUNDLE_ID": "com.the.zolver.app",
         "EXPO_PUBLIC_ANDROID_PACKAGE": "com.the.zolver.app"
       }
@@ -49,7 +49,7 @@
         "EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS": "https://uxfsxayzvfjyyaktliqz.functions.supabase.co",
         "EXPO_PUBLIC_MP_PUBLIC_KEY": "APP_USR-1f0a6029-c5d7-4417-87ef-71561e877323",
         "EXPO_PUBLIC_SENTRY_DSN": "https://860f47c42454dd6877941d367e70c587@o4511020401754112.ingest.us.sentry.io/4511020410208256",
-        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thezolverapp.web.app/auth/email-link",
+        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thenexofixapp.web.app/auth/email-link",
         "EXPO_PUBLIC_IOS_BUNDLE_ID": "com.the.zolver.app",
         "EXPO_PUBLIC_ANDROID_PACKAGE": "com.the.zolver.app"
       }
@@ -74,7 +74,7 @@
         "EXPO_PUBLIC_SUPABASE_URL_FUNCTIONS": "https://uxfsxayzvfjyyaktliqz.functions.supabase.co",
         "EXPO_PUBLIC_MP_PUBLIC_KEY": "APP_USR-1f0a6029-c5d7-4417-87ef-71561e877323",
         "EXPO_PUBLIC_SENTRY_DSN": "https://860f47c42454dd6877941d367e70c587@o4511020401754112.ingest.us.sentry.io/4511020410208256",
-        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thezolverapp.web.app/auth/email-link",
+        "EXPO_PUBLIC_EMAIL_LINK_REDIRECT_URL": "https://thenexofixapp.web.app/auth/email-link",
         "EXPO_PUBLIC_IOS_BUNDLE_ID": "com.the.zolver.app",
         "EXPO_PUBLIC_ANDROID_PACKAGE": "com.the.zolver.app"
       }

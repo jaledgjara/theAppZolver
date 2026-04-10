@@ -21,7 +21,7 @@ api_url = "http://localhost"
 enabled = true
 site_url = "http://localhost:8081"
 additional_redirect_urls = [
-  "https://thezolverapp.web.app",
+  "https://thenexofixapp.web.app",
   "zolver://",
   "exp://localhost:8081",
 ]
