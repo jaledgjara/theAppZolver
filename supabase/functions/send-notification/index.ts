@@ -110,7 +110,23 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      if (!sharedReservation) {
+      let authorized = !!sharedReservation;
+
+      // Fallback: check if they share a conversation (chat before reservation exists)
+      if (!authorized) {
+        const { data: sharedConversation } = await supabaseAdmin
+          .from("conversations")
+          .select("id")
+          .or(
+            `and(participant1_id.eq.${senderUid},participant2_id.eq.${user_id}),and(participant1_id.eq.${user_id},participant2_id.eq.${senderUid})`,
+          )
+          .limit(1)
+          .maybeSingle();
+
+        authorized = !!sharedConversation;
+      }
+
+      if (!authorized) {
         console.warn(
           `[send-notification] Unauthorized: ${senderUid} has no relationship with ${user_id}`,
         );

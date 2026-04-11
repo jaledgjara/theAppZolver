@@ -53,7 +53,9 @@
       "Bash(mkdir -p /tmp/redirect-dist)",
       "Bash(cat)",
       "Bash(npx eas-cli:*)",
-      "Bash(sips:*)"
+      "Bash(sips:*)",
+      "WebFetch(domain:expo.dev)",
+      "WebFetch(domain:job-logs.eascdn.net)"
     ]
   }
 }
